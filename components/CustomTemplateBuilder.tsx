@@ -180,14 +180,4 @@ const CustomTemplateBuilder: React.FC<Props> = ({ templates, onSave, onDelete })
   );
 };
 
-function getAllExercises() {
-  // Import from exercise library
-  try {
-    const lib = require('../services/exerciseLibrary');
-    return lib.getAllExercises ? lib.getAllExercises() : [];
-  } catch {
-    return [];
-  }
-}
-
 export default CustomTemplateBuilder;

@@ -550,6 +550,13 @@ export const EXERCISE_LIBRARY: Exercise[] = [
 ];
 
 /**
+ * Get all exercises.
+ */
+export const getAllExercises = (): Exercise[] => {
+  return EXERCISE_LIBRARY;
+};
+
+/**
  * Look up an exercise by ID.
  */
 export const getExerciseById = (id: string): Exercise | undefined => {

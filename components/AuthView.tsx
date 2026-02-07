@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '../services/supabaseService';
+import { supabase, isSupabaseConfigured } from '../services/supabaseService';
 import { Dumbbell } from 'lucide-react';
 
 const AuthView: React.FC = () => {
@@ -7,17 +7,36 @@ const AuthView: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
+
+    if (!isSupabaseConfigured) {
+      setError('Supabase is not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY, then restart the dev server.');
+      return;
+    }
     setLoading(true);
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: window.location.origin,
+          },
+        });
         if (error) throw error;
+
+        if (!data.session) {
+          setSuccess('Account created. Check your email for the confirmation link, then sign in.');
+          setIsSignUp(false);
+          setPassword('');
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -65,14 +84,21 @@ const AuthView: React.FC = () => {
           </div>
 
           {error && <p className="text-red-400 text-sm">{error}</p>}
+          {success && <p className="text-green-400 text-sm">{success}</p>}
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !isSupabaseConfigured}
             className="w-full py-3 bg-red-600 hover:bg-red-700 disabled:bg-red-800 text-white font-bold rounded-xl transition-all"
           >
             {loading ? 'Loading...' : isSignUp ? 'Sign Up' : 'Sign In'}
           </button>
+
+          {!isSupabaseConfigured && (
+            <p className="text-xs text-gray-500">
+              Missing Supabase config. Create a <span className="text-gray-400">.env.local</span> file with <span className="text-gray-400">SUPABASE_URL</span> and <span className="text-gray-400">SUPABASE_ANON_KEY</span>, then restart.
+            </p>
+          )}
 
           <p className="text-center text-sm text-gray-500">
             {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
