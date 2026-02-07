@@ -73,7 +73,7 @@ const RPECalibrationView: React.FC = () => {
               onClick={() => setCalibration(prev => ({ ...prev, calibrationMethod: m.value }))}
               className={`p-3 rounded-lg border text-center transition-all ${
                 calibration.calibrationMethod === m.value
-                  ? 'border-red-500 bg-red-500/10'
+                  ? 'border-amber-500 bg-amber-500/10'
                   : 'border-neutral-700 bg-neutral-800 hover:border-neutral-600'
               }`}
             >
@@ -92,7 +92,7 @@ const RPECalibrationView: React.FC = () => {
           {RPE_VALUES.map(rpe => (
             <div key={rpe} className="flex items-center gap-3">
               <div className={`w-12 h-8 flex items-center justify-center rounded font-bold text-sm ${
-                rpe >= 9.5 ? 'bg-red-500/20 text-red-400' :
+                rpe >= 9.5 ? 'bg-amber-500/20 text-amber-400' :
                 rpe >= 8 ? 'bg-orange-500/20 text-orange-400' :
                 rpe >= 7 ? 'bg-yellow-500/20 text-yellow-400' :
                 'bg-green-500/20 text-green-400'
@@ -135,9 +135,9 @@ const RPECalibrationView: React.FC = () => {
                   step={0.5}
                   value={pct}
                   onChange={e => updatePercent(rpe, Number(e.target.value))}
-                  className="flex-1 accent-red-500"
+                  className="flex-1 accent-amber-500"
                 />
-                <span className="text-sm font-mono text-red-400 w-14 text-right">{pct}%</span>
+                <span className="text-sm font-mono text-amber-400 w-14 text-right">{pct}%</span>
                 {diff !== 0 && (
                   <span className={`text-xs w-12 text-right ${diff > 0 ? 'text-green-400' : 'text-blue-400'}`}>
                     {diff > 0 ? '+' : ''}{diff}%
@@ -161,7 +161,7 @@ const RPECalibrationView: React.FC = () => {
                 <span className="text-xs text-neutral-400 w-8">{rpe}</span>
                 <div className="flex-1 relative h-4 bg-neutral-800 rounded overflow-hidden">
                   <div className="absolute inset-y-0 left-0 bg-neutral-600/50 rounded" style={{ width: `${stdPct}%` }} />
-                  <div className="absolute inset-y-0 left-0 bg-red-500/80 rounded" style={{ width: `${yourPct}%` }} />
+                  <div className="absolute inset-y-0 left-0 bg-amber-500/80 rounded" style={{ width: `${yourPct}%` }} />
                 </div>
                 <span className="text-xs text-neutral-500 font-mono w-8">{yourPct}%</span>
               </div>
@@ -169,7 +169,7 @@ const RPECalibrationView: React.FC = () => {
           })}
         </div>
         <div className="flex gap-4 mt-3 text-xs">
-          <span className="flex items-center gap-1"><span className="w-3 h-3 bg-red-500 rounded inline-block" /> Your Calibration</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 bg-amber-500 rounded inline-block" /> Your Calibration</span>
           <span className="flex items-center gap-1"><span className="w-3 h-3 bg-neutral-600 rounded inline-block" /> Standard</span>
         </div>
       </div>
@@ -189,7 +189,7 @@ const RPECalibrationView: React.FC = () => {
       {/* Save */}
       <button
         onClick={handleSave}
-        className="w-full py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-colors"
+        className="w-full py-3 bg-amber-500 text-black font-semibold rounded-xl hover:bg-amber-600 transition-colors"
       >
         {saved ? '✓ Calibration Saved!' : 'Save Calibration'}
       </button>

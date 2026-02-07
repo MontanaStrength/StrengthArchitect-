@@ -81,8 +81,8 @@ const StrengthTestView: React.FC<Props> = ({ tests, weightLbs, onSave }) => {
   return (
     <div className="max-w-4xl mx-auto space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-white flex items-center gap-2"><ClipboardList size={24} className="text-red-500" /> Strength Tests</h2>
-        <button onClick={() => setShowAdd(!showAdd)} className="flex items-center gap-1.5 px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg"><Plus size={16} /> New Test</button>
+        <h2 className="text-2xl font-bold text-white flex items-center gap-2"><ClipboardList size={24} className="text-amber-500" /> Strength Tests</h2>
+        <button onClick={() => setShowAdd(!showAdd)} className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-black text-sm font-medium rounded-lg"><Plus size={16} /> New Test</button>
       </div>
 
       {/* Summary Cards */}
@@ -106,7 +106,7 @@ const StrengthTestView: React.FC<Props> = ({ tests, weightLbs, onSave }) => {
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 flex justify-between items-center">
           <div>
             <p className="text-xs text-gray-400">S/B/D Total</p>
-            <p className="text-2xl font-bold text-red-400">{Math.round(bigThreeTotal)} lbs</p>
+            <p className="text-2xl font-bold text-amber-400">{Math.round(bigThreeTotal)} lbs</p>
           </div>
           <div className="text-right">
             <p className="text-xs text-gray-400">Wilks (approx)</p>
@@ -150,7 +150,7 @@ const StrengthTestView: React.FC<Props> = ({ tests, weightLbs, onSave }) => {
             <p className="text-sm text-gray-400">Estimated 1RM: <span className="text-white font-bold">{Math.round(estimate1RM(weight, reps))} lbs</span></p>
           )}
           <div className="flex gap-2">
-            <button onClick={handleSave} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg">Save Test</button>
+            <button onClick={handleSave} className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black text-sm font-medium rounded-lg">Save Test</button>
             <button onClick={() => setShowAdd(false)} className="px-4 py-2 bg-neutral-800 text-gray-300 text-sm rounded-lg">Cancel</button>
           </div>
         </div>

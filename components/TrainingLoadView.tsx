@@ -80,7 +80,7 @@ const TrainingLoadView: React.FC<Props> = ({ history }) => {
               acuteChronicRatio < 0.8 ? 'text-blue-400' :
               acuteChronicRatio <= 1.3 ? 'text-green-400' :
               acuteChronicRatio <= 1.5 ? 'text-yellow-400' :
-              'text-red-400'
+              'text-amber-400'
             }`}>
               {acuteChronicRatio.toFixed(2)}
             </div>
@@ -97,7 +97,7 @@ const TrainingLoadView: React.FC<Props> = ({ history }) => {
                 acuteChronicRatio < 0.8 ? 'bg-blue-500' :
                 acuteChronicRatio <= 1.3 ? 'bg-green-500' :
                 acuteChronicRatio <= 1.5 ? 'bg-yellow-500' :
-                'bg-red-500'
+                'bg-amber-500'
               }`}
               style={{ width: `${Math.min(acuteChronicRatio / 2 * 100, 100)}%` }}
             />
@@ -119,7 +119,7 @@ const TrainingLoadView: React.FC<Props> = ({ history }) => {
               <div key={i} className="flex-1 flex flex-col items-center">
                 <span className="text-xs text-neutral-400 mb-1">{(w.tonnage / 1000).toFixed(0)}k</span>
                 <div
-                  className="w-full bg-red-500/80 rounded-t transition-all hover:bg-red-400"
+                  className="w-full bg-amber-500/80 rounded-t transition-all hover:bg-amber-400"
                   style={{ height: `${(w.tonnage / maxTonnage) * 100}%`, minHeight: w.tonnage > 0 ? 4 : 0 }}
                 />
                 <span className="text-xs text-neutral-500 mt-1">{w.weekLabel}</span>
@@ -151,7 +151,7 @@ const TrainingLoadView: React.FC<Props> = ({ history }) => {
                   <td className="py-2 text-neutral-300">{w.weekLabel}</td>
                   <td className="py-2 text-right text-white">{w.sessions}</td>
                   <td className="py-2 text-right text-white">{w.sets}</td>
-                  <td className="py-2 text-right text-red-400 font-mono">{w.tonnage > 0 ? `${(w.tonnage / 1000).toFixed(1)}k` : '—'}</td>
+                  <td className="py-2 text-right text-amber-400 font-mono">{w.tonnage > 0 ? `${(w.tonnage / 1000).toFixed(1)}k` : '—'}</td>
                   <td className="py-2 text-right text-neutral-300">{w.avgRPE > 0 ? w.avgRPE : '—'}</td>
                 </tr>
               ))}
@@ -177,7 +177,7 @@ const TrainingLoadView: React.FC<Props> = ({ history }) => {
                 </div>
                 <div className="flex gap-1 h-3">
                   <div className="flex-1 bg-neutral-800 rounded overflow-hidden">
-                    <div className="h-full bg-red-500 rounded" style={{ width: `${(thisW / max) * 100}%` }} />
+                    <div className="h-full bg-amber-500 rounded" style={{ width: `${(thisW / max) * 100}%` }} />
                   </div>
                   <div className="flex-1 bg-neutral-800 rounded overflow-hidden">
                     <div className="h-full bg-neutral-600 rounded" style={{ width: `${(lastW / max) * 100}%` }} />
@@ -188,7 +188,7 @@ const TrainingLoadView: React.FC<Props> = ({ history }) => {
           })}
         </div>
         <div className="flex gap-4 mt-3 text-xs">
-          <span className="flex items-center gap-1"><span className="w-3 h-3 bg-red-500 rounded inline-block" /> This Week</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 bg-amber-500 rounded inline-block" /> This Week</span>
           <span className="flex items-center gap-1"><span className="w-3 h-3 bg-neutral-600 rounded inline-block" /> Last Week</span>
         </div>
       </div>

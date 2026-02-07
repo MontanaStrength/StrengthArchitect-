@@ -74,7 +74,7 @@ const TYPE_COLORS: Record<WarmupStep['type'], string> = {
   'foam-roll': 'bg-purple-500/20 text-purple-400 border-purple-500/30',
   'dynamic-stretch': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
   'activation': 'bg-orange-500/20 text-orange-400 border-orange-500/30',
-  'ramp-up-set': 'bg-red-500/20 text-red-400 border-red-500/30',
+  'ramp-up-set': 'bg-amber-500/20 text-amber-400 border-amber-500/30',
   'static-stretch': 'bg-green-500/20 text-green-400 border-green-500/30',
   'breathing': 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
 };
@@ -137,7 +137,7 @@ const WarmupCooldownView: React.FC = () => {
             onClick={() => { setActiveProtocol(i); setActiveStep(-1); stopTimer(); }}
             className={`px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all ${
               activeProtocol === i
-                ? 'bg-red-600 text-white'
+                ? 'bg-amber-500 text-black'
                 : 'bg-neutral-800 text-neutral-400 border border-neutral-700 hover:border-neutral-600'
             }`}
           >
@@ -157,16 +157,16 @@ const WarmupCooldownView: React.FC = () => {
         {activeStep >= 0 && (
           <div className="bg-neutral-800 rounded-lg p-4 mb-4 text-center">
             <div className="text-xs text-neutral-400 mb-1">Step {activeStep + 1}: {protocol.steps[activeStep].description}</div>
-            <div className="text-5xl font-bold text-red-400 font-mono my-2">
+            <div className="text-5xl font-bold text-amber-400 font-mono my-2">
               {Math.floor(timer / 60)}:{String(timer % 60).padStart(2, '0')}
             </div>
             <div className="flex justify-center gap-3">
               {running ? (
                 <button onClick={stopTimer} className="px-4 py-2 bg-neutral-700 text-white rounded-lg text-sm">⏸ Pause</button>
               ) : timer > 0 ? (
-                <button onClick={() => startStep(activeStep)} className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm">▶ Resume</button>
+                <button onClick={() => startStep(activeStep)} className="px-4 py-2 bg-amber-500 text-black rounded-lg text-sm">▶ Resume</button>
               ) : activeStep < protocol.steps.length - 1 ? (
-                <button onClick={() => startStep(activeStep + 1)} className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm">Next Step →</button>
+                <button onClick={() => startStep(activeStep + 1)} className="px-4 py-2 bg-amber-500 text-black rounded-lg text-sm">Next Step →</button>
               ) : (
                 <span className="text-green-400 text-sm font-semibold">✓ Complete!</span>
               )}
@@ -180,7 +180,7 @@ const WarmupCooldownView: React.FC = () => {
             <div
               key={i}
               className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all ${
-                activeStep === i ? 'bg-red-500/10 border border-red-500/30' : 'bg-neutral-800 hover:bg-neutral-750 border border-transparent'
+                activeStep === i ? 'bg-amber-500/10 border border-amber-500/30' : 'bg-neutral-800 hover:bg-neutral-750 border border-transparent'
               }`}
               onClick={() => startStep(i)}
             >
@@ -205,7 +205,7 @@ const WarmupCooldownView: React.FC = () => {
       {/* Start Full Protocol */}
       <button
         onClick={() => startStep(0)}
-        className="w-full py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-colors"
+        className="w-full py-3 bg-amber-500 text-black font-semibold rounded-xl hover:bg-amber-600 transition-colors"
       >
         ▶ Start Full Protocol
       </button>

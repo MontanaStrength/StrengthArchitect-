@@ -32,7 +32,7 @@ const FeedbackSection: React.FC<Props> = ({ workoutId, existingFeedback, onSaveF
         <button
           onClick={() => handleSave('down')}
           className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${
-            rating === 'down' ? 'bg-red-600 border-red-500 text-white' : 'bg-neutral-800 border-neutral-700 text-gray-400 hover:border-red-500'
+            rating === 'down' ? 'bg-amber-500 border-amber-500 text-white' : 'bg-neutral-800 border-neutral-700 text-gray-400 hover:border-amber-500'
           }`}
         >
           <ThumbsDown size={16} /> Too Hard/Easy

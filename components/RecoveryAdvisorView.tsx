@@ -78,12 +78,12 @@ const RecoveryAdvisorView: React.FC<Props> = ({ history, sleepEntries }) => {
     };
   }, [history, sleepEntries]);
 
-  const scoreColor = assessment.numericScore >= 80 ? 'text-green-400' : assessment.numericScore >= 60 ? 'text-blue-400' : assessment.numericScore >= 40 ? 'text-yellow-400' : assessment.numericScore >= 20 ? 'text-orange-400' : 'text-red-400';
-  const scoreBg = assessment.numericScore >= 80 ? 'bg-green-900/30 border-green-700' : assessment.numericScore >= 60 ? 'bg-blue-900/30 border-blue-700' : assessment.numericScore >= 40 ? 'bg-yellow-900/30 border-yellow-700' : assessment.numericScore >= 20 ? 'bg-orange-900/30 border-orange-700' : 'bg-red-900/30 border-red-700';
+  const scoreColor = assessment.numericScore >= 80 ? 'text-green-400' : assessment.numericScore >= 60 ? 'text-blue-400' : assessment.numericScore >= 40 ? 'text-yellow-400' : assessment.numericScore >= 20 ? 'text-orange-400' : 'text-amber-400';
+  const scoreBg = assessment.numericScore >= 80 ? 'bg-green-900/30 border-green-700' : assessment.numericScore >= 60 ? 'bg-blue-900/30 border-blue-700' : assessment.numericScore >= 40 ? 'bg-yellow-900/30 border-yellow-700' : assessment.numericScore >= 20 ? 'bg-orange-900/30 border-orange-700' : 'bg-amber-900/30 border-amber-700';
 
   return (
     <div className="max-w-4xl mx-auto space-y-4">
-      <h2 className="text-2xl font-bold text-white flex items-center gap-2"><Heart size={24} className="text-red-500" /> Recovery Advisor</h2>
+      <h2 className="text-2xl font-bold text-white flex items-center gap-2"><Heart size={24} className="text-amber-500" /> Recovery Advisor</h2>
 
       {/* Main Score */}
       <div className={`${scoreBg} border rounded-xl p-6 text-center`}>

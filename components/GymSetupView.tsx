@@ -88,7 +88,7 @@ const GymSetupView: React.FC<Props> = ({ gymSetup, onSave }) => {
                 onClick={() => toggleEquipment(opt.value)}
                 className={`p-3 rounded-lg border text-center transition-all ${
                   active
-                    ? 'border-red-500 bg-red-500/10 text-white'
+                    ? 'border-amber-500 bg-amber-500/10 text-white'
                     : 'border-neutral-700 bg-neutral-800 text-neutral-400 hover:border-neutral-600'
                 }`}
               >
@@ -124,7 +124,7 @@ const GymSetupView: React.FC<Props> = ({ gymSetup, onSave }) => {
                 type="checkbox"
                 checked={setup.hasRack}
                 onChange={e => setSetup(prev => ({ ...prev, hasRack: e.target.checked }))}
-                className="accent-red-500"
+                className="accent-amber-500"
               />
               Squat Rack / Power Rack
             </label>
@@ -133,7 +133,7 @@ const GymSetupView: React.FC<Props> = ({ gymSetup, onSave }) => {
                 type="checkbox"
                 checked={setup.hasPullUpBar}
                 onChange={e => setSetup(prev => ({ ...prev, hasPullUpBar: e.target.checked }))}
-                className="accent-red-500"
+                className="accent-amber-500"
               />
               Pull-Up Bar
             </label>
@@ -142,7 +142,7 @@ const GymSetupView: React.FC<Props> = ({ gymSetup, onSave }) => {
                 type="checkbox"
                 checked={setup.hasCableStack}
                 onChange={e => setSetup(prev => ({ ...prev, hasCableStack: e.target.checked }))}
-                className="accent-red-500"
+                className="accent-amber-500"
               />
               Cable Stack
             </label>
@@ -162,7 +162,7 @@ const GymSetupView: React.FC<Props> = ({ gymSetup, onSave }) => {
               <button
                 key={preset.label}
                 onClick={() => applyPlatePreset(preset.plates)}
-                className="px-3 py-1 text-sm bg-neutral-800 text-neutral-300 rounded-lg border border-neutral-700 hover:border-red-500/50 transition-colors"
+                className="px-3 py-1 text-sm bg-neutral-800 text-neutral-300 rounded-lg border border-neutral-700 hover:border-amber-500/50 transition-colors"
               >
                 {preset.label}
               </button>
@@ -173,9 +173,9 @@ const GymSetupView: React.FC<Props> = ({ gymSetup, onSave }) => {
         {/* Current Plates */}
         <div className="flex flex-wrap gap-2 mb-4">
           {setup.availablePlatesLbs.map(plate => (
-            <span key={plate} className="flex items-center gap-1 px-3 py-1 bg-red-500/10 border border-red-500/30 text-red-400 rounded-full text-sm">
+            <span key={plate} className="flex items-center gap-1 px-3 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-full text-sm">
               {plate} lbs
-              <button onClick={() => removePlate(plate)} className="ml-1 text-red-400 hover:text-red-300">✕</button>
+              <button onClick={() => removePlate(plate)} className="ml-1 text-amber-400 hover:text-amber-300">✕</button>
             </span>
           ))}
         </div>
@@ -193,7 +193,7 @@ const GymSetupView: React.FC<Props> = ({ gymSetup, onSave }) => {
           />
           <button
             onClick={addCustomPlate}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700 transition-colors"
+            className="px-4 py-2 bg-amber-500 text-black rounded-lg text-sm hover:bg-amber-600 transition-colors"
           >
             Add Plate
           </button>
@@ -216,7 +216,7 @@ const GymSetupView: React.FC<Props> = ({ gymSetup, onSave }) => {
       <div className="flex gap-3">
         <button
           onClick={handleSave}
-          className="flex-1 py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-colors"
+          className="flex-1 py-3 bg-amber-500 text-black font-semibold rounded-xl hover:bg-amber-600 transition-colors"
         >
           {saved ? '✓ Saved!' : 'Save Gym Setup'}
         </button>

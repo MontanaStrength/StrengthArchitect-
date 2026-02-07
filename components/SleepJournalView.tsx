@@ -32,7 +32,7 @@ const SleepJournalView: React.FC<Props> = ({ entries, onSave, onDelete }) => {
   };
 
   const qualityColor: Record<SleepQuality, string> = {
-    poor: 'bg-red-900/50 text-red-300',
+    poor: 'bg-amber-900/50 text-amber-300',
     fair: 'bg-yellow-900/50 text-yellow-300',
     good: 'bg-blue-900/50 text-blue-300',
     excellent: 'bg-green-900/50 text-green-300',
@@ -46,7 +46,7 @@ const SleepJournalView: React.FC<Props> = ({ entries, onSave, onDelete }) => {
     <div className="max-w-4xl mx-auto space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-white flex items-center gap-2"><Moon size={24} className="text-blue-400" /> Sleep Journal</h2>
-        <button onClick={() => setShowAdd(!showAdd)} className="flex items-center gap-1.5 px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg"><Plus size={16} /> Log Sleep</button>
+        <button onClick={() => setShowAdd(!showAdd)} className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-black text-sm font-medium rounded-lg"><Plus size={16} /> Log Sleep</button>
       </div>
 
       {/* Summary */}
@@ -100,7 +100,7 @@ const SleepJournalView: React.FC<Props> = ({ entries, onSave, onDelete }) => {
             <input value={notes} onChange={e => setNotes(e.target.value)} className="w-full mt-1 p-2 rounded bg-neutral-800 border border-neutral-700 text-white text-sm" placeholder="e.g., woke up once, stressed" />
           </div>
           <div className="flex gap-2">
-            <button onClick={handleSave} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg">Save</button>
+            <button onClick={handleSave} className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black text-sm font-medium rounded-lg">Save</button>
             <button onClick={() => setShowAdd(false)} className="px-4 py-2 bg-neutral-800 text-gray-300 text-sm rounded-lg">Cancel</button>
           </div>
         </div>
@@ -117,7 +117,7 @@ const SleepJournalView: React.FC<Props> = ({ entries, onSave, onDelete }) => {
                 <p className="text-sm text-white font-medium">{e.hoursSlept}h — <span className={`px-1.5 py-0.5 rounded text-xs ${qualityColor[e.quality]}`}>{e.quality}</span></p>
                 <p className="text-xs text-gray-500">{e.date}{e.hrv ? ` • HRV ${e.hrv}ms` : ''}{e.restingHR ? ` • RHR ${e.restingHR}bpm` : ''}{e.notes ? ` — ${e.notes}` : ''}</p>
               </div>
-              <button onClick={() => { if (confirm('Delete?')) onDelete(e.id); }} className="text-gray-600 hover:text-red-400"><Trash2 size={14} /></button>
+              <button onClick={() => { if (confirm('Delete?')) onDelete(e.id); }} className="text-gray-600 hover:text-amber-400"><Trash2 size={14} /></button>
             </div>
           ))}
         </div>

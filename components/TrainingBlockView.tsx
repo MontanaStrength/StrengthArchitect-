@@ -39,11 +39,11 @@ const TrainingBlockView: React.FC<Props> = ({ blocks, onSave, onDelete }) => {
   const getPhaseColor = (phase: TrainingPhase) => {
     switch (phase) {
       case TrainingPhase.HYPERTROPHY: return 'bg-purple-900/50 text-purple-300 border-purple-700';
-      case TrainingPhase.STRENGTH: return 'bg-red-900/50 text-red-300 border-red-700';
+      case TrainingPhase.STRENGTH: return 'bg-amber-900/50 text-amber-300 border-amber-700';
       case TrainingPhase.PEAKING: return 'bg-orange-900/50 text-orange-300 border-orange-700';
       case TrainingPhase.ACCUMULATION: return 'bg-blue-900/50 text-blue-300 border-blue-700';
       case TrainingPhase.INTENSIFICATION: return 'bg-yellow-900/50 text-yellow-300 border-yellow-700';
-      case TrainingPhase.REALIZATION: return 'bg-red-900/50 text-red-300 border-red-700';
+      case TrainingPhase.REALIZATION: return 'bg-amber-900/50 text-amber-300 border-amber-700';
       case TrainingPhase.DELOAD: return 'bg-green-900/50 text-green-300 border-green-700';
       default: return 'bg-neutral-800 text-gray-300 border-neutral-700';
     }
@@ -55,11 +55,11 @@ const TrainingBlockView: React.FC<Props> = ({ blocks, onSave, onDelete }) => {
     <div className="max-w-4xl mx-auto space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-          <Layers size={24} className="text-red-500" /> Training Blocks
+          <Layers size={24} className="text-amber-500" /> Training Blocks
         </h2>
         <button
           onClick={() => setShowCreate(!showCreate)}
-          className="flex items-center gap-1.5 px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-all"
+          className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-black text-sm font-medium rounded-lg transition-all"
         >
           <Plus size={16} /> New Block
         </button>
@@ -112,7 +112,7 @@ const TrainingBlockView: React.FC<Props> = ({ blocks, onSave, onDelete }) => {
             </div>
           )}
           <div className="flex gap-2">
-            <button onClick={handleCreate} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-all">
+            <button onClick={handleCreate} className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black text-sm font-medium rounded-lg transition-all">
               Create Block
             </button>
             <button onClick={() => setShowCreate(false)} className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-gray-300 text-sm rounded-lg transition-all">
@@ -137,7 +137,7 @@ const TrainingBlockView: React.FC<Props> = ({ blocks, onSave, onDelete }) => {
             const progress = Math.min(100, Math.round((elapsedWeeks / weeks) * 100));
 
             return (
-              <div key={block.id} className={`bg-neutral-900 border rounded-xl overflow-hidden ${block.isActive ? 'border-red-600' : 'border-neutral-800'}`}>
+              <div key={block.id} className={`bg-neutral-900 border rounded-xl overflow-hidden ${block.isActive ? 'border-amber-500' : 'border-neutral-800'}`}>
                 <div
                   className="p-4 cursor-pointer flex justify-between items-center"
                   onClick={() => setExpandedId(isExpanded ? null : block.id)}
@@ -145,14 +145,14 @@ const TrainingBlockView: React.FC<Props> = ({ blocks, onSave, onDelete }) => {
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="text-sm font-bold text-white">{block.name}</h3>
-                      {block.isActive && <span className="text-[10px] bg-red-600 text-white px-1.5 py-0.5 rounded font-medium">ACTIVE</span>}
+                      {block.isActive && <span className="text-[10px] bg-amber-500 text-black px-1.5 py-0.5 rounded font-medium">ACTIVE</span>}
                     </div>
                     <p className="text-xs text-gray-500">{weeks} weeks • Started {new Date(block.startDate).toLocaleDateString()} • Week {Math.min(elapsedWeeks + 1, weeks)}/{weeks}</p>
                     {block.goalEvent && <p className="text-xs text-gray-400 mt-0.5">🎯 {block.goalEvent}</p>}
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-24 h-1.5 bg-neutral-800 rounded-full overflow-hidden">
-                      <div className="h-full bg-red-500" style={{ width: `${progress}%` }} />
+                      <div className="h-full bg-amber-500" style={{ width: `${progress}%` }} />
                     </div>
                     {isExpanded ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
                   </div>
@@ -165,10 +165,10 @@ const TrainingBlockView: React.FC<Props> = ({ blocks, onSave, onDelete }) => {
                       for (let j = 0; j < i; j++) cumulativeWeeks += block.phases[j].weekCount;
                       const isCurrent = elapsedWeeks >= cumulativeWeeks && elapsedWeeks < cumulativeWeeks + p.weekCount;
                       return (
-                        <div key={i} className={`px-3 py-2 rounded border text-xs ${isCurrent ? 'ring-1 ring-red-500 ' : ''}${getPhaseColor(p.phase)}`}>
+                        <div key={i} className={`px-3 py-2 rounded border text-xs ${isCurrent ? 'ring-1 ring-amber-500 ' : ''}${getPhaseColor(p.phase)}`}>
                           <div className="flex justify-between">
                             <span className="font-semibold">{p.phase} ({p.weekCount}wk)</span>
-                            {isCurrent && <span className="text-red-400 font-bold">← CURRENT</span>}
+                            {isCurrent && <span className="text-amber-400 font-bold">← CURRENT</span>}
                           </div>
                           <p className="mt-1 opacity-80">{p.description}</p>
                         </div>
@@ -185,7 +185,7 @@ const TrainingBlockView: React.FC<Props> = ({ blocks, onSave, onDelete }) => {
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); if (confirm('Delete this block?')) onDelete(block.id); }}
-                        className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-neutral-800 hover:bg-red-900/50 text-gray-400 hover:text-red-400 rounded-lg transition-all"
+                        className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-neutral-800 hover:bg-amber-900/50 text-gray-400 hover:text-amber-400 rounded-lg transition-all"
                       >
                         <Trash2 size={12} /> Delete
                       </button>

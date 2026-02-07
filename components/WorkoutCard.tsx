@@ -15,19 +15,19 @@ const WorkoutCard: React.FC<Props> = ({ plan, gymSetup }) => {
   return (
     <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
       {/* Header */}
-      <div className="bg-gradient-to-r from-red-600 to-red-800 p-4">
+      <div className="bg-gradient-to-r from-amber-600 to-amber-800 p-4">
         <div className="flex justify-between items-start">
           <div>
             <h2 className="text-xl font-bold text-white">{plan.title}</h2>
-            <p className="text-red-200 text-sm mt-1">{plan.focus} • {plan.difficulty}</p>
+            <p className="text-amber-200 text-sm mt-1">{plan.focus} • {plan.difficulty}</p>
           </div>
           <div className="text-right">
-            <div className="flex items-center gap-1 text-red-200 text-sm">
+            <div className="flex items-center gap-1 text-amber-200 text-sm">
               <Clock size={14} />
               {plan.totalDurationMin} min
             </div>
             {plan.estimatedTonnage && (
-              <div className="flex items-center gap-1 text-red-200 text-sm mt-1">
+              <div className="flex items-center gap-1 text-amber-200 text-sm mt-1">
                 <BarChart3 size={14} />
                 {plan.estimatedTonnage.toLocaleString()} lbs
               </div>
@@ -115,7 +115,7 @@ const WorkoutCard: React.FC<Props> = ({ plan, gymSetup }) => {
             <span key={p} className="text-[10px] bg-neutral-800 text-gray-400 px-2 py-0.5 rounded">{p}</span>
           ))}
           {plan.muscleGroupsCovered?.map(m => (
-            <span key={m} className="text-[10px] bg-red-900/30 text-red-400 px-2 py-0.5 rounded">{m}</span>
+            <span key={m} className="text-[10px] bg-amber-900/30 text-amber-400 px-2 py-0.5 rounded">{m}</span>
           ))}
         </div>
       )}

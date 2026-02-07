@@ -21,7 +21,7 @@ const GRADE_COLORS: Record<string, string> = {
   B: 'text-blue-400 bg-blue-500/10 border-blue-500/30',
   C: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30',
   D: 'text-orange-400 bg-orange-500/10 border-orange-500/30',
-  F: 'text-red-400 bg-red-500/10 border-red-500/30',
+  F: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
   'N/A': 'text-neutral-500 bg-neutral-800 border-neutral-700',
 };
 
@@ -192,7 +192,7 @@ const ReportCardsView: React.FC<Props> = ({ history, liftRecords, goals }) => {
       {overallGPA && (
         <div className="bg-neutral-900 rounded-xl p-6 border border-neutral-800 text-center">
           <div className="text-sm text-neutral-400 mb-1">Overall Training GPA</div>
-          <div className="text-5xl font-bold text-red-400">{overallGPA}</div>
+          <div className="text-5xl font-bold text-amber-400">{overallGPA}</div>
           <div className="text-sm text-neutral-400 mt-1">/ 4.00</div>
         </div>
       )}
@@ -215,7 +215,7 @@ const ReportCardsView: React.FC<Props> = ({ history, liftRecords, goals }) => {
             {report.grade !== 'N/A' && (
               <div className="h-2 bg-neutral-800 rounded-full overflow-hidden mb-3">
                 <div
-                  className="h-full bg-red-500 rounded-full transition-all"
+                  className="h-full bg-amber-500 rounded-full transition-all"
                   style={{ width: `${report.score}%` }}
                 />
               </div>

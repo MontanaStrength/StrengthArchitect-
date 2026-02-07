@@ -71,8 +71,8 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
   return (
     <div className="max-w-4xl mx-auto space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-white flex items-center gap-2"><Calendar size={24} className="text-red-500" /> Training Calendar</h2>
-        <button onClick={() => { setShowAdd(!showAdd); setAddDate(new Date().toISOString().split('T')[0]); }} className="flex items-center gap-1.5 px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg"><Plus size={16} /> Schedule</button>
+        <h2 className="text-2xl font-bold text-white flex items-center gap-2"><Calendar size={24} className="text-amber-500" /> Training Calendar</h2>
+        <button onClick={() => { setShowAdd(!showAdd); setAddDate(new Date().toISOString().split('T')[0]); }} className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-black text-sm font-medium rounded-lg"><Plus size={16} /> Schedule</button>
       </div>
 
       {/* Add Form */}
@@ -103,7 +103,7 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
             </div>
           </div>
           <div className="flex gap-2">
-            <button onClick={handleSave} disabled={!addDate || !addLabel} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg disabled:opacity-50">Save</button>
+            <button onClick={handleSave} disabled={!addDate || !addLabel} className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black text-sm font-medium rounded-lg disabled:opacity-50">Save</button>
             <button onClick={() => setShowAdd(false)} className="px-4 py-2 bg-neutral-800 text-gray-300 text-sm rounded-lg">Cancel</button>
           </div>
         </div>
@@ -128,10 +128,10 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
           <div
             key={day.date}
             className={`min-h-[72px] p-1 rounded-lg border text-xs transition-all ${
-              day.isToday ? 'border-red-500 bg-red-900/20' : 'border-neutral-800 bg-neutral-900/50'
+              day.isToday ? 'border-amber-500 bg-amber-900/20' : 'border-neutral-800 bg-neutral-900/50'
             }`}
           >
-            <p className={`text-right text-[10px] ${day.isToday ? 'text-red-400 font-bold' : 'text-gray-500'}`}>{day.dayNum}</p>
+            <p className={`text-right text-[10px] ${day.isToday ? 'text-amber-400 font-bold' : 'text-gray-500'}`}>{day.dayNum}</p>
             {day.scheduled.map(s => (
               <button
                 key={s.id}
@@ -147,7 +147,7 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
               </button>
             ))}
             {day.completed.map(w => (
-              <div key={w.id} className="px-1 py-0.5 rounded bg-red-900/30 text-red-300 text-[9px] truncate mt-0.5">
+              <div key={w.id} className="px-1 py-0.5 rounded bg-amber-900/30 text-amber-300 text-[9px] truncate mt-0.5">
                 ✓ {w.title}
               </div>
             ))}
@@ -159,7 +159,7 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
       <div className="flex flex-wrap gap-4 text-xs text-gray-400">
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500" /> Planned</span>
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500" /> Completed</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500" /> Logged Session</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500" /> Logged Session</span>
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-gray-500" /> Skipped</span>
       </div>
     </div>

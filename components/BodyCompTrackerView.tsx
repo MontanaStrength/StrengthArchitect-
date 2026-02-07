@@ -39,9 +39,9 @@ const BodyCompTrackerView: React.FC<Props> = ({ entries, onSave, onDelete }) => 
     <div className="max-w-4xl mx-auto space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-          <BarChart3 size={24} className="text-red-500" /> Body Composition
+          <BarChart3 size={24} className="text-amber-500" /> Body Composition
         </h2>
-        <button onClick={() => setShowAdd(!showAdd)} className="flex items-center gap-1.5 px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-all">
+        <button onClick={() => setShowAdd(!showAdd)} className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-black text-sm font-medium rounded-lg transition-all">
           <Plus size={16} /> Log Entry
         </button>
       </div>
@@ -53,7 +53,7 @@ const BodyCompTrackerView: React.FC<Props> = ({ entries, onSave, onDelete }) => 
             <p className="text-xs text-gray-400">Weight</p>
             <p className="text-2xl font-bold text-white">{latest.weightLbs}</p>
             {weightDelta !== 0 && (
-              <p className={`text-xs ${weightDelta > 0 ? 'text-red-400' : 'text-green-400'}`}>
+              <p className={`text-xs ${weightDelta > 0 ? 'text-amber-400' : 'text-green-400'}`}>
                 {weightDelta > 0 ? '+' : ''}{weightDelta.toFixed(1)} lbs
               </p>
             )}
@@ -101,7 +101,7 @@ const BodyCompTrackerView: React.FC<Props> = ({ entries, onSave, onDelete }) => 
             <input value={notes} onChange={e => setNotes(e.target.value)} className="w-full mt-1 p-2 rounded bg-neutral-800 border border-neutral-700 text-white text-sm" placeholder="e.g., morning, fasted" />
           </div>
           <div className="flex gap-2">
-            <button onClick={handleSave} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg">Save</button>
+            <button onClick={handleSave} className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black text-sm font-medium rounded-lg">Save</button>
             <button onClick={() => setShowAdd(false)} className="px-4 py-2 bg-neutral-800 text-gray-300 text-sm rounded-lg">Cancel</button>
           </div>
         </div>
@@ -121,7 +121,7 @@ const BodyCompTrackerView: React.FC<Props> = ({ entries, onSave, onDelete }) => 
                 <p className="text-sm text-white font-medium">{e.weightLbs} lbs{e.bodyFatPct ? ` • ${e.bodyFatPct}% BF` : ''}{e.waistInches ? ` • ${e.waistInches}" waist` : ''}</p>
                 <p className="text-xs text-gray-500">{new Date(e.date).toLocaleDateString()}{e.notes ? ` — ${e.notes}` : ''}</p>
               </div>
-              <button onClick={() => { if (confirm('Delete?')) onDelete(e.id); }} className="text-gray-600 hover:text-red-400"><Trash2 size={14} /></button>
+              <button onClick={() => { if (confirm('Delete?')) onDelete(e.id); }} className="text-gray-600 hover:text-amber-400"><Trash2 size={14} /></button>
             </div>
           ))}
         </div>

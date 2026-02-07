@@ -159,7 +159,7 @@ const NotificationCenterView: React.FC<Props> = ({ history, liftRecords, sleepEn
     warning: 'border-yellow-500/30 bg-yellow-500/5',
     info: 'border-blue-500/30 bg-blue-500/5',
     success: 'border-green-500/30 bg-green-500/5',
-    danger: 'border-red-500/30 bg-red-500/5',
+    danger: 'border-amber-500/30 bg-amber-500/5',
   };
 
   return (
@@ -167,7 +167,7 @@ const NotificationCenterView: React.FC<Props> = ({ history, liftRecords, sleepEn
       <h2 className="text-2xl font-bold text-white flex items-center gap-2">
         <span className="text-3xl">🔔</span> Notification Center
         {activeAlerts.length > 0 && (
-          <span className="bg-red-600 text-white text-xs px-2 py-0.5 rounded-full">{activeAlerts.length}</span>
+          <span className="bg-amber-500 text-black text-xs px-2 py-0.5 rounded-full">{activeAlerts.length}</span>
         )}
       </h2>
 
@@ -205,7 +205,7 @@ const NotificationCenterView: React.FC<Props> = ({ history, liftRecords, sleepEn
             <h3 className="text-sm font-semibold text-neutral-400">Dismissed ({dismissedAlerts.length})</h3>
             <button
               onClick={onClearDismissed}
-              className="text-xs text-red-400 hover:text-red-300"
+              className="text-xs text-amber-400 hover:text-amber-300"
             >
               Clear All Dismissed
             </button>

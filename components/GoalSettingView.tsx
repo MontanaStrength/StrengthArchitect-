@@ -60,7 +60,7 @@ const GoalSettingView: React.FC<Props> = ({ goals, onSave, onDelete }) => {
     <div className="max-w-4xl mx-auto space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-white flex items-center gap-2"><Target size={24} className="text-green-400" /> Goals</h2>
-        <button onClick={() => setShowAdd(!showAdd)} className="flex items-center gap-1.5 px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg"><Plus size={16} /> Add Goal</button>
+        <button onClick={() => setShowAdd(!showAdd)} className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-black text-sm font-medium rounded-lg"><Plus size={16} /> Add Goal</button>
       </div>
 
       {/* Add Form */}
@@ -70,7 +70,7 @@ const GoalSettingView: React.FC<Props> = ({ goals, onSave, onDelete }) => {
             <label className="text-xs text-gray-400">Category</label>
             <div className="flex flex-wrap gap-2 mt-1">
               {(Object.keys(categoryLabels) as GoalCategory[]).map(c => (
-                <button key={c} onClick={() => setCategory(c)} className={`px-2 py-1 rounded text-xs transition-all ${category === c ? 'bg-red-600 text-white' : 'bg-neutral-800 text-gray-400 hover:bg-neutral-700'}`}>
+                <button key={c} onClick={() => setCategory(c)} className={`px-2 py-1 rounded text-xs transition-all ${category === c ? 'bg-amber-500 text-black' : 'bg-neutral-800 text-gray-400 hover:bg-neutral-700'}`}>
                   {categoryLabels[c]}
                 </button>
               ))}
@@ -95,7 +95,7 @@ const GoalSettingView: React.FC<Props> = ({ goals, onSave, onDelete }) => {
             </div>
           </div>
           <div className="flex gap-2">
-            <button onClick={handleSave} disabled={!title} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg disabled:opacity-50">Save</button>
+            <button onClick={handleSave} disabled={!title} className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black text-sm font-medium rounded-lg disabled:opacity-50">Save</button>
             <button onClick={() => setShowAdd(false)} className="px-4 py-2 bg-neutral-800 text-gray-300 text-sm rounded-lg">Cancel</button>
           </div>
         </div>
@@ -120,7 +120,7 @@ const GoalSettingView: React.FC<Props> = ({ goals, onSave, onDelete }) => {
                       </div>
                       <div className="flex items-center gap-1">
                         <button onClick={() => handleComplete(g)} className="p-1 text-gray-500 hover:text-green-400" title="Mark Complete"><Check size={16} /></button>
-                        <button onClick={() => { if (confirm('Delete?')) onDelete(g.id); }} className="p-1 text-gray-500 hover:text-red-400"><Trash2 size={14} /></button>
+                        <button onClick={() => { if (confirm('Delete?')) onDelete(g.id); }} className="p-1 text-gray-500 hover:text-amber-400"><Trash2 size={14} /></button>
                       </div>
                     </div>
                     <div className="h-2 bg-neutral-800 rounded-full overflow-hidden mb-2">
@@ -150,7 +150,7 @@ const GoalSettingView: React.FC<Props> = ({ goals, onSave, onDelete }) => {
                     <p className="text-sm text-gray-300 line-through">{g.title}</p>
                     <p className="text-xs text-gray-500">{g.targetValue} {g.unit} • Completed {g.completedDate ? new Date(g.completedDate).toLocaleDateString() : ''}</p>
                   </div>
-                  <button onClick={() => { if (confirm('Delete?')) onDelete(g.id); }} className="text-gray-600 hover:text-red-400"><Trash2 size={14} /></button>
+                  <button onClick={() => { if (confirm('Delete?')) onDelete(g.id); }} className="text-gray-600 hover:text-amber-400"><Trash2 size={14} /></button>
                 </div>
               ))}
             </div>

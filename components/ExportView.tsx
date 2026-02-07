@@ -96,14 +96,14 @@ const ExportView: React.FC<Props> = ({ history }) => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-4">
-      <h2 className="text-2xl font-bold text-white flex items-center gap-2"><FileText size={24} className="text-red-500" /> Export Data</h2>
+      <h2 className="text-2xl font-bold text-white flex items-center gap-2"><FileText size={24} className="text-amber-500" /> Export Data</h2>
 
       <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 space-y-4">
         <div>
           <label className="block text-sm font-semibold text-gray-300 mb-2">Format</label>
           <div className="flex gap-2">
             {(['json', 'csv'] as const).map(f => (
-              <button key={f} onClick={() => setFormat(f)} className={`px-4 py-2 rounded-lg text-sm font-medium uppercase transition-all ${format === f ? 'bg-red-600 text-white' : 'bg-neutral-800 text-gray-400 hover:bg-neutral-700'}`}>
+              <button key={f} onClick={() => setFormat(f)} className={`px-4 py-2 rounded-lg text-sm font-medium uppercase transition-all ${format === f ? 'bg-amber-500 text-black' : 'bg-neutral-800 text-gray-400 hover:bg-neutral-700'}`}>
                 {f}
               </button>
             ))}
@@ -120,7 +120,7 @@ const ExportView: React.FC<Props> = ({ history }) => {
           <p>📝 {history.filter(w => w.completedSets && w.completedSets.length > 0).length} workouts have logged set data</p>
         </div>
 
-        <button onClick={handleExport} disabled={history.length === 0} className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50">
+        <button onClick={handleExport} disabled={history.length === 0} className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50">
           <Download size={18} /> Export {format.toUpperCase()}
         </button>
       </div>

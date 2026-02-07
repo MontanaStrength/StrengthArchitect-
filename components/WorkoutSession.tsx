@@ -187,7 +187,7 @@ const WorkoutSession: React.FC<Props> = ({ workout, gymSetup, audioMuted, onAudi
                 onClick={() => setSessionRPE(n)}
                 className={`flex-1 py-2 rounded text-sm font-medium transition-all ${
                   sessionRPE === n
-                    ? 'bg-red-600 text-white'
+                    ? 'bg-amber-500 text-black'
                     : 'bg-neutral-800 text-gray-400 hover:bg-neutral-700'
                 }`}
               >
@@ -199,7 +199,7 @@ const WorkoutSession: React.FC<Props> = ({ workout, gymSetup, audioMuted, onAudi
 
         <button
           onClick={handleFinish}
-          className="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-lg transition-all"
+          className="w-full py-4 bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-xl text-lg transition-all"
         >
           Save & Finish
         </button>
@@ -223,7 +223,7 @@ const WorkoutSession: React.FC<Props> = ({ workout, gymSetup, audioMuted, onAudi
             >
               {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
             </button>
-            <button onClick={onCancel} className="p-2 text-gray-400 hover:text-red-400">
+            <button onClick={onCancel} className="p-2 text-gray-400 hover:text-amber-400">
               <X size={18} />
             </button>
           </div>
@@ -231,7 +231,7 @@ const WorkoutSession: React.FC<Props> = ({ workout, gymSetup, audioMuted, onAudi
         {/* Progress bar */}
         <div className="mt-2 h-1.5 bg-neutral-800 rounded-full overflow-hidden">
           <div
-            className="h-full bg-red-500 transition-all duration-300"
+            className="h-full bg-amber-500 transition-all duration-300"
             style={{ width: `${(completedCount / sets.length) * 100}%` }}
           />
         </div>
@@ -333,7 +333,7 @@ const WorkoutSession: React.FC<Props> = ({ workout, gymSetup, audioMuted, onAudi
       {/* Tonnage Running Total */}
       <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-3 flex justify-between items-center">
         <span className="text-xs text-gray-400">Session Tonnage</span>
-        <span className="text-sm font-bold text-red-400">{totalTonnage.toLocaleString()} lbs</span>
+        <span className="text-sm font-bold text-amber-400">{totalTonnage.toLocaleString()} lbs</span>
       </div>
 
       {/* Exercise Overview */}
@@ -351,7 +351,7 @@ const WorkoutSession: React.FC<Props> = ({ workout, gymSetup, audioMuted, onAudi
                       s.completed
                         ? 'bg-green-600 text-white'
                         : sets.indexOf(s) === currentSetIndex
-                        ? 'bg-red-600 text-white animate-pulse'
+                        ? 'bg-amber-500 text-black animate-pulse'
                         : 'bg-neutral-800 text-gray-500'
                     }`}
                   >

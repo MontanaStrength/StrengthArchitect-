@@ -19,7 +19,7 @@ const HistoryView: React.FC<Props> = ({ history, onDelete, onSelect }) => {
   return (
     <div className="max-w-4xl mx-auto space-y-4">
       <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-        <History size={24} className="text-red-500" /> Workout History
+        <History size={24} className="text-amber-500" /> Workout History
       </h2>
 
       {/* Filter */}
@@ -29,7 +29,7 @@ const HistoryView: React.FC<Props> = ({ history, onDelete, onSelect }) => {
             key={f}
             onClick={() => setFilter(f)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              filter === f ? 'bg-red-600 text-white' : 'bg-neutral-800 text-gray-400 hover:bg-neutral-700'
+              filter === f ? 'bg-amber-500 text-black' : 'bg-neutral-800 text-gray-400 hover:bg-neutral-700'
             }`}
           >
             {f === 'all' ? 'All' : f}
@@ -58,7 +58,7 @@ const HistoryView: React.FC<Props> = ({ history, onDelete, onSelect }) => {
                     <div className="flex items-center gap-2">
                       <h3 className="text-sm font-bold text-white truncate">{w.title}</h3>
                       <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${
-                        w.focus === 'Strength' ? 'bg-red-900/50 text-red-300' :
+                        w.focus === 'Strength' ? 'bg-amber-900/50 text-amber-300' :
                         w.focus === 'Hypertrophy' ? 'bg-purple-900/50 text-purple-300' :
                         w.focus === 'Power' ? 'bg-orange-900/50 text-orange-300' :
                         w.focus === 'Deload' ? 'bg-green-900/50 text-green-300' :
@@ -109,13 +109,13 @@ const HistoryView: React.FC<Props> = ({ history, onDelete, onSelect }) => {
                     <div className="flex gap-2 pt-2 border-t border-neutral-800">
                       <button
                         onClick={(e) => { e.stopPropagation(); onSelect(w); }}
-                        className="flex-1 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-medium rounded-lg transition-all"
+                        className="flex-1 py-2 bg-amber-500 hover:bg-amber-600 text-black text-xs font-medium rounded-lg transition-all"
                       >
                         View / Repeat
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); if (confirm('Delete this workout?')) onDelete(w.id); }}
-                        className="px-3 py-2 bg-neutral-800 hover:bg-red-900/50 text-gray-400 hover:text-red-400 rounded-lg transition-all"
+                        className="px-3 py-2 bg-neutral-800 hover:bg-amber-900/50 text-gray-400 hover:text-amber-400 rounded-lg transition-all"
                       >
                         <Trash2 size={14} />
                       </button>

@@ -383,7 +383,7 @@ const App: React.FC = () => {
 
   // ===== AUTH GATE =====
   if (authLoading) {
-    return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-500"></div></div>;
+    return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div></div>;
   }
 
   if (!user) {
@@ -438,8 +438,8 @@ const App: React.FC = () => {
               onClick={() => setFormData(prev => ({ ...prev, trainingGoalFocus: focus }))}
               className={`p-3 rounded-lg border text-sm font-medium capitalize transition-all ${
                 formData.trainingGoalFocus === focus
-                  ? 'bg-red-600 border-red-500 text-white'
-                  : 'bg-neutral-800 border-neutral-700 text-gray-300 hover:border-red-500'
+                  ? 'bg-amber-500 border-amber-500 text-white'
+                  : 'bg-neutral-800 border-neutral-700 text-gray-300 hover:border-amber-500'
               }`}
             >
               {focus}
@@ -458,8 +458,8 @@ const App: React.FC = () => {
               onClick={() => setFormData(prev => ({ ...prev, duration: d }))}
               className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
                 formData.duration === d
-                  ? 'bg-red-600 border-red-500 text-white'
-                  : 'bg-neutral-800 border-neutral-700 text-gray-300 hover:border-red-500'
+                  ? 'bg-amber-500 border-amber-500 text-black'
+                  : 'bg-neutral-800 border-neutral-700 text-gray-300 hover:border-amber-500'
               }`}
             >
               {d} min
@@ -478,8 +478,8 @@ const App: React.FC = () => {
               onClick={() => setFormData(prev => ({ ...prev, readiness: r }))}
               className={`p-3 rounded-lg border text-xs font-medium transition-all ${
                 formData.readiness === r
-                  ? 'bg-red-600 border-red-500 text-white'
-                  : 'bg-neutral-800 border-neutral-700 text-gray-300 hover:border-red-500'
+                  ? 'bg-amber-500 border-amber-500 text-black'
+                  : 'bg-neutral-800 border-neutral-700 text-gray-300 hover:border-amber-500'
               }`}
             >
               {r.split(' (')[0]}
@@ -498,8 +498,8 @@ const App: React.FC = () => {
               onClick={() => setFormData(prev => ({ ...prev, trainingExperience: exp }))}
               className={`p-3 rounded-lg border text-sm font-medium transition-all ${
                 formData.trainingExperience === exp
-                  ? 'bg-red-600 border-red-500 text-white'
-                  : 'bg-neutral-800 border-neutral-700 text-gray-300 hover:border-red-500'
+                  ? 'bg-amber-500 border-amber-500 text-black'
+                  : 'bg-neutral-800 border-neutral-700 text-gray-300 hover:border-amber-500'
               }`}
             >
               {exp}
@@ -584,13 +584,13 @@ const App: React.FC = () => {
       {/* Generate Button */}
       <button
         onClick={handleGenerate}
-        className="w-full py-4 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-lg transition-all shadow-lg shadow-red-600/25"
+        className="w-full py-4 bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-xl text-lg transition-all shadow-lg shadow-amber-500/25"
       >
         🏋️ Generate Workout
       </button>
 
       {error && (
-        <div className="bg-red-900/50 border border-red-700 rounded-lg p-4 text-red-300 text-sm">
+        <div className="bg-amber-900/50 border border-amber-700 rounded-lg p-4 text-amber-300 text-sm">
           {error}
         </div>
       )}
@@ -611,7 +611,7 @@ const App: React.FC = () => {
             <button
               key={item.view}
               onClick={() => setView(item.view)}
-              className="flex flex-col items-center gap-1.5 p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50 hover:border-red-500/50 hover:bg-neutral-800 transition-all text-gray-400 hover:text-red-400"
+              className="flex flex-col items-center gap-1.5 p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50 hover:border-amber-500/50 hover:bg-neutral-800 transition-all text-gray-400 hover:text-amber-400"
             >
               {item.icon}
               <span className="text-[10px] font-medium text-center leading-tight">{item.label}</span>
@@ -635,16 +635,16 @@ const App: React.FC = () => {
               </button>
             )}
             <h1 className="text-lg font-bold flex items-center gap-2">
-              <Dumbbell size={22} className="text-red-500" />
+              <Dumbbell size={22} className="text-amber-500" />
               <span className="text-white">Strength</span>
-              <span className="text-red-500">Architect</span>
+              <span className="text-amber-500">Architect</span>
             </h1>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => setView('notifications')} className="p-2 text-gray-400 hover:text-white transition-colors">
               <Bell size={18} />
             </button>
-            <button onClick={handleSignOut} className="p-2 text-gray-400 hover:text-red-400 transition-colors" title="Sign Out">
+            <button onClick={handleSignOut} className="p-2 text-gray-400 hover:text-amber-400 transition-colors" title="Sign Out">
               <LogOut size={18} />
             </button>
           </div>
@@ -660,7 +660,7 @@ const App: React.FC = () => {
               onClick={() => setView(item.view)}
               className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium whitespace-nowrap border-b-2 transition-all ${
                 view === item.view
-                  ? 'border-red-500 text-red-400'
+                  ? 'border-amber-500 text-amber-400'
                   : 'border-transparent text-gray-500 hover:text-gray-300'
               }`}
             >
@@ -683,7 +683,7 @@ const App: React.FC = () => {
             <div className="flex gap-3">
               <button
                 onClick={() => setView('session')}
-                className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all"
+                className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-xl transition-all"
               >
                 🏋️ Start Session
               </button>

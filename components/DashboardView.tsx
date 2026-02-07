@@ -57,7 +57,7 @@ const DashboardView: React.FC<Props> = ({ history, liftRecords, goals, sleepEntr
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <h2 className="text-2xl font-bold text-white flex items-center gap-2"><BarChart3 size={24} className="text-red-500" /> Dashboard</h2>
+      <h2 className="text-2xl font-bold text-white flex items-center gap-2"><BarChart3 size={24} className="text-amber-500" /> Dashboard</h2>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -68,7 +68,7 @@ const DashboardView: React.FC<Props> = ({ history, liftRecords, goals, sleepEntr
         </div>
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 text-center">
           <p className="text-xs text-gray-400 uppercase">Weekly Tonnage</p>
-          <p className="text-2xl font-bold text-red-400 mt-1">{stats.weeklyTonnage.toLocaleString()}</p>
+          <p className="text-2xl font-bold text-amber-400 mt-1">{stats.weeklyTonnage.toLocaleString()}</p>
           <p className="text-xs text-gray-500">lbs</p>
         </div>
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 text-center">
@@ -114,7 +114,7 @@ const DashboardView: React.FC<Props> = ({ history, liftRecords, goals, sleepEntr
 
       {/* Recent Sessions */}
       <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4">
-        <h3 className="text-sm font-semibold text-gray-400 mb-3 flex items-center gap-2"><Dumbbell size={16} className="text-red-400" /> Recent Sessions</h3>
+        <h3 className="text-sm font-semibold text-gray-400 mb-3 flex items-center gap-2"><Dumbbell size={16} className="text-amber-400" /> Recent Sessions</h3>
         {stats.thisWeek.length === 0 ? (
           <p className="text-gray-500 text-sm">No sessions this week. Time to train! 🏋️</p>
         ) : (
@@ -127,7 +127,7 @@ const DashboardView: React.FC<Props> = ({ history, liftRecords, goals, sleepEntr
                 </div>
                 <div className="text-right">
                   {w.actualTonnage ? (
-                    <p className="text-sm text-red-400 font-medium">{w.actualTonnage.toLocaleString()} lbs</p>
+                    <p className="text-sm text-amber-400 font-medium">{w.actualTonnage.toLocaleString()} lbs</p>
                   ) : (
                     <p className="text-sm text-gray-500">~{(w.estimatedTonnage || 0).toLocaleString()} lbs</p>
                   )}
@@ -171,7 +171,7 @@ const DashboardView: React.FC<Props> = ({ history, liftRecords, goals, sleepEntr
           {stats.avgSleep > 0 && (
             <div className="mt-2 h-2 bg-neutral-800 rounded-full overflow-hidden">
               <div
-                className={`h-full rounded-full ${stats.avgSleep >= 7 ? 'bg-green-500' : stats.avgSleep >= 6 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                className={`h-full rounded-full ${stats.avgSleep >= 7 ? 'bg-green-500' : stats.avgSleep >= 6 ? 'bg-yellow-500' : 'bg-amber-500'}`}
                 style={{ width: `${Math.min(100, (stats.avgSleep / 9) * 100)}%` }}
               />
             </div>
@@ -184,7 +184,7 @@ const DashboardView: React.FC<Props> = ({ history, liftRecords, goals, sleepEntr
         <p className="text-xs text-gray-400 uppercase mb-1">30-Day Summary</p>
         <p className="text-sm text-gray-300">
           <span className="text-white font-bold">{stats.thisMonth.length}</span> sessions •{' '}
-          <span className="text-red-400 font-bold">{stats.monthlyTonnage.toLocaleString()}</span> lbs total tonnage
+          <span className="text-amber-400 font-bold">{stats.monthlyTonnage.toLocaleString()}</span> lbs total tonnage
         </p>
       </div>
     </div>

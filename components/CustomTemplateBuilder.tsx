@@ -59,8 +59,8 @@ const CustomTemplateBuilder: React.FC<Props> = ({ templates, onSave, onDelete })
   return (
     <div className="max-w-4xl mx-auto space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-white flex items-center gap-2"><LayoutList size={24} className="text-red-500" /> Custom Templates</h2>
-        <button onClick={() => setShowCreate(!showCreate)} className="flex items-center gap-1.5 px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg"><Plus size={16} /> New Template</button>
+        <h2 className="text-2xl font-bold text-white flex items-center gap-2"><LayoutList size={24} className="text-amber-500" /> Custom Templates</h2>
+        <button onClick={() => setShowCreate(!showCreate)} className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-black text-sm font-medium rounded-lg"><Plus size={16} /> New Template</button>
       </div>
 
       {/* Create Form */}
@@ -94,7 +94,7 @@ const CustomTemplateBuilder: React.FC<Props> = ({ templates, onSave, onDelete })
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-xs text-gray-400 font-semibold">Exercises ({exercises.length})</label>
-              <button onClick={addExercise} className="text-xs text-red-400 hover:text-red-300">+ Add Exercise</button>
+              <button onClick={addExercise} className="text-xs text-amber-400 hover:text-amber-300">+ Add Exercise</button>
             </div>
             {exercises.map((ex, i) => (
               <div key={i} className="bg-neutral-800/50 rounded-lg p-3 space-y-2">
@@ -110,7 +110,7 @@ const CustomTemplateBuilder: React.FC<Props> = ({ templates, onSave, onDelete })
                     <option value="">Select exercise...</option>
                     {allExercises.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
                   </select>
-                  <button onClick={() => removeExercise(i)} className="text-gray-500 hover:text-red-400"><Trash2 size={14} /></button>
+                  <button onClick={() => removeExercise(i)} className="text-gray-500 hover:text-amber-400"><Trash2 size={14} /></button>
                 </div>
                 <div className="grid grid-cols-4 gap-2">
                   <div>
@@ -135,7 +135,7 @@ const CustomTemplateBuilder: React.FC<Props> = ({ templates, onSave, onDelete })
           </div>
 
           <div className="flex gap-2">
-            <button onClick={handleSave} disabled={!name || exercises.length === 0} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg disabled:opacity-50">Save Template</button>
+            <button onClick={handleSave} disabled={!name || exercises.length === 0} className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black text-sm font-medium rounded-lg disabled:opacity-50">Save Template</button>
             <button onClick={() => { setShowCreate(false); setExercises([]); }} className="px-4 py-2 bg-neutral-800 text-gray-300 text-sm rounded-lg">Cancel</button>
           </div>
         </div>
@@ -156,7 +156,7 @@ const CustomTemplateBuilder: React.FC<Props> = ({ templates, onSave, onDelete })
                     <p className="text-xs text-gray-500">{t.exercises.length} exercises • {t.defaultDurationMin} min • {t.focusArea}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button onClick={e => { e.stopPropagation(); if (confirm('Delete?')) onDelete(t.id); }} className="text-gray-600 hover:text-red-400"><Trash2 size={14} /></button>
+                    <button onClick={e => { e.stopPropagation(); if (confirm('Delete?')) onDelete(t.id); }} className="text-gray-600 hover:text-amber-400"><Trash2 size={14} /></button>
                     {isExpanded ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
                   </div>
                 </div>

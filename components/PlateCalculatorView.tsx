@@ -21,7 +21,7 @@ const PlateCalculatorView: React.FC<Props> = ({ gymSetup }) => {
   const quickWeights = [95, 135, 185, 225, 275, 315, 365, 405, 455, 495, 545];
 
   const getPlateColor = (plate: number): string => {
-    if (plate >= 45) return 'bg-red-600 text-white';
+    if (plate >= 45) return 'bg-amber-500 text-black';
     if (plate >= 35) return 'bg-yellow-600 text-white';
     if (plate >= 25) return 'bg-green-600 text-white';
     if (plate >= 10) return 'bg-blue-600 text-white';
@@ -44,7 +44,7 @@ const PlateCalculatorView: React.FC<Props> = ({ gymSetup }) => {
           onChange={e => setTargetWeight(e.target.value)}
           step={5}
           min={0}
-          className="w-full text-4xl font-bold text-center bg-neutral-800 text-white p-4 rounded-xl border border-neutral-700 focus:border-red-500 outline-none"
+          className="w-full text-4xl font-bold text-center bg-neutral-800 text-white p-4 rounded-xl border border-neutral-700 focus:border-amber-500 outline-none"
         />
         {rounded !== target && target > 0 && (
           <p className="text-xs text-yellow-400 mt-2 text-center">
@@ -61,8 +61,8 @@ const PlateCalculatorView: React.FC<Props> = ({ gymSetup }) => {
             onClick={() => setTargetWeight(String(w))}
             className={`px-3 py-2 rounded-lg text-sm font-mono transition-all ${
               rounded === w
-                ? 'bg-red-600 text-white'
-                : 'bg-neutral-800 text-neutral-400 border border-neutral-700 hover:border-red-500/50'
+                ? 'bg-amber-500 text-black'
+                : 'bg-neutral-800 text-neutral-400 border border-neutral-700 hover:border-amber-500/50'
             }`}
           >
             {w}
@@ -79,7 +79,7 @@ const PlateCalculatorView: React.FC<Props> = ({ gymSetup }) => {
               type="checkbox"
               checked={showPerSide}
               onChange={e => setShowPerSide(e.target.checked)}
-              className="accent-red-500"
+              className="accent-amber-500"
             />
             Show per side
           </label>
@@ -90,7 +90,7 @@ const PlateCalculatorView: React.FC<Props> = ({ gymSetup }) => {
         ) : rounded <= gymSetup.barbellWeightLbs ? (
           <div className="text-center py-8">
             <div className="text-3xl mb-2">🏋️</div>
-            <p className="text-neutral-300">Empty bar: <span className="text-red-400 font-bold">{gymSetup.barbellWeightLbs} lbs</span></p>
+            <p className="text-neutral-300">Empty bar: <span className="text-amber-400 font-bold">{gymSetup.barbellWeightLbs} lbs</span></p>
           </div>
         ) : loading ? (
           <>
@@ -146,14 +146,14 @@ const PlateCalculatorView: React.FC<Props> = ({ gymSetup }) => {
                 {showPerSide ? (
                   <div className="flex justify-between">
                     <span>Per side:</span>
-                    <span className="font-mono text-red-400">
+                    <span className="font-mono text-amber-400">
                       {loading.platesPerSide.join(' + ')} lbs
                     </span>
                   </div>
                 ) : (
                   <div className="flex justify-between">
                     <span>Total plates:</span>
-                    <span className="font-mono text-red-400">
+                    <span className="font-mono text-amber-400">
                       {loading.platesPerSide.map(p => `2×${p}`).join(' + ')} lbs
                     </span>
                   </div>

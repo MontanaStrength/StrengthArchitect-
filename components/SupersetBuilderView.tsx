@@ -112,7 +112,7 @@ const SupersetBuilderView: React.FC = () => {
             <button
               key={pair.label}
               onClick={() => applyAntagonistTemplate(pair.a, pair.b)}
-              className="p-3 bg-neutral-800 rounded-lg border border-neutral-700 text-left hover:border-red-500/50 transition-colors"
+              className="p-3 bg-neutral-800 rounded-lg border border-neutral-700 text-left hover:border-amber-500/50 transition-colors"
             >
               <div className="text-sm font-semibold text-white">{pair.label}</div>
               <div className="text-xs text-neutral-400">{pair.a} + {pair.b}</div>
@@ -181,7 +181,7 @@ const SupersetBuilderView: React.FC = () => {
         <button
           onClick={addPair}
           disabled={!pairA || !pairB}
-          className="w-full py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 disabled:bg-neutral-700 disabled:text-neutral-500 transition-colors"
+          className="w-full py-2 bg-amber-500 text-black font-semibold rounded-lg hover:bg-amber-600 disabled:bg-neutral-700 disabled:text-neutral-500 transition-colors"
         >
           + Add Pair
         </button>
@@ -194,7 +194,7 @@ const SupersetBuilderView: React.FC = () => {
           <div className="space-y-3">
             {(config.exercisePairs || []).map((pair, i) => (
               <div key={i} className="bg-neutral-800 rounded-lg p-3 flex items-center gap-3">
-                <div className="w-6 h-6 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center text-xs font-bold">
+                <div className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs font-bold">
                   {i + 1}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -208,7 +208,7 @@ const SupersetBuilderView: React.FC = () => {
                     <span className="text-neutral-400"> × {pair.exerciseB.reps}</span>
                   </div>
                 </div>
-                <button onClick={() => removePair(i)} className="text-neutral-500 hover:text-red-400 text-sm">✕</button>
+                <button onClick={() => removePair(i)} className="text-neutral-500 hover:text-amber-400 text-sm">✕</button>
               </div>
             ))}
           </div>
@@ -246,7 +246,7 @@ const SupersetBuilderView: React.FC = () => {
         {(config.exercisePairs || []).length > 0 && (
           <div className="mt-4 p-3 bg-neutral-800 rounded-lg text-center">
             <span className="text-sm text-neutral-400">Estimated duration: </span>
-            <span className="text-lg font-bold text-red-400">~{totalTime} min</span>
+            <span className="text-lg font-bold text-amber-400">~{totalTime} min</span>
           </div>
         )}
       </div>
@@ -255,7 +255,7 @@ const SupersetBuilderView: React.FC = () => {
       <button
         onClick={handleSave}
         disabled={(config.exercisePairs || []).length === 0}
-        className="w-full py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 disabled:bg-neutral-700 disabled:text-neutral-500 transition-colors"
+        className="w-full py-3 bg-amber-500 text-black font-semibold rounded-xl hover:bg-amber-600 disabled:bg-neutral-700 disabled:text-neutral-500 transition-colors"
       >
         {saved ? '✓ Saved!' : 'Save Superset Config'}
       </button>

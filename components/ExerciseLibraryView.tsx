@@ -25,7 +25,7 @@ const ExerciseLibraryView: React.FC = () => {
     switch (d) {
       case 'beginner': return 'text-green-400 bg-green-500/10';
       case 'intermediate': return 'text-yellow-400 bg-yellow-500/10';
-      case 'advanced': return 'text-red-400 bg-red-500/10';
+      case 'advanced': return 'text-amber-400 bg-amber-500/10';
       default: return 'text-neutral-400 bg-neutral-800';
     }
   };
@@ -43,7 +43,7 @@ const ExerciseLibraryView: React.FC = () => {
         value={search}
         onChange={e => setSearch(e.target.value)}
         placeholder="Search exercises..."
-        className="w-full bg-neutral-900 text-white p-3 rounded-xl border border-neutral-800 focus:border-red-500 outline-none"
+        className="w-full bg-neutral-900 text-white p-3 rounded-xl border border-neutral-800 focus:border-amber-500 outline-none"
       />
 
       {/* Filters */}
@@ -121,7 +121,7 @@ const ExerciseLibraryView: React.FC = () => {
                     <div className="text-xs text-neutral-400 mb-1">Primary Muscles</div>
                     <div className="flex flex-wrap gap-1">
                       {exercise.primaryMuscles.map(m => (
-                        <span key={m} className="text-xs px-2 py-0.5 bg-red-500/10 text-red-400 rounded border border-red-500/20">{m}</span>
+                        <span key={m} className="text-xs px-2 py-0.5 bg-amber-500/10 text-amber-400 rounded border border-amber-500/20">{m}</span>
                       ))}
                     </div>
                   </div>
@@ -157,7 +157,7 @@ const ExerciseLibraryView: React.FC = () => {
                     <ul className="space-y-1">
                       {exercise.cues.map((cue, i) => (
                         <li key={i} className="text-xs text-neutral-300 flex items-start gap-1">
-                          <span className="text-red-400 mt-0.5">•</span> {cue}
+                          <span className="text-amber-400 mt-0.5">•</span> {cue}
                         </li>
                       ))}
                     </ul>

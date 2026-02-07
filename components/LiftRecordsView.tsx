@@ -70,7 +70,7 @@ const LiftRecordsView: React.FC<Props> = ({ records, onSave, onDelete }) => {
         </h2>
         <button
           onClick={() => setShowAdd(!showAdd)}
-          className="flex items-center gap-1.5 px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-all"
+          className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-black text-sm font-medium rounded-lg transition-all"
         >
           <Plus size={16} /> Add PR
         </button>
@@ -88,7 +88,7 @@ const LiftRecordsView: React.FC<Props> = ({ records, onSave, onDelete }) => {
                   key={ex.id}
                   onClick={() => { setExerciseName(ex.name); setExerciseId(ex.id); }}
                   className={`px-2 py-1 rounded text-xs transition-all ${
-                    exerciseId === ex.id ? 'bg-red-600 text-white' : 'bg-neutral-800 text-gray-400 hover:bg-neutral-700'
+                    exerciseId === ex.id ? 'bg-amber-500 text-black' : 'bg-neutral-800 text-gray-400 hover:bg-neutral-700'
                   }`}
                 >
                   {ex.name}
@@ -123,7 +123,7 @@ const LiftRecordsView: React.FC<Props> = ({ records, onSave, onDelete }) => {
             <p className="text-sm text-gray-400">Estimated 1RM: <span className="text-white font-bold">{Math.round(estimate1RM(weight, reps))} lbs</span></p>
           )}
           <div className="flex gap-2">
-            <button onClick={handleAdd} disabled={!exerciseName} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-all disabled:opacity-50">Save</button>
+            <button onClick={handleAdd} disabled={!exerciseName} className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black text-sm font-medium rounded-lg transition-all disabled:opacity-50">Save</button>
             <button onClick={() => setShowAdd(false)} className="px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-gray-300 text-sm rounded-lg transition-all">Cancel</button>
           </div>
         </div>
@@ -142,7 +142,7 @@ const LiftRecordsView: React.FC<Props> = ({ records, onSave, onDelete }) => {
               <div className="flex justify-between items-center mb-2">
                 <h3 className="text-sm font-bold text-white">{g.exerciseName}</h3>
                 <div className="text-right">
-                  <p className="text-lg font-bold text-red-400">{Math.round(g.best.estimated1RM)} lbs</p>
+                  <p className="text-lg font-bold text-amber-400">{Math.round(g.best.estimated1RM)} lbs</p>
                   <p className="text-[10px] text-gray-500">est. 1RM</p>
                 </div>
               </div>
@@ -155,7 +155,7 @@ const LiftRecordsView: React.FC<Props> = ({ records, onSave, onDelete }) => {
                       <span className="text-gray-400">{new Date(r.date).toLocaleDateString()} — {r.weight}×{r.reps}{r.rpe ? ` RPE ${r.rpe}` : ''}</span>
                       <div className="flex items-center gap-2">
                         <span className="text-gray-500">e1RM: {Math.round(r.estimated1RM)}</span>
-                        <button onClick={() => { if (confirm('Delete?')) onDelete(r.id); }} className="text-gray-600 hover:text-red-400"><Trash2 size={12} /></button>
+                        <button onClick={() => { if (confirm('Delete?')) onDelete(r.id); }} className="text-gray-600 hover:text-amber-400"><Trash2 size={12} /></button>
                       </div>
                     </div>
                   ))}

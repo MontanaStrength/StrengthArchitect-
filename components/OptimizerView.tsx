@@ -71,7 +71,7 @@ const OptimizerView: React.FC<Props> = ({ config, onChange, history, liftRecords
             <h3 className="text-lg font-semibold text-white">Enable Optimizer</h3>
             <p className="text-sm text-neutral-400">When enabled, optimizer recommendations feed into AI prompt</p>
           </div>
-          <div className={`w-14 h-7 flex items-center rounded-full p-1 cursor-pointer transition-colors ${localConfig.enabled ? 'bg-red-600' : 'bg-neutral-700'}`}
+          <div className={`w-14 h-7 flex items-center rounded-full p-1 cursor-pointer transition-colors ${localConfig.enabled ? 'bg-amber-500' : 'bg-neutral-700'}`}
             onClick={() => updateConfig({ enabled: !localConfig.enabled })}
           >
             <div className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform ${localConfig.enabled ? 'translate-x-7' : ''}`} />
@@ -86,7 +86,7 @@ const OptimizerView: React.FC<Props> = ({ config, onChange, history, liftRecords
             <h3 className="text-lg font-semibold text-white mb-4">Session Volume</h3>
             <div>
               <label className="block text-sm text-neutral-400 mb-1">
-                Max Working Sets Per Session: <span className="text-red-400 font-bold">{localConfig.maxSetsPerSession || 25}</span>
+                Max Working Sets Per Session: <span className="text-amber-400 font-bold">{localConfig.maxSetsPerSession || 25}</span>
               </label>
               <input
                 type="range"
@@ -94,7 +94,7 @@ const OptimizerView: React.FC<Props> = ({ config, onChange, history, liftRecords
                 max={40}
                 value={localConfig.maxSetsPerSession || 25}
                 onChange={e => updateConfig({ maxSetsPerSession: Number(e.target.value) })}
-                className="w-full accent-red-500"
+                className="w-full accent-amber-500"
               />
               <div className="flex justify-between text-xs text-neutral-500 mt-1">
                 <span>8 (Minimal)</span>
@@ -114,7 +114,7 @@ const OptimizerView: React.FC<Props> = ({ config, onChange, history, liftRecords
                   onClick={() => updateConfig({ repRangePreference: opt.value })}
                   className={`p-3 rounded-lg border text-left transition-all ${
                     localConfig.repRangePreference === opt.value
-                      ? 'border-red-500 bg-red-500/10'
+                      ? 'border-amber-500 bg-amber-500/10'
                       : 'border-neutral-700 bg-neutral-800 hover:border-neutral-600'
                   }`}
                 >
@@ -133,7 +133,7 @@ const OptimizerView: React.FC<Props> = ({ config, onChange, history, liftRecords
                 type="checkbox"
                 checked={localConfig.autoDeload ?? true}
                 onChange={e => updateConfig({ autoDeload: e.target.checked })}
-                className="accent-red-500"
+                className="accent-amber-500"
               />
               <div>
                 <span className="text-white">Auto-Deload Recommendations</span>
@@ -143,7 +143,7 @@ const OptimizerView: React.FC<Props> = ({ config, onChange, history, liftRecords
             {localConfig.autoDeload && (
               <div>
                 <label className="block text-sm text-neutral-400 mb-1">
-                  Deload Every <span className="text-red-400 font-bold">{localConfig.deloadFrequencyWeeks || 4}</span> Weeks
+                  Deload Every <span className="text-amber-400 font-bold">{localConfig.deloadFrequencyWeeks || 4}</span> Weeks
                 </label>
                 <input
                   type="range"
@@ -151,7 +151,7 @@ const OptimizerView: React.FC<Props> = ({ config, onChange, history, liftRecords
                   max={8}
                   value={localConfig.deloadFrequencyWeeks || 4}
                   onChange={e => updateConfig({ deloadFrequencyWeeks: Number(e.target.value) })}
-                  className="w-full accent-red-500"
+                  className="w-full accent-amber-500"
                 />
                 <div className="flex justify-between text-xs text-neutral-500 mt-1">
                   <span>3 weeks</span>
@@ -180,13 +180,13 @@ const OptimizerView: React.FC<Props> = ({ config, onChange, history, liftRecords
                       max={30}
                       value={target}
                       onChange={e => updateMuscleTarget(mg, Number(e.target.value))}
-                      className="flex-1 accent-red-500"
+                      className="flex-1 accent-amber-500"
                     />
-                    <span className="text-sm font-mono w-8 text-right text-red-400">{target || '—'}</span>
+                    <span className="text-sm font-mono w-8 text-right text-amber-400">{target || '—'}</span>
                     <span className={`text-xs w-16 text-right ${
                       status === 'over' ? 'text-green-400' :
                       status === 'near' ? 'text-yellow-400' :
-                      status === 'under' ? 'text-red-400' :
+                      status === 'under' ? 'text-amber-400' :
                       'text-neutral-500'
                     }`}>
                       {current > 0 ? `${current} now` : '—'}
@@ -205,19 +205,19 @@ const OptimizerView: React.FC<Props> = ({ config, onChange, history, liftRecords
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-neutral-800 p-3 rounded-lg">
                     <div className="text-xs text-neutral-400">Session Volume</div>
-                    <div className="text-xl font-bold text-red-400">{localConfig.recommendations.sessionVolume} sets</div>
+                    <div className="text-xl font-bold text-amber-400">{localConfig.recommendations.sessionVolume} sets</div>
                   </div>
                   <div className="bg-neutral-800 p-3 rounded-lg">
                     <div className="text-xs text-neutral-400">Rep Scheme</div>
-                    <div className="text-xl font-bold text-red-400">{localConfig.recommendations.repScheme}</div>
+                    <div className="text-xl font-bold text-amber-400">{localConfig.recommendations.repScheme}</div>
                   </div>
                   <div className="bg-neutral-800 p-3 rounded-lg">
                     <div className="text-xs text-neutral-400">Intensity</div>
-                    <div className="text-xl font-bold text-red-400">{localConfig.recommendations.intensityRange.min}–{localConfig.recommendations.intensityRange.max}%</div>
+                    <div className="text-xl font-bold text-amber-400">{localConfig.recommendations.intensityRange.min}–{localConfig.recommendations.intensityRange.max}%</div>
                   </div>
                   <div className="bg-neutral-800 p-3 rounded-lg">
                     <div className="text-xs text-neutral-400">Rest Periods</div>
-                    <div className="text-xl font-bold text-red-400">{localConfig.recommendations.restRange.min}–{localConfig.recommendations.restRange.max}s</div>
+                    <div className="text-xl font-bold text-amber-400">{localConfig.recommendations.restRange.min}–{localConfig.recommendations.restRange.max}s</div>
                   </div>
                 </div>
                 <div className="bg-neutral-800 p-3 rounded-lg">
@@ -239,7 +239,7 @@ const OptimizerView: React.FC<Props> = ({ config, onChange, history, liftRecords
       {/* Save */}
       <button
         onClick={handleSave}
-        className="w-full py-3 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-colors"
+        className="w-full py-3 bg-amber-500 text-black font-semibold rounded-xl hover:bg-amber-600 transition-colors"
       >
         Save Optimizer Settings
       </button>
