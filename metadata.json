@@ -1,0 +1,6 @@
+
+{
+  "name": "Strength Architect",
+  "description": "AI-powered barbell and strength training program generator with progressive overload, RPE calibration, and session volume optimization.",
+  "requestFramePermissions": []
+}

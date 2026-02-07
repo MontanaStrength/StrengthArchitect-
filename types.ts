@@ -1,0 +1,494 @@
+
+// ===== CORE ENUMS =====
+
+export enum ReadinessLevel {
+  LOW = 'Low (Recovery Focus)',
+  MEDIUM = 'Medium (Regular Training)',
+  HIGH = 'High (Peak Performance)',
+}
+
+export enum TrainingExperience {
+  BEGINNER = 'Beginner',
+  INTERMEDIATE = 'Intermediate',
+  ADVANCED = 'Advanced',
+  ELITE = 'Elite',
+}
+
+export enum AvailableEquipment {
+  BARBELL = 'Barbell',
+  DUMBBELL = 'Dumbbell',
+  KETTLEBELL = 'Kettlebell',
+  CABLE = 'Cable Machine',
+  MACHINE = 'Machine',
+  BODYWEIGHT = 'Bodyweight',
+  BANDS = 'Resistance Bands',
+  SPECIALTY_BAR = 'Specialty Bar',
+}
+
+export enum MuscleGroup {
+  CHEST = 'Chest',
+  BACK = 'Back',
+  SHOULDERS = 'Shoulders',
+  BICEPS = 'Biceps',
+  TRICEPS = 'Triceps',
+  QUADS = 'Quads',
+  HAMSTRINGS = 'Hamstrings',
+  GLUTES = 'Glutes',
+  CALVES = 'Calves',
+  CORE = 'Core',
+  FOREARMS = 'Forearms',
+  TRAPS = 'Traps',
+}
+
+export enum MovementPattern {
+  SQUAT = 'Squat',
+  HINGE = 'Hinge',
+  HORIZONTAL_PUSH = 'Horizontal Push',
+  HORIZONTAL_PULL = 'Horizontal Pull',
+  VERTICAL_PUSH = 'Vertical Push',
+  VERTICAL_PULL = 'Vertical Pull',
+  CARRY = 'Carry',
+  CORE = 'Core',
+  ISOLATION = 'Isolation',
+}
+
+// ===== EXERCISE LIBRARY =====
+
+export interface Exercise {
+  id: string;
+  name: string;
+  primaryMuscles: MuscleGroup[];
+  secondaryMuscles: MuscleGroup[];
+  movementPattern: MovementPattern;
+  equipment: AvailableEquipment[];
+  difficulty: 'beginner' | 'intermediate' | 'advanced';
+  isCompound: boolean;
+  cues?: string[];
+  videoUrl?: string;
+}
+
+// ===== WORKOUT DATA MODEL (SET-BASED) =====
+
+export interface ExerciseBlock {
+  exerciseId: string;
+  exerciseName: string;
+  sets: number;
+  reps: string; // "5", "8-12", "AMRAP", "5/3/1"
+  weightLbs?: number;
+  percentOf1RM?: number; // 0-100 (e.g. 75 = 75%)
+  rpeTarget?: number; // 6-10
+  rirTarget?: number; // 0-5 (reps in reserve)
+  restSeconds: number;
+  tempo?: string; // "3-1-2-0" (eccentric-pause-concentric-top)
+  supersetGroup?: string; // group letter for supersets (A, B, C...)
+  notes?: string;
+  coachingCue?: string;
+  isWarmupSet?: boolean;
+}
+
+export interface StrengthWorkoutPlan {
+  archetypeId?: string;
+  title: string;
+  focus: string; // e.g., "Hypertrophy", "Strength", "Power", "Endurance", "Deload"
+  totalDurationMin: number;
+  difficulty: string;
+  exercises: ExerciseBlock[];
+  summary: string;
+  whyThisWorkout?: string;
+  physiologicalBenefits?: string[];
+  coachingTips?: EducationalTip[];
+  estimatedTonnage?: number; // total lbs moved
+  movementPatternsCovered?: string[];
+  muscleGroupsCovered?: string[];
+}
+
+export interface EducationalTip {
+  title: string;
+  explanation: string;
+}
+
+// ===== COMPLETED WORKOUT =====
+
+export interface CompletedSet {
+  exerciseId: string;
+  exerciseName: string;
+  setNumber: number;
+  reps: number;
+  weightLbs: number;
+  rpe?: number;
+  timestamp: number;
+}
+
+export interface FeedbackData {
+  rating: 'up' | 'down';
+  comment: string;
+}
+
+export interface SavedWorkout extends StrengthWorkoutPlan {
+  id: string;
+  timestamp: number;
+  feedback?: FeedbackData;
+  completedSets?: CompletedSet[];
+  actualTonnage?: number; // sum of reps * weight across all sets
+  sessionRPE?: number; // overall session RPE 1-10
+}
+
+// ===== USER FORM =====
+
+export interface FormData {
+  duration: number; // session length in minutes
+  readiness: ReadinessLevel;
+  trainingExperience: TrainingExperience;
+  availableEquipment: AvailableEquipment[];
+  weightLbs: number;
+  age: number;
+  gender: 'male' | 'female';
+  trainingGoalFocus: TrainingGoalFocus;
+  // Lift PRs for AI scaling
+  benchPress1RM?: number;
+  squat1RM?: number;
+  deadlift1RM?: number;
+  overheadPress1RM?: number;
+}
+
+export type TrainingGoalFocus = 'strength' | 'hypertrophy' | 'power' | 'endurance' | 'general';
+
+// ===== OPTIMIZER (feeds into AI prompt) =====
+
+export interface OptimizerConfig {
+  enabled: boolean;
+  // Volume optimization
+  targetSetsPerMuscleGroup?: Partial<Record<MuscleGroup, number>>; // weekly target
+  maxSetsPerSession?: number;
+  // Rep optimization
+  repRangePreference?: 'low' | 'moderate' | 'high' | 'auto';
+  // Fatigue management
+  autoDeload?: boolean;
+  deloadFrequencyWeeks?: number; // e.g., every 4 weeks
+  // Computed recommendations (populated by optimizer logic — added later)
+  recommendations?: OptimizerRecommendations;
+}
+
+export interface OptimizerRecommendations {
+  sessionVolume: number; // recommended total working sets for this session
+  repScheme: string; // e.g., "5x5", "4x8-12", "3x3"
+  intensityRange: { min: number; max: number }; // %1RM
+  restRange: { min: number; max: number }; // seconds
+  exerciseCount: { min: number; max: number };
+  rationale: string; // human-readable explanation
+  muscleGroupPriorities?: Partial<Record<MuscleGroup, 'increase' | 'maintain' | 'decrease'>>;
+  suggestedFocus?: TrainingGoalFocus;
+  weeklyVolumeStatus?: Partial<Record<MuscleGroup, { current: number; target: number; status: 'under' | 'on-track' | 'over' }>>;
+}
+
+export const DEFAULT_OPTIMIZER_CONFIG: OptimizerConfig = {
+  enabled: false,
+  maxSetsPerSession: 25,
+  repRangePreference: 'auto',
+  autoDeload: true,
+  deloadFrequencyWeeks: 4,
+};
+
+// ===== LIFT RECORDS (replaces Power Curve) =====
+
+export interface LiftRecord {
+  id: string;
+  exerciseId: string;
+  exerciseName: string;
+  weight: number; // lbs
+  reps: number;
+  estimated1RM: number; // Epley/Brzycki formula
+  date: number; // timestamp
+  rpe?: number;
+  notes?: string;
+}
+
+export interface LiftProfile {
+  records: LiftRecord[];
+  benchPress1RM?: number;
+  squat1RM?: number;
+  deadlift1RM?: number;
+  overheadPress1RM?: number;
+}
+
+// ===== ACHIEVEMENTS =====
+
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  condition: (history: SavedWorkout[], liftRecords?: LiftRecord[]) => boolean;
+  unlocked: boolean;
+}
+
+// ===== PERIODIZATION =====
+
+export enum TrainingPhase {
+  ACCUMULATION = 'Accumulation',
+  INTENSIFICATION = 'Intensification',
+  REALIZATION = 'Realization',
+  DELOAD = 'Deload',
+  HYPERTROPHY = 'Hypertrophy',
+  STRENGTH = 'Strength',
+  PEAKING = 'Peaking',
+}
+
+export interface TrainingBlock {
+  id: string;
+  name: string;
+  startDate: number;
+  phases: TrainingBlockPhase[];
+  goalEvent?: string; // e.g., "Powerlifting Meet", "Body Recomp"
+  goalDate?: number;
+  isActive: boolean;
+}
+
+export interface TrainingBlockPhase {
+  phase: TrainingPhase;
+  weekCount: number;
+  intensityFocus: 'low' | 'moderate' | 'high' | 'very-high' | 'minimal';
+  volumeFocus: 'low' | 'moderate' | 'high' | 'very-high' | 'minimal';
+  primaryArchetypes: string[];
+  description: string;
+}
+
+export const PERIODIZATION_TEMPLATES: Record<string, Omit<TrainingBlock, 'id' | 'startDate' | 'isActive'>> = {
+  'linear-8-week': {
+    name: '8-Week Linear Progression',
+    phases: [
+      { phase: TrainingPhase.HYPERTROPHY, weekCount: 3, intensityFocus: 'moderate', volumeFocus: 'high', primaryArchetypes: ['hyp_ppl', 'hyp_upper_lower', 'gvt'], description: 'High volume hypertrophy. Build muscle mass with moderate loads.' },
+      { phase: TrainingPhase.STRENGTH, weekCount: 3, intensityFocus: 'high', volumeFocus: 'moderate', primaryArchetypes: ['str_5x5', 'str_531', 'str_texas'], description: 'Increase intensity, reduce volume. Build raw strength.' },
+      { phase: TrainingPhase.PEAKING, weekCount: 1, intensityFocus: 'very-high', volumeFocus: 'low', primaryArchetypes: ['str_heavy_singles', 'str_cluster'], description: 'Peak intensity, minimal volume. Test new maxes.' },
+      { phase: TrainingPhase.DELOAD, weekCount: 1, intensityFocus: 'low', volumeFocus: 'minimal', primaryArchetypes: ['deload_light', 'deload_movement'], description: 'Active recovery. 50-60% loads, focus on movement quality.' },
+    ],
+  },
+  'powerlifting-12-week': {
+    name: '12-Week Powerlifting Prep',
+    phases: [
+      { phase: TrainingPhase.ACCUMULATION, weekCount: 4, intensityFocus: 'moderate', volumeFocus: 'very-high', primaryArchetypes: ['hyp_ppl', 'dup_3day', 'hyp_upper_lower'], description: 'Build work capacity. High volume, moderate intensity.' },
+      { phase: TrainingPhase.INTENSIFICATION, weekCount: 4, intensityFocus: 'high', volumeFocus: 'moderate', primaryArchetypes: ['str_531', 'str_texas', 'conjugate_me'], description: 'Increase loads progressively. Competition lift focus.' },
+      { phase: TrainingPhase.REALIZATION, weekCount: 3, intensityFocus: 'very-high', volumeFocus: 'low', primaryArchetypes: ['str_heavy_singles', 'str_cluster', 'str_531'], description: 'Peak for meet. Heavy singles and doubles.' },
+      { phase: TrainingPhase.DELOAD, weekCount: 1, intensityFocus: 'minimal', volumeFocus: 'minimal', primaryArchetypes: ['deload_light'], description: 'Meet week. Openers only, rest and recover.' },
+    ],
+  },
+  'hypertrophy-6-week': {
+    name: '6-Week Hypertrophy Block',
+    phases: [
+      { phase: TrainingPhase.ACCUMULATION, weekCount: 2, intensityFocus: 'moderate', volumeFocus: 'high', primaryArchetypes: ['hyp_ppl', 'hyp_upper_lower', 'hyp_bro_split'], description: 'Progressive volume increase. 3-4 sets per exercise.' },
+      { phase: TrainingPhase.HYPERTROPHY, weekCount: 3, intensityFocus: 'moderate', volumeFocus: 'very-high', primaryArchetypes: ['gvt', 'hyp_ppl', 'hyp_arnold'], description: 'Peak volume phase. Mechanical tension and metabolic stress.' },
+      { phase: TrainingPhase.DELOAD, weekCount: 1, intensityFocus: 'low', volumeFocus: 'low', primaryArchetypes: ['deload_light', 'deload_movement'], description: 'Recover and grow. Reduce volume 40-50%.' },
+    ],
+  },
+};
+
+// ===== BODY COMP =====
+
+export interface BodyCompEntry {
+  id: string;
+  date: number;
+  weightLbs: number;
+  bodyFatPct?: number;
+  muscleMassLbs?: number;
+  waistInches?: number;
+  notes?: string;
+}
+
+// ===== RECOVERY =====
+
+export type RecoveryScore = 'fully-recovered' | 'mostly-recovered' | 'moderate-fatigue' | 'high-fatigue' | 'overtrained';
+
+export interface RecoveryAssessment {
+  score: RecoveryScore;
+  numericScore: number;
+  trainingLoadLast3Days: number;
+  trainingLoadLast7Days: number;
+  hardSessionsLast3Days: number;
+  hardSessionsLast7Days: number;
+  daysSinceLastWorkout: number;
+  totalTonnageLast7Days: number;
+  recommendation: string;
+  suggestedActivity: 'rest' | 'active-recovery' | 'light-training' | 'normal-training' | 'hard-training';
+  protocols: RecoveryProtocol[];
+}
+
+export interface RecoveryProtocol {
+  name: string;
+  duration: string;
+  description: string;
+  category: 'mobility' | 'breathing' | 'nutrition' | 'sleep' | 'active-recovery';
+}
+
+// ===== CALENDAR =====
+
+export type ScheduledWorkoutStatus = 'planned' | 'completed' | 'skipped';
+
+export interface ScheduledWorkout {
+  id: string;
+  date: string; // ISO YYYY-MM-DD
+  label: string;
+  phase?: TrainingPhase;
+  suggestedDuration?: number;
+  suggestedReadiness?: 'Low' | 'Medium' | 'High';
+  suggestedIntensity?: 'low' | 'moderate' | 'high' | 'rest';
+  suggestedFocus?: TrainingGoalFocus;
+  notes?: string;
+  status: ScheduledWorkoutStatus;
+  completedWorkoutId?: string;
+}
+
+// ===== SLEEP =====
+
+export type SleepQuality = 'poor' | 'fair' | 'good' | 'excellent';
+
+export interface SleepEntry {
+  id: string;
+  date: string;
+  hoursSlept: number;
+  quality: SleepQuality;
+  notes?: string;
+  hrv?: number;
+  restingHR?: number;
+}
+
+// ===== GOALS =====
+
+export type GoalCategory = 'strength-1rm' | 'weight' | 'body-comp' | 'frequency' | 'volume' | 'custom';
+
+export interface TrainingGoal {
+  id: string;
+  category: GoalCategory;
+  title: string;
+  targetValue: number;
+  currentValue: number;
+  unit: string;
+  startDate: number;
+  targetDate?: number;
+  completedDate?: number;
+}
+
+// ===== CUSTOM TEMPLATES =====
+
+export interface CustomTemplate {
+  id: string;
+  name: string;
+  description: string;
+  exercises: CustomTemplateExercise[];
+  defaultDurationMin: number;
+  focusArea: TrainingGoalFocus;
+  createdAt: number;
+}
+
+export interface CustomTemplateExercise {
+  exerciseId: string;
+  exerciseName: string;
+  sets: number;
+  reps: string;
+  percentOf1RM?: number;
+  rpeTarget?: number;
+  restSeconds: number;
+  supersetGroup?: string;
+}
+
+// ===== GYM SETUP =====
+
+export interface GymSetup {
+  availableEquipment: AvailableEquipment[];
+  barbellWeightLbs: number; // 45 for standard, 35 for women's, etc.
+  availablePlatesLbs: number[]; // e.g., [2.5, 5, 10, 25, 35, 45]
+  hasRack: boolean;
+  hasPullUpBar: boolean;
+  hasCableStack: boolean;
+  notes?: string;
+}
+
+export const DEFAULT_GYM_SETUP: GymSetup = {
+  availableEquipment: [AvailableEquipment.BARBELL, AvailableEquipment.DUMBBELL, AvailableEquipment.BODYWEIGHT],
+  barbellWeightLbs: 45,
+  availablePlatesLbs: [2.5, 5, 10, 25, 35, 45],
+  hasRack: true,
+  hasPullUpBar: true,
+  hasCableStack: false,
+};
+
+// ===== STRENGTH TESTS =====
+
+export type StrengthTestType = '1rm-test' | '3rm-test' | '5rm-test' | 'amrap-test';
+
+export interface StrengthTestResult {
+  id: string;
+  testType: StrengthTestType;
+  date: number;
+  exerciseId: string;
+  exerciseName: string;
+  weight: number;
+  reps: number;
+  estimated1RM: number;
+  rpe?: number;
+  notes?: string;
+}
+
+// ===== SUPERSET BUILDER =====
+
+export interface SupersetConfig {
+  id: string;
+  name: string;
+  description: string;
+  exercisePairs: SupersetPair[];
+  restBetweenSupersets: number; // seconds
+  rounds: number;
+}
+
+export interface SupersetPair {
+  exerciseA: { exerciseId: string; exerciseName: string; reps: string; };
+  exerciseB: { exerciseId: string; exerciseName: string; reps: string; };
+  restBetweenExercises: number; // seconds
+}
+
+// ===== WARMUP/COOLDOWN =====
+
+export interface WarmupProtocol {
+  name: string;
+  steps: WarmupStep[];
+  totalDurationMin: number;
+}
+
+export interface WarmupStep {
+  description: string;
+  durationSeconds: number;
+  type: 'foam-roll' | 'dynamic-stretch' | 'activation' | 'ramp-up-set' | 'static-stretch' | 'breathing';
+  notes?: string;
+}
+
+// ===== EXPORT =====
+
+export type ExportFormat = 'json' | 'csv';
+
+export interface ExportOptions {
+  format: ExportFormat;
+  includeSets: boolean;
+  includeRPE: boolean;
+  includeTonnage: boolean;
+}
+
+// ===== RPE CALIBRATION =====
+
+export interface RPECalibration {
+  lastCalibrated?: number;
+  calibrationMethod: 'self-assessment' | 'video-review' | 'bar-speed';
+  notes?: string;
+  // Map of RPE values to % of 1RM for the athlete (individual calibration)
+  rpeToPercentMap?: Record<number, number>; // e.g., { 10: 100, 9: 95, 8: 90, 7: 85, 6: 80 }
+}
+
+export const DEFAULT_RPE_TO_PERCENT: Record<number, number> = {
+  10: 100,
+  9.5: 97.5,
+  9: 95,
+  8.5: 92.5,
+  8: 90,
+  7.5: 87.5,
+  7: 85,
+  6.5: 82.5,
+  6: 80,
+};
