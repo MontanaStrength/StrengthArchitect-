@@ -53,8 +53,9 @@ import NotificationCenterView from './components/NotificationCenterView';
 import ReportCardsView from './components/ReportCardsView';
 import ExerciseLibraryView from './components/ExerciseLibraryView';
 import SupersetBuilderView from './components/SupersetBuilderView';
+import { WorkoutWizard } from './components/wizard';
 
-import { Dumbbell, History, BarChart3, Calendar, Moon, Target, Trophy, Activity, Settings, Bell, FileText, ChevronLeft, LogOut, Wrench, Calculator, BookOpen, Layers, LayoutList, Heart, Zap, ClipboardList, Sparkles } from 'lucide-react';
+import { Dumbbell, History, BarChart3, Calendar, Moon, Target, Trophy, Activity, Settings, Bell, FileText, ChevronLeft, LogOut, Wrench, Calculator, BookOpen, Layers, LayoutList, Heart, Zap, ClipboardList, Sparkles, Grid3X3 } from 'lucide-react';
 
 type ViewState =
   | 'form'
@@ -83,7 +84,8 @@ type ViewState =
   | 'notifications'
   | 'report-cards'
   | 'exercise-library'
-  | 'superset-builder';
+  | 'superset-builder'
+  | 'tools';
 
 const App: React.FC = () => {
   // ===== AUTH =====
@@ -402,6 +404,7 @@ const App: React.FC = () => {
     { label: 'Lift Records', view: 'lift-records', icon: <Trophy size={18} /> },
     { label: 'Calendar', view: 'calendar', icon: <Calendar size={18} /> },
     { label: 'Optimizer', view: 'optimizer', icon: <Sparkles size={18} /> },
+    { label: 'Tools', view: 'tools', icon: <Grid3X3 size={18} /> },
   ];
 
   const moreItems: { label: string; view: ViewState; icon: React.ReactNode }[] = [
@@ -425,199 +428,22 @@ const App: React.FC = () => {
     { label: 'Export', view: 'export', icon: <FileText size={18} /> },
   ];
 
-  // ===== FORM RENDER =====
-  const renderForm = () => (
-    <div className="max-w-2xl mx-auto space-y-6">
-      {/* Training Goal Focus */}
-      <div>
-        <label className="block text-sm font-semibold text-gray-300 mb-2">Training Focus</label>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {(['strength', 'hypertrophy', 'power', 'endurance', 'general'] as TrainingGoalFocus[]).map(focus => (
-            <button
-              key={focus}
-              onClick={() => setFormData(prev => ({ ...prev, trainingGoalFocus: focus }))}
-              className={`p-3 rounded-lg border text-sm font-medium capitalize transition-all ${
-                formData.trainingGoalFocus === focus
-                  ? 'bg-amber-500 border-amber-500 text-white'
-                  : 'bg-neutral-800 border-neutral-700 text-gray-300 hover:border-amber-500'
-              }`}
-            >
-              {focus}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Duration */}
-      <div>
-        <label className="block text-sm font-semibold text-gray-300 mb-2">Session Duration</label>
-        <div className="flex flex-wrap gap-2">
-          {[30, 45, 60, 75, 90].map(d => (
-            <button
-              key={d}
-              onClick={() => setFormData(prev => ({ ...prev, duration: d }))}
-              className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
-                formData.duration === d
-                  ? 'bg-amber-500 border-amber-500 text-black'
-                  : 'bg-neutral-800 border-neutral-700 text-gray-300 hover:border-amber-500'
-              }`}
-            >
-              {d} min
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Readiness */}
-      <div>
-        <label className="block text-sm font-semibold text-gray-300 mb-2">Readiness</label>
-        <div className="grid grid-cols-3 gap-2">
-          {Object.values(ReadinessLevel).map(r => (
-            <button
-              key={r}
-              onClick={() => setFormData(prev => ({ ...prev, readiness: r }))}
-              className={`p-3 rounded-lg border text-xs font-medium transition-all ${
-                formData.readiness === r
-                  ? 'bg-amber-500 border-amber-500 text-black'
-                  : 'bg-neutral-800 border-neutral-700 text-gray-300 hover:border-amber-500'
-              }`}
-            >
-              {r.split(' (')[0]}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Experience Level */}
-      <div>
-        <label className="block text-sm font-semibold text-gray-300 mb-2">Training Experience</label>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-          {Object.values(TrainingExperience).map(exp => (
-            <button
-              key={exp}
-              onClick={() => setFormData(prev => ({ ...prev, trainingExperience: exp }))}
-              className={`p-3 rounded-lg border text-sm font-medium transition-all ${
-                formData.trainingExperience === exp
-                  ? 'bg-amber-500 border-amber-500 text-black'
-                  : 'bg-neutral-800 border-neutral-700 text-gray-300 hover:border-amber-500'
-              }`}
-            >
-              {exp}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* 1RM Inputs */}
-      <div>
-        <label className="block text-sm font-semibold text-gray-300 mb-2">Known 1RMs (optional, lbs)</label>
-        <div className="grid grid-cols-2 gap-3">
-          {[
-            { key: 'squat1RM' as const, label: 'Squat' },
-            { key: 'benchPress1RM' as const, label: 'Bench Press' },
-            { key: 'deadlift1RM' as const, label: 'Deadlift' },
-            { key: 'overheadPress1RM' as const, label: 'OHP' },
-          ].map(lift => (
-            <div key={lift.key}>
-              <label className="text-xs text-gray-400">{lift.label}</label>
-              <input
-                type="number"
-                value={formData[lift.key] || ''}
-                onChange={e => setFormData(prev => ({ ...prev, [lift.key]: Number(e.target.value) || undefined }))}
-                className="w-full mt-1 p-2 rounded bg-neutral-800 border border-neutral-700 text-white text-sm"
-                placeholder="lbs"
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Profile Row */}
-      <div className="grid grid-cols-3 gap-3">
-        <div>
-          <label className="text-xs text-gray-400">Weight (lbs)</label>
-          <input
-            type="number"
-            value={formData.weightLbs}
-            onChange={e => setFormData(prev => ({ ...prev, weightLbs: Number(e.target.value) }))}
-            className="w-full mt-1 p-2 rounded bg-neutral-800 border border-neutral-700 text-white text-sm"
-          />
-        </div>
-        <div>
-          <label className="text-xs text-gray-400">Age</label>
-          <input
-            type="number"
-            value={formData.age}
-            onChange={e => setFormData(prev => ({ ...prev, age: Number(e.target.value) }))}
-            className="w-full mt-1 p-2 rounded bg-neutral-800 border border-neutral-700 text-white text-sm"
-          />
-        </div>
-        <div>
-          <label className="text-xs text-gray-400">Gender</label>
-          <select
-            value={formData.gender}
-            onChange={e => setFormData(prev => ({ ...prev, gender: e.target.value as 'male' | 'female' }))}
-            className="w-full mt-1 p-2 rounded bg-neutral-800 border border-neutral-700 text-white text-sm"
+  // ===== TOOLS VIEW =====
+  const renderToolsGrid = () => (
+    <div className="max-w-2xl mx-auto">
+      <h2 className="text-xl font-bold text-white mb-1">Tools & Features</h2>
+      <p className="text-sm text-gray-400 mb-6">Everything else in your training toolkit</p>
+      <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+        {moreItems.map(item => (
+          <button
+            key={item.view}
+            onClick={() => setView(item.view)}
+            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-neutral-800/50 border border-neutral-700/50 hover:border-amber-500/50 hover:bg-neutral-800 transition-all text-gray-400 hover:text-amber-400"
           >
-            <option value="male">Male</option>
-            <option value="female">Female</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Optimizer Badge */}
-      {optimizerConfig.enabled && optimizerConfig.recommendations && (
-        <div className="bg-purple-900/30 border border-purple-700 rounded-lg p-3">
-          <div className="flex items-center gap-2 text-purple-300 text-sm font-semibold">
-            <Sparkles size={16} />
-            Optimizer Active
-          </div>
-          <p className="text-xs text-purple-400 mt-1">
-            {optimizerConfig.recommendations.rationale}
-          </p>
-          <p className="text-xs text-purple-300 mt-1">
-            Target: {optimizerConfig.recommendations.sessionVolume} sets • {optimizerConfig.recommendations.repScheme} • {optimizerConfig.recommendations.intensityRange.min}-{optimizerConfig.recommendations.intensityRange.max}% 1RM
-          </p>
-        </div>
-      )}
-
-      {/* Generate Button */}
-      <button
-        onClick={handleGenerate}
-        className="w-full py-4 bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-xl text-lg transition-all shadow-lg shadow-amber-500/25"
-      >
-        🏋️ Generate Workout
-      </button>
-
-      {error && (
-        <div className="bg-amber-900/50 border border-amber-700 rounded-lg p-4 text-amber-300 text-sm">
-          {error}
-        </div>
-      )}
-
-      {/* Active Block Indicator */}
-      {trainingContext && (
-        <div className="bg-blue-900/30 border border-blue-700 rounded-lg p-3 text-sm">
-          <span className="text-blue-300 font-semibold">📋 Active Block:</span>{' '}
-          <span className="text-blue-200">{trainingContext.blockName} — {trainingContext.phaseName} (Week {trainingContext.weekInPhase}/{trainingContext.totalWeeksInPhase})</span>
-        </div>
-      )}
-
-      {/* Quick Access Grid */}
-      <div className="mt-8">
-        <h3 className="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wider">Tools & Features</h3>
-        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-          {moreItems.map(item => (
-            <button
-              key={item.view}
-              onClick={() => setView(item.view)}
-              className="flex flex-col items-center gap-1.5 p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50 hover:border-amber-500/50 hover:bg-neutral-800 transition-all text-gray-400 hover:text-amber-400"
-            >
-              {item.icon}
-              <span className="text-[10px] font-medium text-center leading-tight">{item.label}</span>
-            </button>
-          ))}
-        </div>
+            {item.icon}
+            <span className="text-[11px] font-medium text-center leading-tight">{item.label}</span>
+          </button>
+        ))}
       </div>
     </div>
   );
@@ -673,7 +499,19 @@ const App: React.FC = () => {
 
       {/* Content */}
       <main className="max-w-6xl mx-auto px-4 py-6">
-        {view === 'form' && renderForm()}
+        {view === 'form' && (
+          <WorkoutWizard
+            formData={formData}
+            setFormData={setFormData}
+            trainingContext={trainingContext}
+            optimizerConfig={optimizerConfig}
+            onGenerate={handleGenerate}
+            isGenerating={view === 'loading'}
+            error={error}
+          />
+        )}
+
+        {view === 'tools' && renderToolsGrid()}
 
         {view === 'loading' && <LoadingView />}
 
