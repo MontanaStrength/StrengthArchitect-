@@ -5,6 +5,7 @@ import {
 } from '../types';
 import WorkoutCard from './WorkoutCard';
 import FeedbackSection from './FeedbackSection';
+import LoadingView from './LoadingView';
 import { Dumbbell, Zap, RefreshCw, Layers } from 'lucide-react';
 
 interface Props {
@@ -110,19 +111,13 @@ const LiftView: React.FC<Props> = ({
   }
 
   // ──────────────────────────────────────────────────
-  // STATE: Generating (inline spinner)
+  // STATE: Generating — multi-step progress
   // ──────────────────────────────────────────────────
   if (isGenerating) {
     return (
-      <div className="text-center py-20 space-y-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500 mx-auto" />
-        <p className="text-gray-400 text-sm">Building today's workout…</p>
-        {blockContext && (
-          <p className="text-xs text-gray-600">
-            Week {blockContext.weekNum}/{blockContext.totalWeeks} · {blockContext.blockName}
-          </p>
-        )}
-      </div>
+      <LoadingView
+        contextLabel={blockContext ? `Week ${blockContext.weekNum}/${blockContext.totalWeeks} · ${blockContext.blockName}` : undefined}
+      />
     );
   }
 
