@@ -41,9 +41,9 @@ const LoadingView: React.FC<Props> = ({ contextLabel }) => {
 
   return (
     <div className="py-8 space-y-8">
-      {/* Animated lifter */}
+      {/* Animated barbell */}
       <div className="flex justify-center">
-        <LiftAnimation size={128} interval={4000} />
+        <LiftAnimation size={160} />
       </div>
 
       {/* Header */}
