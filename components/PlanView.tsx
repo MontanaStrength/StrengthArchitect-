@@ -86,7 +86,7 @@ const PlanView: React.FC<Props> = ({ block, onSave }) => {
   // Local state — initialized from block or sensible defaults
   const [name, setName] = useState(block?.name || '');
   const [lengthWeeks, setLengthWeeks] = useState(block?.lengthWeeks || 8);
-  const [trainingDays, setTrainingDays] = useState<number[]>(block?.trainingDays || [1, 2, 4, 5]); // default Mon/Tue/Thu/Fri
+  const [trainingDays, setTrainingDays] = useState<number[]>(block?.trainingDays || []);
   const [slots, setSlots] = useState<ExerciseSlot[]>(
     block?.exercisePreferences?.slots || [...DEFAULT_SLOTS]
   );
