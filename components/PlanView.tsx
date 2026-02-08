@@ -144,7 +144,7 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
   };
 
   const filledCount = slots.filter(s => s.exerciseId).length;
-  const isComplete = name.trim().length > 0 && trainingDays.length > 0;
+  const isComplete = name.trim().length > 0;
 
   const handleSave = () => {
     if (!isComplete) return;
