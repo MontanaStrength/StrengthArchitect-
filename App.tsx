@@ -54,8 +54,9 @@ import ReportCardsView from './components/ReportCardsView';
 import ExerciseLibraryView from './components/ExerciseLibraryView';
 import SupersetBuilderView from './components/SupersetBuilderView';
 import { WorkoutWizard } from './components/wizard';
+import { BlockWizard } from './components/block-wizard';
 
-import { Dumbbell, History, BarChart3, Calendar, Moon, Target, Trophy, Activity, Settings, Bell, FileText, ChevronLeft, LogOut, Wrench, Calculator, BookOpen, Layers, LayoutList, Heart, Zap, ClipboardList, Sparkles, Grid3X3 } from 'lucide-react';
+import { Dumbbell, History, BarChart3, Calendar, Moon, Target, Trophy, Activity, Settings, Bell, FileText, ChevronLeft, LogOut, Wrench, Calculator, BookOpen, Layers, LayoutList, Heart, Zap, ClipboardList, Sparkles, Plus } from 'lucide-react';
 
 type ViewState =
   | 'form'
@@ -85,7 +86,11 @@ type ViewState =
   | 'report-cards'
   | 'exercise-library'
   | 'superset-builder'
-  | 'tools';
+  | 'tools'
+  | 'block-wizard'
+  | 'plan'
+  | 'lift'
+  | 'analyze';
 
 const App: React.FC = () => {
   // ===== AUTH =====
@@ -93,7 +98,7 @@ const App: React.FC = () => {
   const [authLoading, setAuthLoading] = useState(true);
 
   // ===== VIEW =====
-  const [view, setView] = useState<ViewState>('form');
+  const [view, setView] = useState<ViewState>('lift');
 
   // ===== FORM STATE =====
   const [formData, setFormData] = useState<FormData>({
@@ -396,57 +401,76 @@ const App: React.FC = () => {
   const latestWorkout = history[0] || null;
   const currentSavedWorkout = latestWorkout && currentPlan && latestWorkout.title === currentPlan.title ? latestWorkout : null;
 
-  // ===== NAV =====
-  const navItems: { label: string; view: ViewState; icon: React.ReactNode }[] = [
-    { label: 'Generate', view: 'form', icon: <Dumbbell size={18} /> },
-    { label: 'Dashboard', view: 'dashboard', icon: <BarChart3 size={18} /> },
-    { label: 'History', view: 'history', icon: <History size={18} /> },
-    { label: 'Lift Records', view: 'lift-records', icon: <Trophy size={18} /> },
-    { label: 'Calendar', view: 'calendar', icon: <Calendar size={18} /> },
-    { label: 'Optimizer', view: 'optimizer', icon: <Sparkles size={18} /> },
-    { label: 'Tools', view: 'tools', icon: <Grid3X3 size={18} /> },
+  // ===== NAV — 3 primary tabs =====
+  type PrimaryTab = 'plan' | 'lift' | 'analyze';
+
+  /** Which tab owns each sub-view */
+  const tabForView: Record<ViewState, PrimaryTab> = {
+    // PLAN
+    'block-wizard': 'plan', 'training-blocks': 'plan', 'custom-templates': 'plan',
+    'optimizer': 'plan', 'goals': 'plan', 'gym-setup': 'plan',
+    // LIFT
+    'form': 'lift', 'loading': 'lift', 'result': 'lift', 'session': 'lift',
+    'plate-calculator': 'lift', 'warmup-cooldown': 'lift', 'rpe-calibration': 'lift',
+    'superset-builder': 'lift', 'exercise-library': 'lift',
+    // ANALYZE
+    'dashboard': 'analyze', 'history': 'analyze', 'lift-records': 'analyze',
+    'calendar': 'analyze', 'training-load': 'analyze', 'body-comp': 'analyze',
+    'recovery': 'analyze', 'sleep': 'analyze', 'achievements': 'analyze',
+    'report-cards': 'analyze', 'strength-test': 'analyze',
+    // Misc — default to analyze
+    'export': 'analyze', 'notifications': 'analyze', 'tools': 'analyze',
+    // Hubs
+    'plan': 'plan', 'lift': 'lift', 'analyze': 'analyze',
+  };
+
+  const activeTab: PrimaryTab = tabForView[view] || 'lift';
+
+  const primaryTabs: { id: PrimaryTab; label: string; icon: React.ReactNode; defaultView: ViewState }[] = [
+    { id: 'plan',    label: 'Plan',    icon: <Layers size={18} />,   defaultView: 'plan' },
+    { id: 'lift',    label: 'Lift',    icon: <Dumbbell size={18} />, defaultView: 'lift' },
+    { id: 'analyze', label: 'Analyze', icon: <BarChart3 size={18} />, defaultView: 'analyze' },
   ];
 
-  const moreItems: { label: string; view: ViewState; icon: React.ReactNode }[] = [
-    { label: 'Training Blocks', view: 'training-blocks', icon: <Layers size={18} /> },
-    { label: 'Training Load', view: 'training-load', icon: <Activity size={18} /> },
-    { label: 'Strength Tests', view: 'strength-test', icon: <ClipboardList size={18} /> },
-    { label: 'Recovery', view: 'recovery', icon: <Heart size={18} /> },
-    { label: 'Body Comp', view: 'body-comp', icon: <BarChart3 size={18} /> },
-    { label: 'Sleep', view: 'sleep', icon: <Moon size={18} /> },
-    { label: 'Goals', view: 'goals', icon: <Target size={18} /> },
-    { label: 'Achievements', view: 'achievements', icon: <Trophy size={18} /> },
-    { label: 'Report Cards', view: 'report-cards', icon: <FileText size={18} /> },
-    { label: 'Exercise Library', view: 'exercise-library', icon: <BookOpen size={18} /> },
-    { label: 'Plate Calculator', view: 'plate-calculator', icon: <Calculator size={18} /> },
-    { label: 'Superset Builder', view: 'superset-builder', icon: <Zap size={18} /> },
-    { label: 'Warmup/Cooldown', view: 'warmup-cooldown', icon: <Activity size={18} /> },
-    { label: 'RPE Calibration', view: 'rpe-calibration', icon: <Settings size={18} /> },
-    { label: 'Custom Templates', view: 'custom-templates', icon: <LayoutList size={18} /> },
-    { label: 'Gym Setup', view: 'gym-setup', icon: <Wrench size={18} /> },
-    { label: 'Notifications', view: 'notifications', icon: <Bell size={18} /> },
-    { label: 'Export', view: 'export', icon: <FileText size={18} /> },
+  /** Sub-items visible within each tab's hub view */
+  const planSubItems: { label: string; view: ViewState; icon: React.ReactNode }[] = [
+    { label: 'New Block',        view: 'block-wizard',    icon: <Plus size={16} /> },
+    { label: 'My Blocks',        view: 'training-blocks', icon: <Layers size={16} /> },
+    { label: 'Optimizer',        view: 'optimizer',       icon: <Sparkles size={16} /> },
+    { label: 'Goals',            view: 'goals',           icon: <Target size={16} /> },
+    { label: 'Custom Templates', view: 'custom-templates', icon: <LayoutList size={16} /> },
+    { label: 'Gym Setup',        view: 'gym-setup',       icon: <Wrench size={16} /> },
   ];
 
-  // ===== TOOLS VIEW =====
-  const renderToolsGrid = () => (
-    <div className="max-w-2xl mx-auto">
-      <h2 className="text-xl font-bold text-white mb-1">Tools & Features</h2>
-      <p className="text-sm text-gray-400 mb-6">Everything else in your training toolkit</p>
-      <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-        {moreItems.map(item => (
-          <button
-            key={item.view}
-            onClick={() => setView(item.view)}
-            className="flex flex-col items-center gap-2 p-4 rounded-xl bg-neutral-800/50 border border-neutral-700/50 hover:border-amber-500/50 hover:bg-neutral-800 transition-all text-gray-400 hover:text-amber-400"
-          >
-            {item.icon}
-            <span className="text-[11px] font-medium text-center leading-tight">{item.label}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+  const liftSubItems: { label: string; view: ViewState; icon: React.ReactNode }[] = [
+    { label: 'Generate Workout',  view: 'form',             icon: <Dumbbell size={16} /> },
+    { label: 'Exercise Library',  view: 'exercise-library',  icon: <BookOpen size={16} /> },
+    { label: 'Plate Calculator',  view: 'plate-calculator',  icon: <Calculator size={16} /> },
+    { label: 'Superset Builder',  view: 'superset-builder',  icon: <Zap size={16} /> },
+    { label: 'Warmup / Cooldown', view: 'warmup-cooldown',   icon: <Activity size={16} /> },
+    { label: 'RPE Calibration',   view: 'rpe-calibration',   icon: <Settings size={16} /> },
+  ];
+
+  const analyzeSubItems: { label: string; view: ViewState; icon: React.ReactNode }[] = [
+    { label: 'Dashboard',      view: 'dashboard',     icon: <BarChart3 size={16} /> },
+    { label: 'History',         view: 'history',        icon: <History size={16} /> },
+    { label: 'Lift Records',    view: 'lift-records',   icon: <Trophy size={16} /> },
+    { label: 'Calendar',        view: 'calendar',       icon: <Calendar size={16} /> },
+    { label: 'Training Load',   view: 'training-load',  icon: <Activity size={16} /> },
+    { label: 'Body Comp',       view: 'body-comp',      icon: <BarChart3 size={16} /> },
+    { label: 'Recovery',        view: 'recovery',       icon: <Heart size={16} /> },
+    { label: 'Sleep',            view: 'sleep',           icon: <Moon size={16} /> },
+    { label: 'Strength Tests',  view: 'strength-test',  icon: <ClipboardList size={16} /> },
+    { label: 'Achievements',    view: 'achievements',   icon: <Trophy size={16} /> },
+    { label: 'Report Cards',    view: 'report-cards',   icon: <FileText size={16} /> },
+    { label: 'Export',           view: 'export',          icon: <FileText size={16} /> },
+  ];
+
+  const subItemsForTab: Record<PrimaryTab, typeof planSubItems> = {
+    plan: planSubItems,
+    lift: liftSubItems,
+    analyze: analyzeSubItems,
+  };
 
   // ===== MAIN RENDER =====
   return (
@@ -455,8 +479,14 @@ const App: React.FC = () => {
       <header className="bg-neutral-900/80 backdrop-blur border-b border-neutral-800 sticky top-0 z-50">
         <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {view !== 'form' && (
-              <button onClick={() => setView('form')} className="text-gray-400 hover:text-white transition-colors">
+            {!['plan', 'lift', 'analyze'].includes(view) && (
+              <button
+                onClick={() => {
+                  const hub = activeTab;
+                  setView(hub as ViewState);
+                }}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
                 <ChevronLeft size={20} />
               </button>
             )}
@@ -477,21 +507,21 @@ const App: React.FC = () => {
         </div>
       </header>
 
-      {/* Nav Bar */}
+      {/* 3-Tab Nav Bar */}
       <nav className="bg-neutral-900/50 border-b border-neutral-800">
-        <div className="max-w-6xl mx-auto px-4 flex gap-1 overflow-x-auto">
-          {navItems.map(item => (
+        <div className="max-w-6xl mx-auto px-4 flex justify-around">
+          {primaryTabs.map(tab => (
             <button
-              key={item.view}
-              onClick={() => setView(item.view)}
-              className={`flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium whitespace-nowrap border-b-2 transition-all ${
-                view === item.view
+              key={tab.id}
+              onClick={() => setView(tab.defaultView)}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold tracking-wide border-b-2 transition-all ${
+                activeTab === tab.id
                   ? 'border-amber-500 text-amber-400'
                   : 'border-transparent text-gray-500 hover:text-gray-300'
               }`}
             >
-              {item.icon}
-              {item.label}
+              {tab.icon}
+              {tab.label}
             </button>
           ))}
         </div>
@@ -499,6 +529,34 @@ const App: React.FC = () => {
 
       {/* Content */}
       <main className="max-w-6xl mx-auto px-4 py-6">
+
+        {/* ── HUB VIEWS ─────────────────────────────────────── */}
+        {['plan', 'lift', 'analyze'].includes(view) && (
+          <div className="max-w-2xl mx-auto">
+            <h2 className="text-xl font-bold text-white mb-1 capitalize">{activeTab}</h2>
+            <p className="text-sm text-gray-400 mb-6">
+              {activeTab === 'plan' && 'Build blocks, set goals, and design your training.'}
+              {activeTab === 'lift' && 'Generate workouts, track sessions, and use lifting tools.'}
+              {activeTab === 'analyze' && 'Review progress, records, and training analytics.'}
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {subItemsForTab[activeTab].map(item => (
+                <button
+                  key={item.view}
+                  onClick={() => setView(item.view)}
+                  className="flex flex-col items-center gap-2.5 p-5 rounded-xl bg-neutral-800/50 border border-neutral-700/50 hover:border-amber-500/50 hover:bg-neutral-800 transition-all text-gray-400 hover:text-amber-400 group"
+                >
+                  <span className="p-2.5 rounded-lg bg-neutral-700/50 group-hover:bg-amber-500/10 transition-colors">
+                    {item.icon}
+                  </span>
+                  <span className="text-xs font-medium text-center leading-tight">{item.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── SUB-VIEWS ─────────────────────────────────────── */}
         {view === 'form' && (
           <WorkoutWizard
             formData={formData}
@@ -511,7 +569,28 @@ const App: React.FC = () => {
           />
         )}
 
-        {view === 'tools' && renderToolsGrid()}
+        {view === 'block-wizard' && (
+          <BlockWizard
+            existingBlocks={trainingBlocks}
+            onCreateBlock={async (block) => {
+              const updated = block.isActive
+                ? [...trainingBlocks.map(b => ({ ...b, isActive: false })), block]
+                : [...trainingBlocks, block];
+              setTrainingBlocks(updated);
+              if (user) {
+                for (const b of updated) syncTrainingBlockToCloud(b, user.id).catch(console.error);
+              }
+            }}
+            onScheduleWorkouts={async (workouts) => {
+              setScheduledWorkouts(prev => [...prev, ...workouts]);
+              if (user) {
+                for (const w of workouts) syncScheduledWorkoutToCloud(w, user.id).catch(console.error);
+              }
+            }}
+            onComplete={() => setView('training-blocks')}
+            onCancel={() => setView('plan')}
+          />
+        )}
 
         {view === 'loading' && <LoadingView />}
 

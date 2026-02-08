@@ -106,7 +106,7 @@ const TrainingBlockView: React.FC<Props> = ({ blocks, onSave, onDelete }) => {
             <div className="space-y-1">
               {PERIODIZATION_TEMPLATES[selectedTemplate].phases.map((p, i) => (
                 <div key={i} className={`px-3 py-2 rounded border text-xs ${getPhaseColor(p.phase)}`}>
-                  <span className="font-semibold">{p.phase}</span> — {p.weekCount}wk — Intensity: {p.intensityFocus}, Volume: {p.volumeFocus}
+                  <span className="font-semibold">{p.phase}</span> — {p.weekCount}wk • {p.sessionsPerWeek}x/wk — Intensity: {p.intensityFocus}, Volume: {p.volumeFocus}
                 </div>
               ))}
             </div>

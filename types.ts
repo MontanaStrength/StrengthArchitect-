@@ -244,40 +244,68 @@ export interface TrainingBlock {
   isActive: boolean;
 }
 
+export type SplitPattern =
+  | 'full-body'
+  | 'upper-lower'
+  | 'push-pull-legs'
+  | 'squat-bench-deadlift'
+  | 'custom';
+
+export const SPLIT_PATTERNS: { value: SplitPattern; label: string; minDays: number; maxDays: number; desc: string }[] = [
+  { value: 'full-body',            label: 'Full Body',       minDays: 2, maxDays: 4, desc: 'Hit every muscle group each session' },
+  { value: 'upper-lower',          label: 'Upper / Lower',   minDays: 3, maxDays: 5, desc: 'Alternate upper- and lower-body days' },
+  { value: 'push-pull-legs',       label: 'Push / Pull / Legs', minDays: 3, maxDays: 6, desc: 'Classic 3-way split, can be run 1–2×' },
+  { value: 'squat-bench-deadlift', label: 'SBD (Powerlifting)', minDays: 3, maxDays: 5, desc: 'Organize around the competition lifts' },
+  { value: 'custom',               label: 'Custom',          minDays: 1, maxDays: 7, desc: 'Define your own split pattern' },
+];
+
 export interface TrainingBlockPhase {
   phase: TrainingPhase;
   weekCount: number;
+  sessionsPerWeek: number;
+  splitPattern: SplitPattern;
   intensityFocus: 'low' | 'moderate' | 'high' | 'very-high' | 'minimal';
   volumeFocus: 'low' | 'moderate' | 'high' | 'very-high' | 'minimal';
   primaryArchetypes: string[];
   description: string;
 }
 
+/** Pre-built phase configs for quick setup */
+export const PHASE_PRESETS: Record<TrainingPhase, Omit<TrainingBlockPhase, 'weekCount' | 'sessionsPerWeek' | 'splitPattern'>> = {
+  [TrainingPhase.HYPERTROPHY]:     { phase: TrainingPhase.HYPERTROPHY,     intensityFocus: 'moderate',  volumeFocus: 'high',      primaryArchetypes: ['hyp_ppl', 'hyp_upper_lower', 'gvt'],                  description: 'High volume, moderate loads. Build muscle mass.' },
+  [TrainingPhase.ACCUMULATION]:    { phase: TrainingPhase.ACCUMULATION,    intensityFocus: 'moderate',  volumeFocus: 'very-high',  primaryArchetypes: ['hyp_ppl', 'dup_3day', 'hyp_upper_lower'],             description: 'Build work capacity with high volume.' },
+  [TrainingPhase.STRENGTH]:        { phase: TrainingPhase.STRENGTH,        intensityFocus: 'high',      volumeFocus: 'moderate',   primaryArchetypes: ['str_5x5', 'str_531', 'str_texas'],                    description: 'Increase intensity, reduce volume. Build raw strength.' },
+  [TrainingPhase.INTENSIFICATION]: { phase: TrainingPhase.INTENSIFICATION, intensityFocus: 'high',      volumeFocus: 'moderate',   primaryArchetypes: ['str_531', 'str_texas', 'conjugate_me'],               description: 'Progressive overload on competition lifts.' },
+  [TrainingPhase.REALIZATION]:     { phase: TrainingPhase.REALIZATION,     intensityFocus: 'very-high', volumeFocus: 'low',        primaryArchetypes: ['str_heavy_singles', 'str_cluster', 'str_531'],        description: 'Peak intensity, minimal volume. Heavy singles & doubles.' },
+  [TrainingPhase.PEAKING]:         { phase: TrainingPhase.PEAKING,         intensityFocus: 'very-high', volumeFocus: 'low',        primaryArchetypes: ['str_heavy_singles', 'str_cluster'],                   description: 'Test new maxes. Minimal fatigue, maximal expression.' },
+  [TrainingPhase.DELOAD]:          { phase: TrainingPhase.DELOAD,          intensityFocus: 'low',       volumeFocus: 'minimal',    primaryArchetypes: ['deload_light', 'deload_movement'],                    description: 'Active recovery. 50-60% loads, movement quality focus.' },
+};
+
 export const PERIODIZATION_TEMPLATES: Record<string, Omit<TrainingBlock, 'id' | 'startDate' | 'isActive'>> = {
   'linear-8-week': {
     name: '8-Week Linear Progression',
     phases: [
-      { phase: TrainingPhase.HYPERTROPHY, weekCount: 3, intensityFocus: 'moderate', volumeFocus: 'high', primaryArchetypes: ['hyp_ppl', 'hyp_upper_lower', 'gvt'], description: 'High volume hypertrophy. Build muscle mass with moderate loads.' },
-      { phase: TrainingPhase.STRENGTH, weekCount: 3, intensityFocus: 'high', volumeFocus: 'moderate', primaryArchetypes: ['str_5x5', 'str_531', 'str_texas'], description: 'Increase intensity, reduce volume. Build raw strength.' },
-      { phase: TrainingPhase.PEAKING, weekCount: 1, intensityFocus: 'very-high', volumeFocus: 'low', primaryArchetypes: ['str_heavy_singles', 'str_cluster'], description: 'Peak intensity, minimal volume. Test new maxes.' },
-      { phase: TrainingPhase.DELOAD, weekCount: 1, intensityFocus: 'low', volumeFocus: 'minimal', primaryArchetypes: ['deload_light', 'deload_movement'], description: 'Active recovery. 50-60% loads, focus on movement quality.' },
+      { phase: TrainingPhase.HYPERTROPHY, weekCount: 3, sessionsPerWeek: 4, splitPattern: 'upper-lower', intensityFocus: 'moderate', volumeFocus: 'high', primaryArchetypes: ['hyp_ppl', 'hyp_upper_lower', 'gvt'], description: 'High volume hypertrophy. Build muscle mass with moderate loads.' },
+      { phase: TrainingPhase.STRENGTH, weekCount: 3, sessionsPerWeek: 4, splitPattern: 'upper-lower', intensityFocus: 'high', volumeFocus: 'moderate', primaryArchetypes: ['str_5x5', 'str_531', 'str_texas'], description: 'Increase intensity, reduce volume. Build raw strength.' },
+      { phase: TrainingPhase.PEAKING, weekCount: 1, sessionsPerWeek: 3, splitPattern: 'squat-bench-deadlift', intensityFocus: 'very-high', volumeFocus: 'low', primaryArchetypes: ['str_heavy_singles', 'str_cluster'], description: 'Peak intensity, minimal volume. Test new maxes.' },
+      { phase: TrainingPhase.DELOAD, weekCount: 1, sessionsPerWeek: 3, splitPattern: 'full-body', intensityFocus: 'low', volumeFocus: 'minimal', primaryArchetypes: ['deload_light', 'deload_movement'], description: 'Active recovery. 50-60% loads, focus on movement quality.' },
     ],
   },
   'powerlifting-12-week': {
     name: '12-Week Powerlifting Prep',
     phases: [
-      { phase: TrainingPhase.ACCUMULATION, weekCount: 4, intensityFocus: 'moderate', volumeFocus: 'very-high', primaryArchetypes: ['hyp_ppl', 'dup_3day', 'hyp_upper_lower'], description: 'Build work capacity. High volume, moderate intensity.' },
-      { phase: TrainingPhase.INTENSIFICATION, weekCount: 4, intensityFocus: 'high', volumeFocus: 'moderate', primaryArchetypes: ['str_531', 'str_texas', 'conjugate_me'], description: 'Increase loads progressively. Competition lift focus.' },
-      { phase: TrainingPhase.REALIZATION, weekCount: 3, intensityFocus: 'very-high', volumeFocus: 'low', primaryArchetypes: ['str_heavy_singles', 'str_cluster', 'str_531'], description: 'Peak for meet. Heavy singles and doubles.' },
-      { phase: TrainingPhase.DELOAD, weekCount: 1, intensityFocus: 'minimal', volumeFocus: 'minimal', primaryArchetypes: ['deload_light'], description: 'Meet week. Openers only, rest and recover.' },
+      { phase: TrainingPhase.ACCUMULATION, weekCount: 4, sessionsPerWeek: 4, splitPattern: 'upper-lower', intensityFocus: 'moderate', volumeFocus: 'very-high', primaryArchetypes: ['hyp_ppl', 'dup_3day', 'hyp_upper_lower'], description: 'Build work capacity. High volume, moderate intensity.' },
+      { phase: TrainingPhase.INTENSIFICATION, weekCount: 4, sessionsPerWeek: 4, splitPattern: 'squat-bench-deadlift', intensityFocus: 'high', volumeFocus: 'moderate', primaryArchetypes: ['str_531', 'str_texas', 'conjugate_me'], description: 'Increase loads progressively. Competition lift focus.' },
+      { phase: TrainingPhase.REALIZATION, weekCount: 3, sessionsPerWeek: 3, splitPattern: 'squat-bench-deadlift', intensityFocus: 'very-high', volumeFocus: 'low', primaryArchetypes: ['str_heavy_singles', 'str_cluster', 'str_531'], description: 'Peak for meet. Heavy singles and doubles.' },
+      { phase: TrainingPhase.DELOAD, weekCount: 1, sessionsPerWeek: 2, splitPattern: 'full-body', intensityFocus: 'minimal', volumeFocus: 'minimal', primaryArchetypes: ['deload_light'], description: 'Meet week. Openers only, rest and recover.' },
     ],
   },
   'hypertrophy-6-week': {
     name: '6-Week Hypertrophy Block',
     phases: [
-      { phase: TrainingPhase.ACCUMULATION, weekCount: 2, intensityFocus: 'moderate', volumeFocus: 'high', primaryArchetypes: ['hyp_ppl', 'hyp_upper_lower', 'hyp_bro_split'], description: 'Progressive volume increase. 3-4 sets per exercise.' },
-      { phase: TrainingPhase.HYPERTROPHY, weekCount: 3, intensityFocus: 'moderate', volumeFocus: 'very-high', primaryArchetypes: ['gvt', 'hyp_ppl', 'hyp_arnold'], description: 'Peak volume phase. Mechanical tension and metabolic stress.' },
-      { phase: TrainingPhase.DELOAD, weekCount: 1, intensityFocus: 'low', volumeFocus: 'low', primaryArchetypes: ['deload_light', 'deload_movement'], description: 'Recover and grow. Reduce volume 40-50%.' },
+      { phase: TrainingPhase.ACCUMULATION, weekCount: 2, sessionsPerWeek: 4, splitPattern: 'push-pull-legs', intensityFocus: 'moderate', volumeFocus: 'high', primaryArchetypes: ['hyp_ppl', 'hyp_upper_lower', 'hyp_bro_split'], description: 'Progressive volume increase. 3-4 sets per exercise.' },
+      { phase: TrainingPhase.HYPERTROPHY, weekCount: 3, sessionsPerWeek: 5, splitPattern: 'push-pull-legs', intensityFocus: 'moderate', volumeFocus: 'very-high', primaryArchetypes: ['gvt', 'hyp_ppl', 'hyp_arnold'], description: 'Peak volume phase. Mechanical tension and metabolic stress.' },
+      { phase: TrainingPhase.DELOAD, weekCount: 1, sessionsPerWeek: 3, splitPattern: 'full-body', intensityFocus: 'low', volumeFocus: 'low', primaryArchetypes: ['deload_light', 'deload_movement'], description: 'Recover and grow. Reduce volume 40-50%.' },
     ],
   },
 };
@@ -335,6 +363,11 @@ export interface ScheduledWorkout {
   notes?: string;
   status: ScheduledWorkoutStatus;
   completedWorkoutId?: string;
+  /** Links this session to a specific block / phase / week */
+  trainingBlockId?: string;
+  phaseIndex?: number;
+  weekIndex?: number;
+  dayIndex?: number;
 }
 
 // ===== SLEEP =====
