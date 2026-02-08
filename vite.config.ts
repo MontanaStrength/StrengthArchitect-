@@ -8,19 +8,19 @@ const localApiPlugin = () => {
     apply: 'serve',
     configureServer(server: any) {
       server.middlewares.use('/api/generate-workout', async (req: any, res: any, next: any) => {
-        try {
-          if (req.method !== 'POST') {
-            res.statusCode = 405;
-            res.setHeader('Content-Type', 'application/json');
-            res.end(JSON.stringify({ error: 'Method Not Allowed' }));
-            return;
-          }
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ error: 'Method Not Allowed' }));
+          return;
+        }
 
-          let raw = '';
-          req.on('data', (chunk: any) => {
-            raw += chunk;
-          });
-          req.on('end', async () => {
+        let raw = '';
+        req.on('data', (chunk: any) => {
+          raw += chunk;
+        });
+        req.on('end', async () => {
+          try {
             const body = raw ? JSON.parse(raw) : {};
             const { generateWorkoutServer } = await import('./server/generateWorkout');
             const plan = await generateWorkoutServer(
@@ -29,19 +29,19 @@ const localApiPlugin = () => {
               body?.trainingContext || null,
               body?.optimizerRecommendations || null,
               body?.exercisePreferences || null,
-            body?.goalBias ?? null,
+              body?.goalBias ?? null,
             );
 
             res.statusCode = 200;
             res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify(plan));
-          });
-        } catch (err: any) {
-          console.error('Local /api/generate-workout error:', err);
-          res.statusCode = 500;
-          res.setHeader('Content-Type', 'application/json');
-          res.end(JSON.stringify({ error: err?.message || 'Internal Server Error' }));
-        }
+          } catch (err: any) {
+            console.error('Local /api/generate-workout error:', err);
+            res.statusCode = 500;
+            res.setHeader('Content-Type', 'application/json');
+            res.end(JSON.stringify({ error: err?.message || 'Internal Server Error' }));
+          }
+        });
       });
     },
   };
