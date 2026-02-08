@@ -29,6 +29,7 @@ const localApiPlugin = () => {
               body?.trainingContext || null,
               body?.optimizerRecommendations || null,
               body?.exercisePreferences || null,
+            body?.goalBias ?? null,
             );
 
             res.statusCode = 200;

@@ -16,14 +16,15 @@ export const generateWorkout = async (
   history: SavedWorkout[] = [],
   trainingContext?: TrainingContext | null,
   optimizerRecommendations?: OptimizerRecommendations | null,
-  exercisePreferences?: ExercisePreferences | null
+  exercisePreferences?: ExercisePreferences | null,
+  goalBias?: number | null
 ): Promise<StrengthWorkoutPlan> => {
   const response = await fetch('/api/generate-workout', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ data, history, trainingContext, optimizerRecommendations, exercisePreferences }),
+    body: JSON.stringify({ data, history, trainingContext, optimizerRecommendations, exercisePreferences, goalBias }),
   });
 
   if (!response.ok) {

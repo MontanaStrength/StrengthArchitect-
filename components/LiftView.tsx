@@ -5,7 +5,7 @@ import {
 } from '../types';
 import WorkoutCard from './WorkoutCard';
 import FeedbackSection from './FeedbackSection';
-import { Dumbbell, Clock, Zap, RefreshCw, Layers } from 'lucide-react';
+import { Dumbbell, Zap, RefreshCw, Layers } from 'lucide-react';
 
 interface Props {
   activeBlock: TrainingBlock | null;
@@ -13,11 +13,9 @@ interface Props {
   currentWorkout: SavedWorkout | null;
   gymSetup: GymSetup;
   readiness: ReadinessLevel;
-  duration: number;
   isGenerating: boolean;
   error: string;
   onReadinessChange: (r: ReadinessLevel) => void;
-  onDurationChange: (d: number) => void;
   onGenerate: () => void;
   onStartSession: () => void;
   onNewWorkout: () => void;
@@ -35,8 +33,8 @@ const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frid
 
 const LiftView: React.FC<Props> = ({
   activeBlock, currentPlan, currentWorkout, gymSetup,
-  readiness, duration, isGenerating, error,
-  onReadinessChange, onDurationChange, onGenerate, onStartSession,
+  readiness, isGenerating, error,
+  onReadinessChange, onGenerate, onStartSession,
   onNewWorkout, onSaveFeedback, onNavigatePlan,
 }) => {
 
@@ -204,24 +202,6 @@ const LiftView: React.FC<Props> = ({
               </button>
             );
           })}
-        </div>
-      </div>
-
-      {/* Duration */}
-      <div className="space-y-3">
-        <label className="block text-sm font-medium text-gray-300">Session Length</label>
-        <div className="flex items-center gap-4">
-          <Clock size={16} className="text-gray-500" />
-          <input
-            type="range"
-            min={30}
-            max={90}
-            step={5}
-            value={duration}
-            onChange={e => onDurationChange(Number(e.target.value))}
-            className="flex-1 accent-amber-500"
-          />
-          <span className="text-lg font-bold text-amber-400 w-20 text-right">{duration} min</span>
         </div>
       </div>
 

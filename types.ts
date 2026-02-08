@@ -259,6 +259,8 @@ export interface TrainingBlock {
   trainingDays?: number[];
   /** Exercise selection preferences */
   exercisePreferences?: ExercisePreferences;
+  /** 0 = pure hypertrophy, 50 = balanced, 100 = pure strength */
+  goalBias?: number;
 }
 
 // ===== EXERCISE PREFERENCES (18-slot selection) =====

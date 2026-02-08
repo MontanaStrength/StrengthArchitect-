@@ -235,19 +235,26 @@ const App: React.FC = () => {
     initAudio();
 
     try {
+      // Get active block context
+      const activeBlock = trainingBlocks.find(b => b.isActive);
+      const exercisePrefs = activeBlock?.exercisePreferences || null;
+
+      // Map goalBias (0=hypertrophy, 100=strength) to trainingGoalFocus
+      const bias = activeBlock?.goalBias ?? 50;
+      const biasGoal: typeof formData.trainingGoalFocus =
+        bias < 30 ? 'hypertrophy' :
+        bias > 70 ? 'strength' : 'general';
+      const biasedFormData = { ...formData, trainingGoalFocus: biasGoal };
+
       // Optimizer always active — computes volume, intensity, fatigue, metabolic stress
       const optimizerRecs = computeOptimizerRecommendations(
         optimizerConfig,
-        formData,
+        biasedFormData,
         history,
         trainingContext,
       );
 
-      // Get exercise preferences from active block
-      const activeBlock = trainingBlocks.find(b => b.isActive);
-      const exercisePrefs = activeBlock?.exercisePreferences || null;
-
-      const plan = await generateWorkout(formData, history, trainingContext, optimizerRecs, exercisePrefs);
+      const plan = await generateWorkout(biasedFormData, history, trainingContext, optimizerRecs, exercisePrefs, bias);
       setCurrentPlan(plan);
 
       const saved: SavedWorkout = {
@@ -506,6 +513,18 @@ const App: React.FC = () => {
           <div className="max-w-2xl mx-auto space-y-8">
             <PlanView
               block={trainingBlocks.find(b => b.isActive) || null}
+              estimatedMaxes={{
+                squat1RM: formData.squat1RM,
+                benchPress1RM: formData.benchPress1RM,
+                deadlift1RM: formData.deadlift1RM,
+                overheadPress1RM: formData.overheadPress1RM,
+              }}
+              onMaxesChange={(maxes) => {
+                setFormData(prev => ({ ...prev, ...maxes }));
+                if (user) {
+                  supabase.auth.updateUser({ data: maxes }).catch(console.error);
+                }
+              }}
               onSave={async (block) => {
                 const exists = trainingBlocks.find(b => b.id === block.id);
                 const updated = exists
@@ -548,11 +567,9 @@ const App: React.FC = () => {
               currentWorkout={currentSavedWorkout}
               gymSetup={gymSetup}
               readiness={formData.readiness}
-              duration={formData.duration}
               isGenerating={isGenerating}
               error={error}
               onReadinessChange={(r) => setFormData(prev => ({ ...prev, readiness: r }))}
-              onDurationChange={(d) => setFormData(prev => ({ ...prev, duration: d }))}
               onGenerate={handleGenerate}
               onStartSession={() => setView('session')}
               onNewWorkout={() => setCurrentPlan(null)}

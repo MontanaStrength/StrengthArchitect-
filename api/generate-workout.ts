@@ -94,7 +94,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { data, history = [], trainingContext, optimizerRecommendations, exercisePreferences } = req.body;
+    const { data, history = [], trainingContext, optimizerRecommendations, exercisePreferences, goalBias } = req.body;
     if (!data) return res.status(400).json({ error: 'Missing form data' });
 
     const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
@@ -151,10 +151,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       data.overheadPress1RM ? `OHP: ${data.overheadPress1RM}` : null,
     ].filter(Boolean).join(', ');
 
+    let goalBiasContext = '';
+    if (goalBias !== undefined && goalBias !== null) {
+      const biasLabel = goalBias < 20 ? 'Pure Hypertrophy' : goalBias < 40 ? 'Hypertrophy-biased' : goalBias < 60 ? 'Balanced' : goalBias < 80 ? 'Strength-biased' : 'Pure Strength';
+      goalBiasContext = `BLOCK BIAS: ${biasLabel} (${goalBias}/100). ${goalBias < 50 ? 'Lean toward 8-12 reps, 60-75% 1RM, 60-120s rest, more volume.' : goalBias > 50 ? 'Lean toward 3-5 reps, 80-92% 1RM, 3-5 min rest, fewer heavier sets.' : 'Mix heavy compounds (5-6 reps) with hypertrophy assistance (8-10 reps).'}`;
+    }
+
     const prompt = `You are an expert strength coach. Design a session for: ${data.trainingExperience}, ${data.readiness} readiness, ${data.duration}min, Focus: ${data.trainingGoalFocus}, Equipment: ${data.availableEquipment.join(', ')}, Athlete: ${data.age}yo ${data.gender} ${data.weightLbs}lbs. ${liftPRs ? `1RMs: ${liftPRs}` : 'No 1RM data — use RPE-based loading.'}
 ${historyContext}
 ${blockContext}
 ${optimizerContext}
+${goalBiasContext}
 GUARDRAILS: Max ${guardrails.maxSetsPerSession} working sets, ${guardrails.maxExercises} exercises, ${guardrails.maxPercentOf1RM}% max 1RM. Weekly load: ${safetyExposure.last7Count} sessions, ${safetyExposure.hardSessions} hard. Disallowed archetypes: ${disallowedArchetypes.join(', ') || 'None'}. ${guardrails.forceCompounds ? 'BEGINNER: compounds only + 1-2 accessories.' : ''}
 Rules: Start with main compound, follow with supplementals, finish with accessories. Mark warmup sets. Use supersetGroup letters for paired exercises. All weights in lbs, rounded to 5.`;
 

@@ -3,9 +3,18 @@ import { TrainingBlock, ExerciseSlot, ExercisePreferences, MovementPattern } fro
 import { EXERCISE_LIBRARY } from '../services/exerciseLibrary';
 import { Layers, Calendar, Dumbbell, ChevronRight, Check } from 'lucide-react';
 
+interface EstimatedMaxes {
+  squat1RM?: number;
+  benchPress1RM?: number;
+  deadlift1RM?: number;
+  overheadPress1RM?: number;
+}
+
 interface Props {
   block: TrainingBlock | null;
   onSave: (block: TrainingBlock) => void;
+  estimatedMaxes: EstimatedMaxes;
+  onMaxesChange: (maxes: EstimatedMaxes) => void;
 }
 
 type SubTab = 'block' | 'schedule' | 'exercises';
@@ -80,12 +89,20 @@ const CATEGORY_COLORS: Record<string, string> = {
   accessory: 'border-neutral-700/50',
 };
 
-const PlanView: React.FC<Props> = ({ block, onSave }) => {
+const MAXES_CONFIG: { key: keyof EstimatedMaxes; label: string }[] = [
+  { key: 'squat1RM', label: 'Squat' },
+  { key: 'benchPress1RM', label: 'Bench Press' },
+  { key: 'deadlift1RM', label: 'Deadlift' },
+  { key: 'overheadPress1RM', label: 'Overhead Press' },
+];
+
+const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChange }) => {
   const [subTab, setSubTab] = useState<SubTab>('block');
 
   // Local state — initialized from block or sensible defaults
   const [name, setName] = useState(block?.name || '');
   const [lengthWeeks, setLengthWeeks] = useState(block?.lengthWeeks || 8);
+  const [goalBias, setGoalBias] = useState(block?.goalBias ?? 50);
   const [trainingDays, setTrainingDays] = useState<number[]>(block?.trainingDays || []);
   const [slots, setSlots] = useState<ExerciseSlot[]>(
     block?.exercisePreferences?.slots || [...DEFAULT_SLOTS]
@@ -123,6 +140,7 @@ const PlanView: React.FC<Props> = ({ block, onSave }) => {
       goalEvent: block?.goalEvent,
       isActive: block?.isActive ?? true,
       lengthWeeks,
+      goalBias,
       trainingDays,
       exercisePreferences: { slots },
     };
@@ -172,15 +190,77 @@ const PlanView: React.FC<Props> = ({ block, onSave }) => {
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Block Length</label>
             <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <input
+                  type="range"
+                  min={1}
+                  max={8}
+                  value={lengthWeeks}
+                  onChange={e => setLengthWeeks(Number(e.target.value))}
+                  className="w-full accent-amber-500"
+                  list="weeks-ticks"
+                />
+                <datalist id="weeks-ticks">
+                  {[1,2,3,4,5,6,7,8].map(n => <option key={n} value={n} />)}
+                </datalist>
+                <div className="flex justify-between px-0.5 -mt-1">
+                  {[1,2,3,4,5,6,7,8].map(n => (
+                    <span key={n} className={`text-[10px] ${n === lengthWeeks ? 'text-amber-400 font-bold' : 'text-gray-600'}`}>{n}</span>
+                  ))}
+                </div>
+              </div>
+              <span className="text-2xl font-bold text-amber-400 w-24 text-right">{lengthWeeks} wk{lengthWeeks !== 1 ? 's' : ''}</span>
+            </div>
+          </div>
+
+          {/* Goal Bias */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Block Focus</label>
+            <div className="space-y-2">
               <input
                 type="range"
-                min={1}
-                max={8}
-                value={lengthWeeks}
-                onChange={e => setLengthWeeks(Number(e.target.value))}
-                className="flex-1 accent-amber-500"
+                min={0}
+                max={100}
+                step={5}
+                value={goalBias}
+                onChange={e => setGoalBias(Number(e.target.value))}
+                className="w-full accent-amber-500"
               />
-              <span className="text-2xl font-bold text-amber-400 w-24 text-right">{lengthWeeks} wk{lengthWeeks !== 1 ? 's' : ''}</span>
+              <div className="flex justify-between items-center text-xs">
+                <span className={goalBias < 30 ? 'text-amber-400 font-bold' : 'text-gray-500'}>💪 Hypertrophy</span>
+                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                  goalBias < 30 ? 'bg-purple-500/20 text-purple-300' :
+                  goalBias > 70 ? 'bg-red-500/20 text-red-300' :
+                  'bg-amber-500/20 text-amber-300'
+                }`}>
+                  {goalBias < 20 ? 'Size' :
+                   goalBias < 40 ? 'Size + Strength' :
+                   goalBias < 60 ? 'Balanced' :
+                   goalBias < 80 ? 'Strength + Size' :
+                   'Strength'}
+                </span>
+                <span className={goalBias > 70 ? 'text-amber-400 font-bold' : 'text-gray-500'}>🏋️ Strength</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Estimated 1RMs */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Estimated 1-Rep Maxes <span className="text-gray-500 font-normal">(lbs)</span></label>
+            <p className="text-xs text-gray-500 mb-3">Used to calculate working weights. Leave blank if unsure — AI will use RPE instead.</p>
+            <div className="grid grid-cols-2 gap-3">
+              {MAXES_CONFIG.map(({ key, label }) => (
+                <div key={key} className="relative">
+                  <label className="block text-[10px] text-gray-500 mb-1 uppercase tracking-wider">{label}</label>
+                  <input
+                    type="number"
+                    value={estimatedMaxes[key] || ''}
+                    onChange={e => onMaxesChange({ ...estimatedMaxes, [key]: e.target.value ? Number(e.target.value) : undefined })}
+                    placeholder="—"
+                    className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-gray-600 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-all"
+                  />
+                </div>
+              ))}
             </div>
           </div>
 

@@ -138,7 +138,8 @@ export const generateWorkoutServer = async (
   history: SavedWorkout[] = [],
   trainingContext?: TrainingContext | null,
   optimizerRecommendations?: OptimizerRecommendations | null,
-  exercisePreferences?: ExercisePreferences | null
+  exercisePreferences?: ExercisePreferences | null,
+  goalBias?: number | null
 ): Promise<StrengthWorkoutPlan> => {
   const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
   if (!apiKey) {
@@ -269,6 +270,26 @@ export const generateWorkoutServer = async (
     }
   }
 
+  // ===== GOAL BIAS INTEGRATION =====
+  let goalBiasContext = '';
+  if (goalBias !== undefined && goalBias !== null) {
+    const biasLabel =
+      goalBias < 20 ? 'Pure Hypertrophy — maximize muscle growth, moderate loads, higher volume' :
+      goalBias < 40 ? 'Hypertrophy-biased — prioritize size with some strength work on main lifts' :
+      goalBias < 60 ? 'Balanced — equal emphasis on strength and hypertrophy' :
+      goalBias < 80 ? 'Strength-biased — prioritize heavy compounds with hypertrophy assistance' :
+      'Pure Strength — maximize force production, heavy loads, lower volume, full recovery';
+    goalBiasContext = `
+    ### BLOCK GOAL BIAS (${goalBias}/100)
+    The athlete has set their training block bias to: ${biasLabel}
+    - Bias value: ${goalBias}/100 (0 = pure hypertrophy, 50 = balanced, 100 = pure strength)
+    - ${goalBias < 50 ? 'Lean toward higher rep ranges (8-12), moderate intensity (60-75% 1RM), shorter rest (60-120s), and more total volume.' : ''}
+    - ${goalBias > 50 ? 'Lean toward lower rep ranges (3-5), higher intensity (80-92% 1RM), longer rest (3-5 min), and fewer but heavier sets.' : ''}
+    - ${goalBias >= 40 && goalBias <= 60 ? 'Mix heavy compound work (5-6 reps) with moderate hypertrophy assistance (8-10 reps). A 50/50 session structure.' : ''}
+    IMPORTANT: This bias should influence exercise selection, set/rep schemes, intensity, and rest periods for the ENTIRE session.
+    `;
+  }
+
   // Build 1RM context
   const liftPRs = [
     data.squat1RM ? `Squat 1RM: ${data.squat1RM} lbs` : null,
@@ -292,6 +313,7 @@ export const generateWorkoutServer = async (
     ${blockContext}
     ${optimizerContext}
     ${exercisePrefsContext}
+    ${goalBiasContext}
 
     ### EXERCISE LIBRARY (Select exercises ONLY from this list, use the exact exerciseId)
     ${getExerciseListForPrompt()}
