@@ -54,6 +54,7 @@ import ReportCardsView from './components/ReportCardsView';
 import ExerciseLibraryView from './components/ExerciseLibraryView';
 import SupersetBuilderView from './components/SupersetBuilderView';
 import FrederickToolView from './components/FrederickToolView';
+import HanleyToolView from './components/HanleyToolView';
 import { WorkoutWizard } from './components/wizard';
 import { BlockWizard } from './components/block-wizard';
 import { computeOptimizerRecommendations } from './services/optimizerEngine';
@@ -89,6 +90,7 @@ type ViewState =
   | 'exercise-library'
   | 'superset-builder'
   | 'frederick-tool'
+  | 'hanley-tool'
   | 'tools'
   | 'block-wizard'
   | 'plan'
@@ -420,7 +422,7 @@ const App: React.FC = () => {
     // LIFT
     'form': 'lift', 'loading': 'lift', 'result': 'lift', 'session': 'lift',
     'plate-calculator': 'lift', 'warmup-cooldown': 'lift', 'rpe-calibration': 'lift',
-    'superset-builder': 'lift', 'exercise-library': 'lift', 'frederick-tool': 'lift',
+    'superset-builder': 'lift', 'exercise-library': 'lift', 'frederick-tool': 'lift', 'hanley-tool': 'lift',
     // ANALYZE
     'dashboard': 'analyze', 'history': 'analyze', 'lift-records': 'analyze',
     'calendar': 'analyze', 'training-load': 'analyze', 'body-comp': 'analyze',
@@ -458,6 +460,7 @@ const App: React.FC = () => {
     { label: 'Warmup / Cooldown', view: 'warmup-cooldown',   icon: <Activity size={16} /> },
     { label: 'RPE Calibration',   view: 'rpe-calibration',   icon: <Settings size={16} /> },
     { label: 'Metabolic Stress',   view: 'frederick-tool',    icon: <FlaskConical size={16} /> },
+    { label: 'Volume Stress',      view: 'hanley-tool',       icon: <Calculator size={16} /> },
   ];
 
   const analyzeSubItems: { label: string; view: ViewState; icon: React.ReactNode }[] = [
@@ -825,6 +828,7 @@ const App: React.FC = () => {
         {view === 'exercise-library' && <ExerciseLibraryView />}
         {view === 'superset-builder' && <SupersetBuilderView />}
         {view === 'frederick-tool' && <FrederickToolView />}
+        {view === 'hanley-tool' && <HanleyToolView />}
       </main>
     </div>
   );

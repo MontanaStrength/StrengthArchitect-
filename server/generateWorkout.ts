@@ -227,6 +227,12 @@ export const generateWorkoutServer = async (
     - Estimated load per working set: ${optimizerRecommendations.metabolicLoadPerSet || 'N/A'}
     - Formula: Load_set = Intensity × Σ(i=1→reps) e^(-0.215 × (RIR + reps - i))
     CRITICAL FOR HYPERTROPHY: Design the session so total metabolic load (sum across all working sets) lands within the target range. This means choosing intensity, rep counts, and RPE that produce per-set loads summing to ${optimizerRecommendations.metabolicLoadTarget.min}–${optimizerRecommendations.metabolicLoadTarget.max}. The moderate zone (500-800) is the productive hypertrophy zone — prioritize landing there.` : ''}
+    ${optimizerRecommendations.fatigueScoreTarget ? `
+    ### VOLUME STRESS PRESCRIPTION (Hanley Fatigue Metric)
+    - Formula: Score = Reps × (100 / (100 - Intensity))²
+    - Target per-exercise fatigue zone: ${optimizerRecommendations.fatigueScoreTarget.min}–${optimizerRecommendations.fatigueScoreTarget.max} (${optimizerRecommendations.fatigueScoreZone || 'moderate'})
+    - Prescribed total reps per exercise: ${optimizerRecommendations.targetRepsPerExercise || 'N/A'}
+    CRITICAL: Each exercise in the session should aim for approximately ${optimizerRecommendations.targetRepsPerExercise} total working reps at the recommended intensity. This is the volume blueprint — the number of sets and reps per set should be structured to hit this total while respecting the metabolic stress targets above (for hypertrophy) or using appropriate set/rep schemes for the goal.` : ''}
 
     IMPORTANT: The optimizer recommendations should be treated as STRONG guidance. Adjust the selected archetype's volume and rep scheme to match the optimizer's output. The optimizer has analyzed the athlete's weekly volume, fatigue, and recovery to produce these numbers.
     `;

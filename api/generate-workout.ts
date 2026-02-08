@@ -135,7 +135,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const metLoad = optimizerRecommendations.metabolicLoadTarget
         ? ` METABOLIC STRESS TARGET: ${optimizerRecommendations.metabolicLoadTarget.min}-${optimizerRecommendations.metabolicLoadTarget.max} (zone: ${optimizerRecommendations.metabolicLoadZone}, per-set: ${optimizerRecommendations.metabolicLoadPerSet}). For hypertrophy, total session metabolic load MUST land in 500-800 range.`
         : '';
-      optimizerContext = `OPTIMIZER: ${optimizerRecommendations.sessionVolume} working sets, ${optimizerRecommendations.repScheme}, ${optimizerRecommendations.intensityRange.min}-${optimizerRecommendations.intensityRange.max}% 1RM, rest ${optimizerRecommendations.restRange.min}-${optimizerRecommendations.restRange.max}s, ${optimizerRecommendations.exerciseCount.min}-${optimizerRecommendations.exerciseCount.max} exercises. Rationale: ${optimizerRecommendations.rationale}${metLoad}`;
+      const fatigueLoad = optimizerRecommendations.fatigueScoreTarget
+        ? ` VOLUME STRESS (Hanley): target ${optimizerRecommendations.fatigueScoreTarget.min}-${optimizerRecommendations.fatigueScoreTarget.max} per exercise (zone: ${optimizerRecommendations.fatigueScoreZone}). Prescribe ~${optimizerRecommendations.targetRepsPerExercise} total reps per exercise at recommended intensity.`
+        : '';
+      optimizerContext = `OPTIMIZER: ${optimizerRecommendations.sessionVolume} working sets, ${optimizerRecommendations.repScheme}, ${optimizerRecommendations.intensityRange.min}-${optimizerRecommendations.intensityRange.max}% 1RM, rest ${optimizerRecommendations.restRange.min}-${optimizerRecommendations.restRange.max}s, ${optimizerRecommendations.exerciseCount.min}-${optimizerRecommendations.exerciseCount.max} exercises. Rationale: ${optimizerRecommendations.rationale}${metLoad}${fatigueLoad}`;
     }
 
     const liftPRs = [

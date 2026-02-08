@@ -168,6 +168,79 @@ const prescribeHypertrophySets = (
   return { minSets, maxSets, perSetLoad };
 };
 
+// ── Hanley Fatigue Metric ────────────────────────────────────
+//   Score = Reps × (100 / (100 - Intensity))²
+//   Where: Intensity = %1RM (0-100)
+//
+//   The quadratic penalty for approaching 100% 1RM models the
+//   exponential neuromuscular fatigue cost of high-intensity lifting.
+//   At 90% 1RM each rep costs 100 "fatigue points"; at 70% only ~11.
+//
+//   Used PRESCRIPTIVELY in reverse: given a target volume zone and
+//   intensity, compute the total reps per exercise needed to reach
+//   that zone. Set/rep division is then handled by Frederick
+//   (hypertrophy) or future logic (strength/power).
+
+/** Fatigue score for a single set — the core Hanley formula */
+export const calculateSetFatigueScore = (
+  reps: number,
+  intensityPct: number, // %1RM (0-100)
+): number => {
+  if (intensityPct >= 100) return Infinity;
+  const multiplier = Math.pow(100 / (100 - intensityPct), 2);
+  return reps * multiplier;
+};
+
+/** Sum fatigue scores across all sets in a session (per exercise) */
+export const calculateSessionFatigueScore = (
+  sets: Array<{ reps: number; intensityPct: number }>
+): number => {
+  return sets.reduce((sum, s) => sum + calculateSetFatigueScore(s.reps, s.intensityPct), 0);
+};
+
+/**
+ * Reverse calculator: given a target fatigue score and intensity,
+ * compute required total reps for one exercise in a session.
+ *   Reps = TargetScore / (100 / (100 - Intensity))²
+ */
+export const reverseCalculateReps = (
+  targetScore: number,
+  intensityPct: number, // %1RM (0-100)
+): number => {
+  if (intensityPct >= 100) return 0;
+  const multiplier = Math.pow(100 / (100 - intensityPct), 2);
+  return targetScore / multiplier;
+};
+
+/** Map a per-exercise fatigue score to a named zone */
+export const getFatigueZone = (
+  score: number
+): { zone: 'light' | 'moderate' | 'moderate-high' | 'high' | 'extreme'; label: string } => {
+  if (score < 400)  return { zone: 'light',         label: 'Light' };
+  if (score < 500)  return { zone: 'moderate',       label: 'Moderate' };
+  if (score < 600)  return { zone: 'moderate-high',  label: 'Moderate-High' };
+  if (score < 700)  return { zone: 'high',           label: 'High' };
+  return              { zone: 'extreme',        label: 'Extreme' };
+};
+
+/** Fatigue zone thresholds — exported for the UI */
+export const FATIGUE_ZONES = [
+  { zone: 'light'         as const, label: 'Light',          min: 0,   max: 399 },
+  { zone: 'moderate'      as const, label: 'Moderate',       min: 400, max: 499 },
+  { zone: 'moderate-high' as const, label: 'Mod. High',      min: 500, max: 599 },
+  { zone: 'high'          as const, label: 'High',           min: 600, max: 699 },
+  { zone: 'extreme'       as const, label: 'Tread Carefully', min: 700, max: 9999 },
+] as const;
+
+/** Goal-based target fatigue zones per exercise (for the reverse calculator) */
+const FATIGUE_TARGETS: Record<TrainingGoalFocus, { min: number; max: number }> = {
+  hypertrophy: { min: 400, max: 550 },  // many reps at moderate intensity
+  strength:    { min: 400, max: 550 },  // fewer reps but high multiplier
+  power:       { min: 250, max: 400 },  // minimal reps, maximal quality
+  endurance:   { min: 350, max: 500 },  // high reps at low intensity
+  general:     { min: 400, max: 500 },  // balanced
+};
+
 /** Readiness scalar: Low → 0.55, Medium → 1.0, High → 1.1 */
 const readinessScalar = (readiness: string): number => {
   const r = String(readiness).toLowerCase();
@@ -434,7 +507,38 @@ export function computeOptimizerRecommendations(
     metabolicLoadZone = getMetabolicZone(projectedLoad).zone;
   }
 
-  // ── 11. Build rationale ────────────────────────────────
+  // ── 11. Hanley Fatigue Metric — prescriptive total reps per exercise ──
+  //   Score = Reps × (100 / (100 - Intensity))²
+  //   Used in reverse: Reps = TargetScore / (100 / (100 - Intensity))²
+  //   This prescribes how many total reps of each exercise the session should
+  //   contain. Set/rep division is then handled by Frederick (hypertrophy) or
+  //   future logic (strength/power).
+  let fatigueScoreTarget: { min: number; max: number } | undefined;
+  let fatigueScoreZone: 'light' | 'moderate' | 'moderate-high' | 'high' | 'extreme' | undefined;
+  let targetRepsPerExercise: number | undefined;
+
+  if (!forceDeload) {
+    const goalForFatigue = effectiveGoal || 'general';
+    const fTarget = FATIGUE_TARGETS[goalForFatigue] || FATIGUE_TARGETS.general;
+    fatigueScoreTarget = fTarget;
+
+    // Reverse-calculate target total reps at midpoint intensity
+    const midIntensity = (intMin + intMax) / 2;
+    const targetMidScore = (fTarget.min + fTarget.max) / 2;
+    const computedReps = reverseCalculateReps(targetMidScore, midIntensity);
+    targetRepsPerExercise = Math.max(1, Math.round(computedReps));
+
+    // Readiness adjustment: low readiness → trim reps ~20%
+    if (String(formData.readiness).toLowerCase().includes('low')) {
+      targetRepsPerExercise = Math.max(1, Math.round(targetRepsPerExercise * 0.80));
+    }
+
+    // Determine projected zone
+    const projectedScore = calculateSetFatigueScore(targetRepsPerExercise, midIntensity);
+    fatigueScoreZone = getFatigueZone(projectedScore).zone;
+  }
+
+  // ── 12. Build rationale ────────────────────────────────
   const parts: string[] = [];
   parts.push(`Goal profile: ${goal}.`);
   parts.push(`Base max sets: ${userMaxSets}, adjusted to ${sessionVolume} working sets.`);
@@ -457,6 +561,10 @@ export function computeOptimizerRecommendations(
     const projectedLoad = Math.round(metabolicLoadPerSet * sessionVolume);
     parts.push(`Frederick metabolic load: ~${projectedLoad} (target: ${metabolicLoadTarget.min}–${metabolicLoadTarget.max}, zone: ${metabolicLoadZone}).`);
   }
+  if (fatigueScoreTarget && targetRepsPerExercise) {
+    const midInt = Math.round((intMin + intMax) / 2);
+    parts.push(`Hanley fatigue: ${targetRepsPerExercise} total reps/exercise at ~${midInt}% (target zone: ${fatigueScoreTarget.min}–${fatigueScoreTarget.max}, ${fatigueScoreZone}).`);
+  }
 
   return {
     sessionVolume,
@@ -471,5 +579,8 @@ export function computeOptimizerRecommendations(
     metabolicLoadTarget,
     metabolicLoadZone,
     metabolicLoadPerSet,
+    fatigueScoreTarget,
+    fatigueScoreZone,
+    targetRepsPerExercise,
   };
 }

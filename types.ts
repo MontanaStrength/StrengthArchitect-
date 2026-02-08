@@ -183,6 +183,10 @@ export interface OptimizerRecommendations {
   metabolicLoadTarget?: { min: number; max: number }; // target session load range
   metabolicLoadZone?: 'light' | 'moderate' | 'moderate-high' | 'high' | 'extreme';
   metabolicLoadPerSet?: number; // estimated load per working set at recommended intensity/reps/RPE
+  // Hanley Fatigue Metric — prescriptive total reps per exercise
+  fatigueScoreTarget?: { min: number; max: number }; // target per-exercise fatigue zone
+  fatigueScoreZone?: 'light' | 'moderate' | 'moderate-high' | 'high' | 'extreme';
+  targetRepsPerExercise?: number; // total reps per exercise at recommended intensity
 }
 
 export const DEFAULT_OPTIMIZER_CONFIG: OptimizerConfig = {
