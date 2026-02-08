@@ -232,13 +232,14 @@ export const FATIGUE_ZONES = [
   { zone: 'extreme'       as const, label: 'Tread Carefully', min: 700, max: 9999 },
 ] as const;
 
-/** Goal-based target fatigue zones per exercise (for the reverse calculator) */
+/** Goal-based target fatigue zones per exercise (for the reverse calculator)
+ *  Tuned +15% above baseline for experienced lifters (Hanley 2026 revision). */
 const FATIGUE_TARGETS: Record<TrainingGoalFocus, { min: number; max: number }> = {
-  hypertrophy: { min: 400, max: 550 },  // many reps at moderate intensity
-  strength:    { min: 400, max: 550 },  // fewer reps but high multiplier
-  power:       { min: 250, max: 400 },  // minimal reps, maximal quality
-  endurance:   { min: 350, max: 500 },  // high reps at low intensity
-  general:     { min: 400, max: 500 },  // balanced
+  hypertrophy: { min: 460, max: 635 },  // many reps at moderate intensity
+  strength:    { min: 460, max: 635 },  // fewer reps but high multiplier
+  power:       { min: 290, max: 460 },  // minimal reps, maximal quality
+  endurance:   { min: 400, max: 575 },  // high reps at low intensity
+  general:     { min: 460, max: 575 },  // balanced
 };
 
 // ── Peak Force Drop-Off Heuristic ────────────────────────────
@@ -579,8 +580,9 @@ export function computeOptimizerRecommendations(
 
   if (isHypertrophyLike && !forceDeload) {
     // Target zones by goal — these are PER EXERCISE, not session total
-    const targetMin = effectiveGoal === 'hypertrophy' ? 500 : 400;
-    const targetMax = effectiveGoal === 'hypertrophy' ? 800 : 700;
+    // Tuned +15% above baseline for more aggressive metabolic stimulus
+    const targetMin = effectiveGoal === 'hypertrophy' ? 575 : 460;
+    const targetMax = effectiveGoal === 'hypertrophy' ? 920 : 805;
     metabolicLoadTarget = { min: targetMin, max: targetMax };
 
     // Estimate per-set load at midpoint of recommended parameters
