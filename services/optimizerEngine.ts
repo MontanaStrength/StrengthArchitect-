@@ -475,6 +475,16 @@ export function computeOptimizerRecommendations(
   // Clamp
   sessionVolume = Math.max(6, Math.min(sessionVolume, 40));
 
+
+  // ── 7. Exercise count ──────────────────────────────────
+  // Scale sets-per-exercise by volume tolerance
+  const scaledSetsMin = Math.max(2, Math.round(profile.setsPerExercise[0] * setsPerExScalar));
+  const scaledSetsMax = Math.max(scaledSetsMin, Math.round(profile.setsPerExercise[1] * setsPerExScalar));
+  const avgSetsPerExercise = (scaledSetsMin + scaledSetsMax) / 2;
+  let exerciseCountMin = Math.max(3, Math.floor(sessionVolume / scaledSetsMax));
+  let exerciseCountMax = Math.min(10, Math.ceil(sessionVolume / scaledSetsMin));
+  if (exerciseCountMin > exerciseCountMax) exerciseCountMax = exerciseCountMin;
+
   // ── 4. Rep scheme (scaled by volume tolerance) ──────────
   let repScheme = `${scaledSetsMin}-${scaledSetsMax} sets × ${profile.repScheme.split('×')[1]?.trim() || profile.repScheme}`;
   if (config.repRangePreference && config.repRangePreference !== 'auto') {
@@ -511,15 +521,6 @@ export function computeOptimizerRecommendations(
   // ── 6. Rest range ──────────────────────────────────────
   let restRange = { min: profile.restRange[0], max: profile.restRange[1] };
   if (forceDeload) restRange = { min: 60, max: 120 };
-
-  // ── 7. Exercise count ──────────────────────────────────
-  // Scale sets-per-exercise by volume tolerance
-  const scaledSetsMin = Math.max(2, Math.round(profile.setsPerExercise[0] * setsPerExScalar));
-  const scaledSetsMax = Math.max(scaledSetsMin, Math.round(profile.setsPerExercise[1] * setsPerExScalar));
-  const avgSetsPerExercise = (scaledSetsMin + scaledSetsMax) / 2;
-  let exerciseCountMin = Math.max(3, Math.floor(sessionVolume / scaledSetsMax));
-  let exerciseCountMax = Math.min(10, Math.ceil(sessionVolume / scaledSetsMin));
-  if (exerciseCountMin > exerciseCountMax) exerciseCountMax = exerciseCountMin;
   // Also cap by time budget (rough: ~4 min per working set including rest)
   const timeCap = Math.floor(formData.duration / 4);
   if (sessionVolume > timeCap) {
