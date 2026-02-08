@@ -163,7 +163,14 @@ ${blockContext}
 ${optimizerContext}
 ${goalBiasContext}
 GUARDRAILS: Max ${guardrails.maxSetsPerSession} working sets, ${guardrails.maxExercises} exercises, ${guardrails.maxPercentOf1RM}% max 1RM. Weekly load: ${safetyExposure.last7Count} sessions, ${safetyExposure.hardSessions} hard. Disallowed archetypes: ${disallowedArchetypes.join(', ') || 'None'}. ${guardrails.forceCompounds ? 'BEGINNER: compounds only + 1-2 accessories.' : ''}
-Rules: Start with main compound, follow with supplementals, finish with accessories. Mark warmup sets. Use supersetGroup letters for paired exercises. All weights in lbs, rounded to 5.`;
+EVIDENCE-BASED DEFAULTS (NSCA CSCS / ACSM / Schoenfeld et al.) — use these ONLY where the OPTIMIZER above does not provide specific targets. Frederick metabolic load, Hanley fatigue reps, and Peak Force set caps ALWAYS override these generic ranges:
+- Exercise order: power → multi-joint compounds → single-joint isolation → core last.
+- Exercises per session: Beginner 4-6, Intermediate 5-7, Advanced 6-8. Never exceed 8.
+- Volume per exercise: Strength 4-6×1-5, Hypertrophy 3-4×8-12, Power 3-5×1-3. 15-25 total working sets/session.
+- Intensity: Strength 80-92% (RPE 8-9.5, 3-5min rest), Hypertrophy 60-75% (RPE 7-9, 60-120s rest), Power 70-85% (max speed, 2-4min rest).
+- Warmups: 2-3 progressive sets for main compound (bar→50%→70%), 1 set for supplementals, none for accessories.
+- Movement balance: hip-dominant + knee-dominant each session. Push ≈ pull weekly. Include anti-movement core.
+- Supersets: non-competing muscle groups only, use supersetGroup letters. All weights in lbs, rounded to 5.`;
 
     const responseSchema = {
       type: Type.OBJECT,

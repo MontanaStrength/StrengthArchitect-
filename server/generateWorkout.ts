@@ -329,24 +329,60 @@ export const generateWorkoutServer = async (
     - All weights must be in lbs and achievable with standard plates.
     - For the "reps" field, use a string: "5" for fixed, "8-12" for range, "AMRAP" for max reps, "5/3/1" for Wendler sets.
 
-    ### REP & SET GUIDELINES
-    - Strength focus: 3-6 sets of 1-5 reps @ 80-100% 1RM, 3-5 min rest
-    - Hypertrophy focus: 3-4 sets of 8-12 reps @ 60-75% 1RM, 60-120 sec rest
-    - Power focus: 4-6 sets of 1-3 reps @ 70-85% 1RM, 2-3 min rest, MAX speed
-    - Endurance focus: 2-3 sets of 15-25 reps @ 40-55% 1RM, 30-60 sec rest
-    - General: Mix of the above based on movement pattern
+    ### EVIDENCE-BASED SESSION DESIGN (NSCA CSCS, ACSM, Schoenfeld et al.)
+    Apply these peer-reviewed best practices as DEFAULTS. When the SESSION OPTIMIZER
+    above provides specific targets (Frederick metabolic load, Hanley fatigue reps,
+    Peak Force set caps), those OVERRIDE the generic ranges below. The NSCA guidelines
+    govern everything the optimizer does NOT specify (exercise order, movement balance,
+    warmup protocol, rest periods for accessories, etc.).
 
-    ### EXERCISE SELECTION RULES
-    1. Every session MUST start with a main compound lift (squat, deadlift, bench, or OHP).
-    2. Follow with 1-2 supplemental compound lifts.
-    3. Finish with 2-3 isolation/accessory movements.
-    4. Balance push and pull volume within the session or across the week.
-    5. Use exerciseId values from the exercise library above.
-    6. Mark warmup sets with isWarmupSet: true.
+    EXERCISE ORDER (NSCA Essentials of Strength Training & Conditioning, 4th Ed.):
+    1. Power/Olympic lifts first (if applicable) — highest neural demand, fatigue-sensitive.
+    2. Multi-joint compound exercises before single-joint isolation (e.g., squat before leg extension).
+    3. Large muscle groups before small (e.g., back rows before bicep curls).
+    4. Alternating push/pull or upper/lower when supersetting to minimize interference.
+    5. Core/stabilization work at the END — never pre-fatigue stabilizers before heavy compounds.
+
+    EXERCISES PER SESSION (NSCA / ACSM Guidelines for Resistance Training):
+    - Beginner: 4–6 exercises (compounds dominate, 1–2 accessories max)
+    - Intermediate: 5–7 exercises
+    - Advanced/Elite: 6–8 exercises (may include variations & targeted weak-point work)
+    - Never exceed 8 working exercises regardless of level — diminishing returns & injury risk.
+
+    VOLUME PER EXERCISE (Schoenfeld et al. 2017 dose-response; Israetel MRV/MEV):
+    - Strength: 4–6 sets × 1–5 reps per exercise (Prilepin-validated for %1RM bands)
+    - Hypertrophy: 3–4 sets × 8–12 reps per exercise (10–20 sets/muscle group/WEEK across sessions)
+    - Power: 3–5 sets × 1–3 reps per exercise (≤ 30 total reps/session for explosive work)
+    - Endurance: 2–3 sets × 15–25 reps per exercise
+    - Total working sets per SESSION: 15–25 (NSCA), adjust by readiness & training age.
+
+    INTENSITY (NSCA / Helms et al. 2018 RPE autoregulation):
+    - Strength: 80–92% 1RM (RPE 8–9.5), rest 3–5 min
+    - Hypertrophy: 60–75% 1RM (RPE 7–9), rest 60–120 sec
+    - Power: 70–85% 1RM (RPE 7–8, MAX bar speed intent), rest 2–4 min
+    - Endurance: 40–60% 1RM (RPE 6–8), rest 30–60 sec
+    - When no 1RM data: prescribe by RPE only. RPE 8 ≈ 2 reps in reserve.
+
+    REST PERIODS (NSCA Position Statement; de Salles et al. 2009):
+    - Strength/Power: 3–5 minutes between sets of main compounds
+    - Hypertrophy: 60–120 seconds (metabolic stress is productive)
+    - Accessory/isolation: 60–90 seconds
+    - Supersets: minimal rest between paired exercises, full rest after the pair
+
+    MOVEMENT PATTERN BALANCE (Gray Cook / NSCA functional guidelines):
+    - Every session should include at least one hip-dominant and one knee-dominant pattern.
+    - Weekly balance: push ≈ pull volume (within ±20%).
+    - Include at least one anti-movement core exercise per session (anti-extension, anti-rotation, or anti-lateral flexion).
+
+    WARM-UP SETS (NSCA protocol):
+    - Main compound lifts: 2–3 progressive warmup sets (empty bar → 50% → 70% of working weight).
+    - Supplemental lifts: 1 warmup set at ~60% working weight.
+    - Accessory/isolation: no dedicated warmup sets needed (already warm from compounds).
 
     ### SUPERSET FORMATTING
     - If using supersets, assign the same supersetGroup letter (e.g., "A") to paired exercises.
-    - Supersets should pair non-competing muscle groups.
+    - Supersets should pair non-competing muscle groups (NSCA agonist-antagonist or upper-lower).
+    - Compound-compound supersets only for advanced athletes.
 
     ### SAFETY GUARDRAILS (NON-NEGOTIABLE)
     - Max sets this session: ${guardrails.maxSetsPerSession} (working sets only, not counting warmups)
