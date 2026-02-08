@@ -563,3 +563,21 @@ export const DEFAULT_RPE_TO_PERCENT: Record<number, number> = {
   6.5: 82.5,
   6: 80,
 };
+
+// ===== COACH MODE =====
+
+export type AppMode = 'lifter' | 'coach';
+
+export interface CoachClient {
+  id: string;
+  name: string;
+  email?: string;
+  weightLbs: number;
+  age: number;
+  gender: 'male' | 'female';
+  experience: TrainingExperience;
+  equipment: AvailableEquipment[];
+  notes?: string;
+  avatarColor: string;
+  createdAt: number;
+}

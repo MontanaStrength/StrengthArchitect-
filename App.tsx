@@ -5,7 +5,7 @@ import {
   TrainingBlock, TrainingBlockPhase, TrainingPhase, LiftRecord, BodyCompEntry,
   ScheduledWorkout, SleepEntry, TrainingGoal, CustomTemplate, StrengthTestResult,
   GymSetup, DEFAULT_GYM_SETUP, OptimizerConfig, DEFAULT_OPTIMIZER_CONFIG,
-  OptimizerRecommendations, Achievement,
+  OptimizerRecommendations, Achievement, AppMode, CoachClient,
 } from './types';
 import {
   supabase, syncWorkoutToCloud, fetchWorkoutsFromCloud, deleteWorkoutFromCloud,
@@ -19,6 +19,7 @@ import {
   syncCustomTemplateToCloud, fetchCustomTemplatesFromCloud, deleteCustomTemplateFromCloud,
   syncUserPreferencesToCloud, fetchUserPreferencesFromCloud,
   syncDismissedAlertsToCloud, fetchDismissedAlertsFromCloud, UserPreferences,
+  syncCoachClientToCloud, fetchCoachClientsFromCloud, deleteCoachClientFromCloud,
 } from './services/supabaseService';
 import { generateWorkout, TrainingContext } from './services/geminiService';
 import { estimate1RM } from './utils';
@@ -49,11 +50,14 @@ import { WorkoutWizard } from './components/wizard';
 import { BlockWizard } from './components/block-wizard';
 import OnboardingView from './components/OnboardingView';
 import SessionRecapView from './components/SessionRecapView';
+import ModeSelectionView from './components/ModeSelectionView';
+import ClientRosterView from './components/ClientRosterView';
+import ClientFormModal from './components/ClientFormModal';
 import { computeOptimizerRecommendations } from './services/optimizerEngine';
 
 import ErrorBoundary from './components/ErrorBoundary';
 
-import { Dumbbell, BarChart3, Calendar, Target, Activity, Bell, ChevronLeft, LogOut, Wrench, Calculator, BookOpen, Layers, LayoutList, Plus } from 'lucide-react';
+import { Dumbbell, BarChart3, Calendar, Target, Activity, Bell, ChevronLeft, LogOut, Wrench, Calculator, BookOpen, Layers, LayoutList, Plus, Users } from 'lucide-react';
 
 type ViewState =
   | 'form'
@@ -125,6 +129,24 @@ const App: React.FC = () => {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
 
+  // ===== COACH MODE STATE =====
+  const [appMode, setAppMode] = useState<AppMode | null>(() => {
+    const stored = localStorage.getItem('sa_app_mode');
+    return stored === 'lifter' || stored === 'coach' ? stored : null;
+  });
+  const [coachClients, setCoachClients] = useState<CoachClient[]>([]);
+  const [activeClient, setActiveClient] = useState<CoachClient | null>(null);
+  const [showClientForm, setShowClientForm] = useState(false);
+  const [editingClient, setEditingClient] = useState<CoachClient | null>(null);
+  const [clientsLoading, setClientsLoading] = useState(false);
+  const [prefsLoaded, setPrefsLoaded] = useState(false);
+
+  // Effective client ID for all scoped data operations
+  const cid = useMemo(() =>
+    appMode === 'coach' && activeClient ? activeClient.id : undefined,
+    [appMode, activeClient]
+  );
+
   // ===== AUTH LISTENER =====
   useEffect(() => {
     const checkSession = async () => {
@@ -141,48 +163,24 @@ const App: React.FC = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // ===== LOAD DATA ON LOGIN =====
+  // ===== PHASE 1: LOAD USER PREFERENCES =====
   useEffect(() => {
     if (!user) return;
-    const loadAllData = async () => {
+    const loadPrefs = async () => {
       try {
-        const [
-          workouts, blocks, lifts, bodyComp, scheduled, sleep, goalsData,
-          tests, templates, prefs, dismissed
-        ] = await Promise.all([
-          fetchWorkoutsFromCloud(user.id),
-          fetchTrainingBlocksFromCloud(user.id),
-          fetchLiftRecordsFromCloud(user.id),
-          fetchBodyCompFromCloud(user.id),
-          fetchScheduledWorkoutsFromCloud(user.id),
-          fetchSleepEntriesFromCloud(user.id),
-          fetchGoalsFromCloud(user.id),
-          fetchStrengthTestsFromCloud(user.id),
-          fetchCustomTemplatesFromCloud(user.id),
+        const [prefs, dismissed] = await Promise.all([
           fetchUserPreferencesFromCloud(user.id),
           fetchDismissedAlertsFromCloud(user.id),
         ]);
-
-        setHistory(workouts);
-        setTrainingBlocks(blocks);
-        setLiftRecords(lifts);
-        setBodyCompEntries(bodyComp);
-        setScheduledWorkouts(scheduled);
-        setSleepEntries(sleep);
-        setGoals(goalsData);
-        setStrengthTests(tests);
-        setCustomTemplates(templates);
-        setDismissedAlertIds(dismissed);
-
         if (prefs.gymSetup) setGymSetup(prefs.gymSetup);
         if (prefs.optimizerConfig) setOptimizerConfig(prefs.optimizerConfig);
         if (prefs.audioMuted !== undefined) setAudioMuted(prefs.audioMuted);
-
-        // Show onboarding for new users (no blocks, no workouts)
-        if (blocks.length === 0 && workouts.length === 0) {
-          setShowOnboarding(true);
+        // Restore saved mode if localStorage is empty
+        if (!appMode && prefs.appMode) {
+          setAppMode(prefs.appMode as AppMode);
+          localStorage.setItem('sa_app_mode', prefs.appMode);
         }
-        setDataLoaded(true);
+        setDismissedAlertIds(dismissed);
 
         // Restore 1RM data from user metadata
         const meta = user.user_metadata || {};
@@ -198,12 +196,85 @@ const App: React.FC = () => {
             gender: meta.gender || prev.gender,
           }));
         }
+        setPrefsLoaded(true);
       } catch (err) {
-        console.error('Error loading data:', err);
+        console.error('Error loading preferences:', err);
+        setPrefsLoaded(true);
       }
     };
-    loadAllData();
+    loadPrefs();
   }, [user]);
+
+  // ===== PHASE 2: LOAD COACH CLIENTS (coach mode only) =====
+  useEffect(() => {
+    if (!user || appMode !== 'coach') return;
+    setClientsLoading(true);
+    fetchCoachClientsFromCloud(user.id)
+      .then(setCoachClients)
+      .catch(console.error)
+      .finally(() => setClientsLoading(false));
+  }, [user, appMode]);
+
+  // ===== PHASE 3: LOAD TRAINING DATA (scoped by client in coach mode) =====
+  useEffect(() => {
+    if (!user || !prefsLoaded) return;
+    if (appMode === null) return;
+    if (appMode === 'coach' && !activeClient) return;
+
+    const clientId = appMode === 'coach' ? activeClient!.id : undefined;
+
+    const loadTrainingData = async () => {
+      try {
+        const [
+          workouts, blocks, lifts, bodyComp, scheduled, sleep, goalsData,
+          tests, templates,
+        ] = await Promise.all([
+          fetchWorkoutsFromCloud(user.id, clientId),
+          fetchTrainingBlocksFromCloud(user.id, clientId),
+          fetchLiftRecordsFromCloud(user.id, clientId),
+          fetchBodyCompFromCloud(user.id, clientId),
+          fetchScheduledWorkoutsFromCloud(user.id, clientId),
+          fetchSleepEntriesFromCloud(user.id, clientId),
+          fetchGoalsFromCloud(user.id, clientId),
+          fetchStrengthTestsFromCloud(user.id, clientId),
+          fetchCustomTemplatesFromCloud(user.id, clientId),
+        ]);
+
+        setHistory(workouts);
+        setTrainingBlocks(blocks);
+        setLiftRecords(lifts);
+        setBodyCompEntries(bodyComp);
+        setScheduledWorkouts(scheduled);
+        setSleepEntries(sleep);
+        setGoals(goalsData);
+        setStrengthTests(tests);
+        setCustomTemplates(templates);
+
+        // In coach mode, populate form data from client profile
+        if (appMode === 'coach' && activeClient) {
+          setFormData(prev => ({
+            ...prev,
+            weightLbs: activeClient.weightLbs,
+            age: activeClient.age,
+            gender: activeClient.gender,
+            trainingExperience: activeClient.experience,
+            availableEquipment: activeClient.equipment,
+          }));
+        }
+
+        // Show onboarding for empty data scopes
+        if (blocks.length === 0 && workouts.length === 0) {
+          setShowOnboarding(true);
+        } else {
+          setShowOnboarding(false);
+        }
+        setDataLoaded(true);
+      } catch (err) {
+        console.error('Error loading training data:', err);
+      }
+    };
+    loadTrainingData();
+  }, [user, prefsLoaded, appMode, activeClient?.id]);
 
   // ===== TRAINING CONTEXT (from active block) =====
   const trainingContext = useMemo<TrainingContext | null>(() => {
@@ -285,14 +356,14 @@ const App: React.FC = () => {
       setHistory(newHistory);
 
       if (user) {
-        syncWorkoutToCloud(saved, user.id).catch(console.error);
+        syncWorkoutToCloud(saved, user.id, cid).catch(console.error);
       }
     } catch (err: any) {
       setError(err?.message || 'Failed to generate workout.');
     } finally {
       setIsGenerating(false);
     }
-  }, [formData, history, trainingContext, optimizerConfig, user, trainingBlocks]);
+  }, [formData, history, trainingContext, optimizerConfig, user, trainingBlocks, cid]);
 
   // ===== SAVE FEEDBACK =====
   const handleSaveFeedback = useCallback(async (workoutId: string, feedback: FeedbackData) => {
@@ -303,9 +374,9 @@ const App: React.FC = () => {
 
     if (user) {
       const workout = updated.find(w => w.id === workoutId);
-      if (workout) syncWorkoutToCloud(workout, user.id).catch(console.error);
+      if (workout) syncWorkoutToCloud(workout, user.id, cid).catch(console.error);
     }
-  }, [history, user]);
+  }, [history, user, cid]);
 
   // ===== SAVE COMPLETED SETS =====
   const handleSaveSession = useCallback(async (workoutId: string, completedSets: CompletedSet[], sessionRPE: number) => {
@@ -341,21 +412,21 @@ const App: React.FC = () => {
       setLiftRecords(prev => [...newRecords, ...prev]);
       if (user) {
         for (const r of newRecords) {
-          syncLiftRecordToCloud(r, user.id).catch(console.error);
+          syncLiftRecordToCloud(r, user.id, cid).catch(console.error);
         }
       }
     }
 
     if (user) {
       const workout = updated.find(w => w.id === workoutId);
-      if (workout) syncWorkoutToCloud(workout, user.id).catch(console.error);
+      if (workout) syncWorkoutToCloud(workout, user.id, cid).catch(console.error);
     }
 
     // Navigate to session recap
     setLastSessionPRs(newRecords);
     setLastSessionDuration(Math.round((Date.now() - (completedSets[0]?.timestamp || Date.now())) / 1000) || 0);
     setView('session-recap');
-  }, [history, liftRecords, user]);
+  }, [history, liftRecords, user, cid]);
 
   // ===== DELETE WORKOUT =====
   const handleDeleteWorkout = useCallback(async (id: string) => {
@@ -402,8 +473,92 @@ const App: React.FC = () => {
     await supabase.auth.signOut();
     setUser(null);
     setHistory([]);
-    setView('form');
+    setTrainingBlocks([]);
+    setLiftRecords([]);
+    setBodyCompEntries([]);
+    setScheduledWorkouts([]);
+    setSleepEntries([]);
+    setGoals([]);
+    setStrengthTests([]);
+    setCustomTemplates([]);
+    setCurrentPlan(null);
+    setDataLoaded(false);
+    setPrefsLoaded(false);
+    setShowOnboarding(false);
+    setAppMode(null);
+    setCoachClients([]);
+    setActiveClient(null);
+    localStorage.removeItem('sa_app_mode');
+    setView('lift');
   };
+
+  // ===== COACH MODE HANDLERS =====
+  const handleSelectMode = useCallback((mode: AppMode) => {
+    setAppMode(mode);
+    localStorage.setItem('sa_app_mode', mode);
+    if (user) {
+      syncUserPreferencesToCloud({ gymSetup, optimizerConfig, audioMuted, appMode: mode }, user.id).catch(console.error);
+    }
+  }, [user, gymSetup, optimizerConfig, audioMuted]);
+
+  const handleSelectClient = useCallback((client: CoachClient) => {
+    // Clear stale data before loading new client
+    setHistory([]);
+    setTrainingBlocks([]);
+    setLiftRecords([]);
+    setBodyCompEntries([]);
+    setScheduledWorkouts([]);
+    setSleepEntries([]);
+    setGoals([]);
+    setStrengthTests([]);
+    setCustomTemplates([]);
+    setCurrentPlan(null);
+    setDataLoaded(false);
+    setShowOnboarding(false);
+    setActiveClient(client);
+    setView('lift');
+  }, []);
+
+  const handleBackToRoster = useCallback(() => {
+    setHistory([]);
+    setTrainingBlocks([]);
+    setLiftRecords([]);
+    setBodyCompEntries([]);
+    setScheduledWorkouts([]);
+    setSleepEntries([]);
+    setGoals([]);
+    setStrengthTests([]);
+    setCustomTemplates([]);
+    setCurrentPlan(null);
+    setDataLoaded(false);
+    setShowOnboarding(false);
+    setActiveClient(null);
+    setView('lift');
+  }, []);
+
+  const handleSaveClient = useCallback(async (client: CoachClient) => {
+    const exists = coachClients.find(c => c.id === client.id);
+    if (exists) {
+      setCoachClients(prev => prev.map(c => c.id === client.id ? client : c));
+    } else {
+      setCoachClients(prev => [...prev, client]);
+    }
+    if (user) {
+      syncCoachClientToCloud(client, user.id).catch(console.error);
+    }
+    setShowClientForm(false);
+    setEditingClient(null);
+    // Update active client if editing the current one
+    if (activeClient?.id === client.id) setActiveClient(client);
+  }, [coachClients, user, activeClient]);
+
+  const handleDeleteClient = useCallback(async (id: string) => {
+    setCoachClients(prev => prev.filter(c => c.id !== id));
+    if (user) deleteCoachClientFromCloud(id, user.id).catch(console.error);
+    if (activeClient?.id === id) handleBackToRoster();
+    setShowClientForm(false);
+    setEditingClient(null);
+  }, [user, activeClient, handleBackToRoster]);
 
   // ===== AUTH GATE =====
   if (authLoading) {
@@ -427,6 +582,37 @@ const App: React.FC = () => {
     return <AuthView />;
   }
 
+  // ===== MODE SELECTION GATE =====
+  if (appMode === null) {
+    return <ModeSelectionView onSelectMode={handleSelectMode} />;
+  }
+
+  // ===== COACH: CLIENT ROSTER GATE =====
+  if (appMode === 'coach' && !activeClient) {
+    return (
+      <>
+        <ClientRosterView
+          clients={coachClients}
+          clientsLoading={clientsLoading}
+          onSelectClient={handleSelectClient}
+          onAddClient={() => { setEditingClient(null); setShowClientForm(true); }}
+          onEditClient={(c) => { setEditingClient(c); setShowClientForm(true); }}
+          onDeleteClient={handleDeleteClient}
+          onSwitchMode={() => handleSelectMode('lifter')}
+          onSignOut={handleSignOut}
+        />
+        {showClientForm && (
+          <ClientFormModal
+            client={editingClient}
+            onSave={handleSaveClient}
+            onClose={() => { setShowClientForm(false); setEditingClient(null); }}
+            onDelete={handleDeleteClient}
+          />
+        )}
+      </>
+    );
+  }
+
   // ===== ONBOARDING GATE =====
   if (showOnboarding && dataLoaded) {
     return (
@@ -446,15 +632,17 @@ const App: React.FC = () => {
             // Save the block
             setTrainingBlocks([data.block]);
             if (user) {
-              syncTrainingBlockToCloud(data.block, user.id).catch(console.error);
+              syncTrainingBlockToCloud(data.block, user.id, cid).catch(console.error);
               syncUserPreferencesToCloud({
                 gymSetup: { ...gymSetup, availableEquipment: data.equipment },
                 optimizerConfig,
                 audioMuted,
               }, user.id).catch(console.error);
-              supabase.auth.updateUser({
-                data: { weightLbs: data.weightLbs, age: data.age, gender: data.gender },
-              }).catch(console.error);
+              if (appMode !== 'coach') {
+                supabase.auth.updateUser({
+                  data: { weightLbs: data.weightLbs, age: data.age, gender: data.gender },
+                }).catch(console.error);
+              }
             }
 
             setShowOnboarding(false);
@@ -539,6 +727,9 @@ const App: React.FC = () => {
               <span className="text-white">Strength</span>
               <span className="text-amber-500">Architect</span>
             </h1>
+            {appMode === 'coach' && (
+              <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-medium">Coach</span>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => setView('notifications')} className="relative p-2 text-gray-400 hover:text-white transition-colors">
@@ -550,6 +741,34 @@ const App: React.FC = () => {
           </div>
         </div>
       </header>
+
+      {/* Coach: Client Banner */}
+      {appMode === 'coach' && activeClient && (
+        <div className="bg-blue-500/5 border-b border-blue-500/20">
+          <div className="max-w-6xl mx-auto px-4 py-2 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div
+                className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
+                style={{
+                  backgroundColor: (activeClient.avatarColor || '#3b82f6') + '20',
+                  color: activeClient.avatarColor || '#3b82f6',
+                }}
+              >
+                {activeClient.name.charAt(0).toUpperCase()}
+              </div>
+              <span className="text-sm font-medium text-blue-300">
+                Training: <span className="text-white">{activeClient.name}</span>
+              </span>
+            </div>
+            <button
+              onClick={handleBackToRoster}
+              className="text-xs text-blue-400 hover:text-blue-300 font-medium transition-colors"
+            >
+              ← All Athletes
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 3-Tab Nav Bar */}
       <nav className="bg-neutral-900/50 border-b border-neutral-800">
@@ -589,7 +808,7 @@ const App: React.FC = () => {
               }}
               onMaxesChange={(maxes) => {
                 setFormData(prev => ({ ...prev, ...maxes }));
-                if (user) {
+                if (user && appMode !== 'coach') {
                   supabase.auth.updateUser({ data: maxes }).catch(console.error);
                 }
               }}
@@ -603,7 +822,7 @@ const App: React.FC = () => {
                   : updated;
                 setTrainingBlocks(final);
                 if (user) {
-                  for (const b of final) syncTrainingBlockToCloud(b, user.id).catch(console.error);
+                  for (const b of final) syncTrainingBlockToCloud(b, user.id, cid).catch(console.error);
                 }
               }}
               onNavigateToLift={() => setView('lift')}
@@ -727,13 +946,13 @@ const App: React.FC = () => {
                 : [...trainingBlocks, block];
               setTrainingBlocks(updated);
               if (user) {
-                for (const b of updated) syncTrainingBlockToCloud(b, user.id).catch(console.error);
+                for (const b of updated) syncTrainingBlockToCloud(b, user.id, cid).catch(console.error);
               }
             }}
             onScheduleWorkouts={async (workouts) => {
               setScheduledWorkouts(prev => [...prev, ...workouts]);
               if (user) {
-                for (const w of workouts) syncScheduledWorkoutToCloud(w, user.id).catch(console.error);
+                for (const w of workouts) syncScheduledWorkoutToCloud(w, user.id, cid).catch(console.error);
               }
             }}
             onComplete={() => setView('training-blocks')}
@@ -819,7 +1038,7 @@ const App: React.FC = () => {
                 : updated;
               setTrainingBlocks(final);
               if (user) {
-                for (const b of final) syncTrainingBlockToCloud(b, user.id).catch(console.error);
+                for (const b of final) syncTrainingBlockToCloud(b, user.id, cid).catch(console.error);
               }
             }}
             onDelete={async (id) => {
@@ -834,7 +1053,7 @@ const App: React.FC = () => {
             records={liftRecords}
             onSave={async (record) => {
               setLiftRecords(prev => [record, ...prev]);
-              if (user) syncLiftRecordToCloud(record, user.id).catch(console.error);
+              if (user) syncLiftRecordToCloud(record, user.id, cid).catch(console.error);
             }}
             onDelete={async (id) => {
               setLiftRecords(prev => prev.filter(r => r.id !== id));
@@ -850,7 +1069,7 @@ const App: React.FC = () => {
             onSave={async (sw) => {
               const exists = scheduledWorkouts.find(s => s.id === sw.id);
               setScheduledWorkouts(prev => exists ? prev.map(s => s.id === sw.id ? sw : s) : [...prev, sw]);
-              if (user) syncScheduledWorkoutToCloud(sw, user.id).catch(console.error);
+              if (user) syncScheduledWorkoutToCloud(sw, user.id, cid).catch(console.error);
             }}
             onDelete={async (id) => {
               setScheduledWorkouts(prev => prev.filter(s => s.id !== id));
@@ -865,7 +1084,7 @@ const App: React.FC = () => {
             onSave={async (goal) => {
               const exists = goals.find(g => g.id === goal.id);
               setGoals(prev => exists ? prev.map(g => g.id === goal.id ? goal : g) : [...prev, goal]);
-              if (user) syncGoalToCloud(goal, user.id).catch(console.error);
+              if (user) syncGoalToCloud(goal, user.id, cid).catch(console.error);
             }}
             onDelete={async (id) => {
               setGoals(prev => prev.filter(g => g.id !== id));
@@ -888,11 +1107,11 @@ const App: React.FC = () => {
               const key = exerciseIdTo1RMKey[result.exerciseId];
               if (key) {
                 setFormData(prev => ({ ...prev, [key]: result.estimated1RM }));
-                if (user) {
+                if (user && appMode !== 'coach') {
                   supabase.auth.updateUser({ data: { [key]: result.estimated1RM } }).catch(console.error);
                 }
               }
-              if (user) syncStrengthTestToCloud(result, user.id).catch(console.error);
+              if (user) syncStrengthTestToCloud(result, user.id, cid).catch(console.error);
             }}
           />
         )}
@@ -902,7 +1121,7 @@ const App: React.FC = () => {
             onSave={async (template) => {
               const exists = customTemplates.find(t => t.id === template.id);
               setCustomTemplates(prev => exists ? prev.map(t => t.id === template.id ? template : t) : [...prev, template]);
-              if (user) syncCustomTemplateToCloud(template, user.id).catch(console.error);
+              if (user) syncCustomTemplateToCloud(template, user.id, cid).catch(console.error);
             }}
             onDelete={async (id) => {
               setCustomTemplates(prev => prev.filter(t => t.id !== id));
@@ -920,7 +1139,7 @@ const App: React.FC = () => {
             sleepEntries={sleepEntries}
             onSaveSleep={async (entry) => {
               setSleepEntries(prev => [entry, ...prev]);
-              if (user) syncSleepEntryToCloud(entry, user.id).catch(console.error);
+              if (user) syncSleepEntryToCloud(entry, user.id, cid).catch(console.error);
             }}
             onDeleteSleep={async (id) => {
               setSleepEntries(prev => prev.filter(e => e.id !== id));
@@ -929,7 +1148,7 @@ const App: React.FC = () => {
             bodyCompEntries={bodyCompEntries}
             onSaveBodyComp={async (entry) => {
               setBodyCompEntries(prev => [entry, ...prev]);
-              if (user) syncBodyCompToCloud(entry, user.id).catch(console.error);
+              if (user) syncBodyCompToCloud(entry, user.id, cid).catch(console.error);
             }}
             onDeleteBodyComp={async (id) => {
               setBodyCompEntries(prev => prev.filter(e => e.id !== id));

@@ -3,7 +3,8 @@ import { createClient } from '@supabase/supabase-js';
 import {
   SavedWorkout, TrainingBlock, LiftRecord, BodyCompEntry,
   ScheduledWorkout, SleepEntry, TrainingGoal, CustomTemplate,
-  StrengthTestResult, GymSetup, OptimizerConfig, RPECalibration
+  StrengthTestResult, GymSetup, OptimizerConfig, RPECalibration,
+  CoachClient,
 } from '../types';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
@@ -17,14 +18,20 @@ export const isSupabaseConfigured = Boolean(
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// Helper: apply client_id filter to Supabase queries
+function applyClientFilter(query: any, clientId?: string | null) {
+  return clientId ? query.eq('client_id', clientId) : query.is('client_id', null);
+}
+
 // ===== WORKOUTS =====
 
-export const syncWorkoutToCloud = async (workout: SavedWorkout, userId: string) => {
+export const syncWorkoutToCloud = async (workout: SavedWorkout, userId: string, clientId?: string | null) => {
   const { data, error } = await supabase
     .from('workouts')
     .upsert({
       id: workout.id,
       user_id: userId,
+      client_id: clientId || null,
       timestamp: workout.timestamp,
       workout_data: {
         archetypeId: workout.archetypeId,
@@ -54,12 +61,13 @@ export const syncWorkoutToCloud = async (workout: SavedWorkout, userId: string) 
   return data;
 };
 
-export const fetchWorkoutsFromCloud = async (userId: string): Promise<SavedWorkout[]> => {
-  const { data, error } = await supabase
+export const fetchWorkoutsFromCloud = async (userId: string, clientId?: string | null): Promise<SavedWorkout[]> => {
+  let query = supabase
     .from('workouts')
     .select('*')
-    .eq('user_id', userId)
-    .order('timestamp', { ascending: false });
+    .eq('user_id', userId);
+  query = applyClientFilter(query, clientId);
+  const { data, error } = await query.order('timestamp', { ascending: false });
 
   if (error) {
     console.error('Supabase fetch error:', error);
@@ -92,7 +100,7 @@ export const deleteWorkoutFromCloud = async (id: string, userId: string) => {
 
 // ===== TRAINING BLOCKS =====
 
-export const syncTrainingBlockToCloud = async (block: TrainingBlock, userId: string) => {
+export const syncTrainingBlockToCloud = async (block: TrainingBlock, userId: string, clientId?: string | null) => {
   // Pack extra block fields into phases JSONB (no schema migration required)
   const phasesPayload = {
     __v: 2,
@@ -109,6 +117,7 @@ export const syncTrainingBlockToCloud = async (block: TrainingBlock, userId: str
     .upsert({
       id: block.id,
       user_id: userId,
+      client_id: clientId || null,
       name: block.name,
       start_date: block.startDate,
       goal_event: block.goalEvent,
@@ -124,12 +133,13 @@ export const syncTrainingBlockToCloud = async (block: TrainingBlock, userId: str
   return data;
 };
 
-export const fetchTrainingBlocksFromCloud = async (userId: string): Promise<TrainingBlock[]> => {
-  const { data, error } = await supabase
+export const fetchTrainingBlocksFromCloud = async (userId: string, clientId?: string | null): Promise<TrainingBlock[]> => {
+  let query = supabase
     .from('training_blocks')
     .select('*')
-    .eq('user_id', userId)
-    .order('start_date', { ascending: false });
+    .eq('user_id', userId);
+  query = applyClientFilter(query, clientId);
+  const { data, error } = await query.order('start_date', { ascending: false });
 
   if (error) throw error;
 
@@ -169,12 +179,13 @@ export const deleteTrainingBlockFromCloud = async (id: string, userId: string) =
 
 // ===== LIFT RECORDS =====
 
-export const syncLiftRecordToCloud = async (record: LiftRecord, userId: string) => {
+export const syncLiftRecordToCloud = async (record: LiftRecord, userId: string, clientId?: string | null) => {
   const { data, error } = await supabase
     .from('lift_records')
     .upsert({
       id: record.id,
       user_id: userId,
+      client_id: clientId || null,
       exercise_id: record.exerciseId,
       exercise_name: record.exerciseName,
       weight: record.weight,
@@ -188,12 +199,13 @@ export const syncLiftRecordToCloud = async (record: LiftRecord, userId: string) 
   return data;
 };
 
-export const fetchLiftRecordsFromCloud = async (userId: string): Promise<LiftRecord[]> => {
-  const { data, error } = await supabase
+export const fetchLiftRecordsFromCloud = async (userId: string, clientId?: string | null): Promise<LiftRecord[]> => {
+  let query = supabase
     .from('lift_records')
     .select('*')
-    .eq('user_id', userId)
-    .order('date', { ascending: false });
+    .eq('user_id', userId);
+  query = applyClientFilter(query, clientId);
+  const { data, error } = await query.order('date', { ascending: false });
 
   if (error) throw error;
 
@@ -221,12 +233,13 @@ export const deleteLiftRecordFromCloud = async (id: string, userId: string) => {
 
 // ===== BODY COMP =====
 
-export const syncBodyCompToCloud = async (entry: BodyCompEntry, userId: string) => {
+export const syncBodyCompToCloud = async (entry: BodyCompEntry, userId: string, clientId?: string | null) => {
   const { error } = await supabase
     .from('body_comp')
     .upsert({
       id: entry.id,
       user_id: userId,
+      client_id: clientId || null,
       date: entry.date,
       weight_lbs: entry.weightLbs,
       body_fat_pct: entry.bodyFatPct,
@@ -237,12 +250,13 @@ export const syncBodyCompToCloud = async (entry: BodyCompEntry, userId: string) 
   if (error) throw error;
 };
 
-export const fetchBodyCompFromCloud = async (userId: string): Promise<BodyCompEntry[]> => {
-  const { data, error } = await supabase
+export const fetchBodyCompFromCloud = async (userId: string, clientId?: string | null): Promise<BodyCompEntry[]> => {
+  let query = supabase
     .from('body_comp')
     .select('*')
-    .eq('user_id', userId)
-    .order('date', { ascending: false });
+    .eq('user_id', userId);
+  query = applyClientFilter(query, clientId);
+  const { data, error } = await query.order('date', { ascending: false });
 
   if (error) throw error;
 
@@ -264,12 +278,13 @@ export const deleteBodyCompFromCloud = async (id: string, userId: string) => {
 
 // ===== SCHEDULED WORKOUTS (Calendar) =====
 
-export const syncScheduledWorkoutToCloud = async (sw: ScheduledWorkout, userId: string) => {
+export const syncScheduledWorkoutToCloud = async (sw: ScheduledWorkout, userId: string, clientId?: string | null) => {
   const { error } = await supabase
     .from('scheduled_workouts')
     .upsert({
       id: sw.id,
       user_id: userId,
+      client_id: clientId || null,
       date: sw.date,
       label: sw.label,
       phase: sw.phase,
@@ -284,12 +299,13 @@ export const syncScheduledWorkoutToCloud = async (sw: ScheduledWorkout, userId: 
   if (error) throw error;
 };
 
-export const fetchScheduledWorkoutsFromCloud = async (userId: string): Promise<ScheduledWorkout[]> => {
-  const { data, error } = await supabase
+export const fetchScheduledWorkoutsFromCloud = async (userId: string, clientId?: string | null): Promise<ScheduledWorkout[]> => {
+  let query = supabase
     .from('scheduled_workouts')
     .select('*')
-    .eq('user_id', userId)
-    .order('date', { ascending: true });
+    .eq('user_id', userId);
+  query = applyClientFilter(query, clientId);
+  const { data, error } = await query.order('date', { ascending: true });
 
   if (error) throw error;
 
@@ -315,12 +331,13 @@ export const deleteScheduledWorkoutFromCloud = async (id: string, userId: string
 
 // ===== SLEEP =====
 
-export const syncSleepEntryToCloud = async (entry: SleepEntry, userId: string) => {
+export const syncSleepEntryToCloud = async (entry: SleepEntry, userId: string, clientId?: string | null) => {
   const { error } = await supabase
     .from('sleep_journal')
     .upsert({
       id: entry.id,
       user_id: userId,
+      client_id: clientId || null,
       date: entry.date,
       hours_slept: entry.hoursSlept,
       quality: entry.quality,
@@ -331,12 +348,13 @@ export const syncSleepEntryToCloud = async (entry: SleepEntry, userId: string) =
   if (error) throw error;
 };
 
-export const fetchSleepEntriesFromCloud = async (userId: string): Promise<SleepEntry[]> => {
-  const { data, error } = await supabase
+export const fetchSleepEntriesFromCloud = async (userId: string, clientId?: string | null): Promise<SleepEntry[]> => {
+  let query = supabase
     .from('sleep_journal')
     .select('*')
-    .eq('user_id', userId)
-    .order('date', { ascending: false });
+    .eq('user_id', userId);
+  query = applyClientFilter(query, clientId);
+  const { data, error } = await query.order('date', { ascending: false });
 
   if (error) throw error;
 
@@ -358,12 +376,13 @@ export const deleteSleepEntryFromCloud = async (id: string, userId: string) => {
 
 // ===== TRAINING GOALS =====
 
-export const syncGoalToCloud = async (goal: TrainingGoal, userId: string) => {
+export const syncGoalToCloud = async (goal: TrainingGoal, userId: string, clientId?: string | null) => {
   const { error } = await supabase
     .from('training_goals')
     .upsert({
       id: goal.id,
       user_id: userId,
+      client_id: clientId || null,
       category: goal.category,
       title: goal.title,
       target_value: goal.targetValue,
@@ -376,12 +395,13 @@ export const syncGoalToCloud = async (goal: TrainingGoal, userId: string) => {
   if (error) throw error;
 };
 
-export const fetchGoalsFromCloud = async (userId: string): Promise<TrainingGoal[]> => {
-  const { data, error } = await supabase
+export const fetchGoalsFromCloud = async (userId: string, clientId?: string | null): Promise<TrainingGoal[]> => {
+  let query = supabase
     .from('training_goals')
     .select('*')
-    .eq('user_id', userId)
-    .order('start_date', { ascending: false });
+    .eq('user_id', userId);
+  query = applyClientFilter(query, clientId);
+  const { data, error } = await query.order('start_date', { ascending: false });
 
   if (error) throw error;
 
@@ -405,12 +425,13 @@ export const deleteGoalFromCloud = async (id: string, userId: string) => {
 
 // ===== STRENGTH TESTS =====
 
-export const syncStrengthTestToCloud = async (result: StrengthTestResult, userId: string) => {
+export const syncStrengthTestToCloud = async (result: StrengthTestResult, userId: string, clientId?: string | null) => {
   const { error } = await supabase
     .from('strength_tests')
     .upsert({
       id: result.id,
       user_id: userId,
+      client_id: clientId || null,
       test_type: result.testType,
       date: result.date,
       exercise_id: result.exerciseId,
@@ -424,12 +445,13 @@ export const syncStrengthTestToCloud = async (result: StrengthTestResult, userId
   if (error) throw error;
 };
 
-export const fetchStrengthTestsFromCloud = async (userId: string): Promise<StrengthTestResult[]> => {
-  const { data, error } = await supabase
+export const fetchStrengthTestsFromCloud = async (userId: string, clientId?: string | null): Promise<StrengthTestResult[]> => {
+  let query = supabase
     .from('strength_tests')
     .select('*')
-    .eq('user_id', userId)
-    .order('date', { ascending: false });
+    .eq('user_id', userId);
+  query = applyClientFilter(query, clientId);
+  const { data, error } = await query.order('date', { ascending: false });
 
   if (error) throw error;
 
@@ -449,12 +471,13 @@ export const fetchStrengthTestsFromCloud = async (userId: string): Promise<Stren
 
 // ===== CUSTOM TEMPLATES =====
 
-export const syncCustomTemplateToCloud = async (template: CustomTemplate, userId: string) => {
+export const syncCustomTemplateToCloud = async (template: CustomTemplate, userId: string, clientId?: string | null) => {
   const { error } = await supabase
     .from('custom_templates')
     .upsert({
       id: template.id,
       user_id: userId,
+      client_id: clientId || null,
       name: template.name,
       description: template.description,
       exercises: template.exercises,
@@ -465,12 +488,13 @@ export const syncCustomTemplateToCloud = async (template: CustomTemplate, userId
   if (error) throw error;
 };
 
-export const fetchCustomTemplatesFromCloud = async (userId: string): Promise<CustomTemplate[]> => {
-  const { data, error } = await supabase
+export const fetchCustomTemplatesFromCloud = async (userId: string, clientId?: string | null): Promise<CustomTemplate[]> => {
+  let query = supabase
     .from('custom_templates')
     .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
+    .eq('user_id', userId);
+  query = applyClientFilter(query, clientId);
+  const { data, error } = await query.order('created_at', { ascending: false });
 
   if (error) throw error;
 
@@ -497,6 +521,7 @@ export interface UserPreferences {
   optimizerConfig?: OptimizerConfig;
   rpeCalibration?: RPECalibration;
   audioMuted?: boolean;
+  appMode?: string;
 }
 
 export const syncUserPreferencesToCloud = async (preferences: UserPreferences, userId: string) => {
@@ -541,4 +566,55 @@ export const fetchDismissedAlertsFromCloud = async (userId: string): Promise<str
 
   if (error && error.code !== 'PGRST116') throw error;
   return data?.dismissed_alerts || [];
+};
+
+// ===== COACH CLIENTS =====
+
+export const syncCoachClientToCloud = async (client: CoachClient, userId: string) => {
+  const { error } = await supabase
+    .from('coach_clients')
+    .upsert({
+      id: client.id,
+      user_id: userId,
+      name: client.name,
+      email: client.email,
+      weight_lbs: client.weightLbs,
+      age: client.age,
+      gender: client.gender,
+      experience: client.experience,
+      equipment: client.equipment,
+      notes: client.notes,
+      avatar_color: client.avatarColor,
+      created_at: client.createdAt,
+    });
+  if (error) throw error;
+};
+
+export const fetchCoachClientsFromCloud = async (userId: string): Promise<CoachClient[]> => {
+  const { data, error } = await supabase
+    .from('coach_clients')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true });
+
+  if (error) throw error;
+
+  return (data || []).map(row => ({
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    weightLbs: row.weight_lbs,
+    age: row.age,
+    gender: row.gender,
+    experience: row.experience,
+    equipment: row.equipment || [],
+    notes: row.notes,
+    avatarColor: row.avatar_color,
+    createdAt: row.created_at,
+  }));
+};
+
+export const deleteCoachClientFromCloud = async (id: string, userId: string) => {
+  const { error } = await supabase.from('coach_clients').delete().eq('id', id).eq('user_id', userId);
+  if (error) throw error;
 };
