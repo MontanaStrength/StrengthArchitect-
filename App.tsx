@@ -538,6 +538,7 @@ const App: React.FC = () => {
                   for (const b of final) syncTrainingBlockToCloud(b, user.id).catch(console.error);
                 }
               }}
+              onNavigateToLift={() => setView('lift')}
             />
             {/* Secondary links */}
             <div className="border-t border-neutral-800 pt-6">

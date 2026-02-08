@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { TrainingBlock, ExerciseSlot, ExercisePreferences, MovementPattern } from '../types';
 import { EXERCISE_LIBRARY } from '../services/exerciseLibrary';
-import { Layers, Calendar, Dumbbell, ChevronRight, Check } from 'lucide-react';
+import { Layers, Calendar, Dumbbell, ChevronRight, Check, CheckCircle2, ArrowRight } from 'lucide-react';
 
 interface EstimatedMaxes {
   squat1RM?: number;
@@ -15,6 +15,7 @@ interface Props {
   onSave: (block: TrainingBlock) => void;
   estimatedMaxes: EstimatedMaxes;
   onMaxesChange: (maxes: EstimatedMaxes) => void;
+  onNavigateToLift?: () => void;
 }
 
 type SubTab = 'block' | 'schedule' | 'exercises';
@@ -96,7 +97,18 @@ const MAXES_CONFIG: { key: keyof EstimatedMaxes; label: string }[] = [
   { key: 'overheadPress1RM', label: 'Overhead Press' },
 ];
 
-const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChange }) => {
+const BIAS_LABELS: Record<string, string> = {
+  hypertrophy: 'Hypertrophy',
+  'hypertrophy-plus': 'Size + Strength',
+  balanced: 'Balanced',
+  'strength-plus': 'Strength + Size',
+  strength: 'Strength',
+};
+
+const getBiasKey = (v: number) =>
+  v < 20 ? 'hypertrophy' : v < 40 ? 'hypertrophy-plus' : v < 60 ? 'balanced' : v < 80 ? 'strength-plus' : 'strength';
+
+const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChange, onNavigateToLift }) => {
   const [subTab, setSubTab] = useState<SubTab>('block');
 
   // Local state — initialized from block or sensible defaults
@@ -107,6 +119,10 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
   const [slots, setSlots] = useState<ExerciseSlot[]>(
     block?.exercisePreferences?.slots || [...DEFAULT_SLOTS]
   );
+
+  // Confirmation overlay state
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [savedBlock, setSavedBlock] = useState<TrainingBlock | null>(null);
 
   // Exercises grouped by category filter (memoized)
   const exercisesByCategory = useMemo(() => {
@@ -145,6 +161,8 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
       exercisePreferences: { slots },
     };
     onSave(updated);
+    setSavedBlock(updated);
+    setShowConfirmation(true);
   };
 
   const subTabs: { id: SubTab; label: string; icon: React.ReactNode }[] = [
@@ -152,6 +170,106 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
     { id: 'schedule', label: 'Schedule', icon: <Calendar size={16} /> },
     { id: 'exercises', label: 'Exercises', icon: <Dumbbell size={16} /> },
   ];
+
+  // Confirmation overlay
+  if (showConfirmation && savedBlock) {
+    const isNew = !block;
+    const dayNames = savedBlock.trainingDays
+      .sort((a, b) => a - b)
+      .map(d => DAY_LABELS[d]);
+    const biasLabel = BIAS_LABELS[getBiasKey(savedBlock.goalBias ?? 50)];
+    const filledSlots = savedBlock.exercisePreferences?.slots?.filter(s => s.exerciseId).length || 0;
+
+    return (
+      <div className="max-w-2xl mx-auto">
+        {/* Animated container */}
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-neutral-900 via-neutral-900 to-neutral-950 border border-neutral-800" style={{ animation: 'confirmFadeIn 0.5s ease-out' }}>
+          {/* Subtle amber glow at top */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 bg-amber-500/10 blur-3xl rounded-full pointer-events-none" />
+
+          <div className="relative px-8 pt-10 pb-8 text-center">
+            {/* Animated checkmark */}
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-500/15 mb-6" style={{ animation: 'confirmScaleIn 0.6s ease-out' }}>
+              <CheckCircle2 size={36} className="text-amber-400" />
+            </div>
+
+            <h2 className="text-2xl font-bold text-white mb-2">
+              {isNew ? 'Block Created' : 'Block Updated'}
+            </h2>
+            <p className="text-gray-400 text-sm max-w-sm mx-auto leading-relaxed">
+              {isNew
+                ? "You just made a commitment. Every session from here is one step closer."
+                : "Your plan has been refined. The work continues."}
+            </p>
+
+            {/* Block summary card */}
+            <div className="mt-8 bg-neutral-800/60 rounded-xl p-5 text-left space-y-3 border border-neutral-700/50">
+              <div className="flex items-center justify-between">
+                <span className="text-lg font-bold text-white">{savedBlock.name}</span>
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-neutral-900/60 rounded-lg p-3 text-center">
+                  <div className="text-xl font-bold text-amber-400">{savedBlock.lengthWeeks}</div>
+                  <div className="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">Weeks</div>
+                </div>
+                <div className="bg-neutral-900/60 rounded-lg p-3 text-center">
+                  <div className="text-xl font-bold text-amber-400">{dayNames.length}</div>
+                  <div className="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">Days/Week</div>
+                </div>
+                <div className="bg-neutral-900/60 rounded-lg p-3 text-center">
+                  <div className="text-xl font-bold text-amber-400">{filledSlots}</div>
+                  <div className="text-[10px] text-gray-500 uppercase tracking-wider mt-0.5">Exercises</div>
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-500">Schedule</span>
+                <span className="text-gray-300 font-medium">{dayNames.join(' · ') || 'Not set'}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-500">Focus</span>
+                <span className="text-gray-300 font-medium">{biasLabel}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-500">Total sessions</span>
+                <span className="text-gray-300 font-medium">~{savedBlock.lengthWeeks * dayNames.length}</span>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="mt-8 space-y-3">
+              {onNavigateToLift && (
+                <button
+                  onClick={() => { setShowConfirmation(false); onNavigateToLift(); }}
+                  className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-black py-3.5 rounded-xl text-sm font-bold transition-all"
+                >
+                  Start Training <ArrowRight size={16} />
+                </button>
+              )}
+              <button
+                onClick={() => setShowConfirmation(false)}
+                className="w-full py-3 rounded-xl text-sm font-medium text-gray-400 hover:text-white hover:bg-neutral-800 transition-all"
+              >
+                Review Plan
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Keyframe styles */}
+        <style>{`
+          @keyframes confirmFadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes confirmScaleIn {
+            0% { opacity: 0; transform: scale(0.5); }
+            60% { transform: scale(1.1); }
+            100% { opacity: 1; transform: scale(1); }
+          }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
