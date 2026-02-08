@@ -175,7 +175,7 @@ const PlanView: React.FC<Props> = ({ block, onSave }) => {
               <input
                 type="range"
                 min={1}
-                max={16}
+                max={8}
                 value={lengthWeeks}
                 onChange={e => setLengthWeeks(Number(e.target.value))}
                 className="flex-1 accent-amber-500"
@@ -267,21 +267,36 @@ const PlanView: React.FC<Props> = ({ block, onSave }) => {
               </div>
             );
           })}
+
+          {/* Save button pinned at end of exercises list */}
+          <button
+            onClick={handleSave}
+            disabled={!isComplete}
+            className={`w-full py-3.5 rounded-xl text-sm font-bold transition-all ${
+              isComplete
+                ? 'bg-amber-500 hover:bg-amber-600 text-black'
+                : 'bg-neutral-800 text-gray-600 cursor-not-allowed'
+            }`}
+          >
+            {block ? 'Update Block' : 'Create Block'}
+          </button>
         </div>
       )}
 
-      {/* ===== SAVE BUTTON (always visible) ===== */}
-      <button
-        onClick={handleSave}
-        disabled={!isComplete}
-        className={`w-full py-3.5 rounded-xl text-sm font-bold transition-all ${
-          isComplete
-            ? 'bg-amber-500 hover:bg-amber-600 text-black'
-            : 'bg-neutral-800 text-gray-600 cursor-not-allowed'
-        }`}
-      >
-        {block ? 'Update Block' : 'Create Block'}
-      </button>
+      {/* ===== SAVE BUTTON (Block & Schedule tabs) ===== */}
+      {subTab !== 'exercises' && (
+        <button
+          onClick={handleSave}
+          disabled={!isComplete}
+          className={`w-full py-3.5 rounded-xl text-sm font-bold transition-all ${
+            isComplete
+              ? 'bg-amber-500 hover:bg-amber-600 text-black'
+              : 'bg-neutral-800 text-gray-600 cursor-not-allowed'
+          }`}
+        >
+          {block ? 'Update Block' : 'Create Block'}
+        </button>
+      )}
     </div>
   );
 };

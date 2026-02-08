@@ -43,6 +43,7 @@ import PlateCalculatorView from './components/PlateCalculatorView';
 import ExerciseLibraryView from './components/ExerciseLibraryView';
 import TrackingView from './components/TrackingView';
 import PlanView from './components/PlanView';
+import LiftView from './components/LiftView';
 import { WorkoutWizard } from './components/wizard';
 import { BlockWizard } from './components/block-wizard';
 import { computeOptimizerRecommendations } from './services/optimizerEngine';
@@ -94,6 +95,7 @@ const App: React.FC = () => {
 
   // ===== WORKOUT STATE =====
   const [currentPlan, setCurrentPlan] = useState<StrengthWorkoutPlan | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [history, setHistory] = useState<SavedWorkout[]>([]);
   const [error, setError] = useState<string>('');
 
@@ -228,7 +230,8 @@ const App: React.FC = () => {
   // ===== GENERATE WORKOUT =====
   const handleGenerate = useCallback(async () => {
     setError('');
-    setView('loading');
+    setIsGenerating(true);
+    setCurrentPlan(null);
     initAudio();
 
     try {
@@ -255,16 +258,16 @@ const App: React.FC = () => {
 
       const newHistory = [saved, ...history];
       setHistory(newHistory);
-      setView('result');
 
       if (user) {
         syncWorkoutToCloud(saved, user.id).catch(console.error);
       }
     } catch (err: any) {
       setError(err?.message || 'Failed to generate workout.');
-      setView('form');
+    } finally {
+      setIsGenerating(false);
     }
-  }, [formData, history, trainingContext, optimizerConfig, user]);
+  }, [formData, history, trainingContext, optimizerConfig, user, trainingBlocks]);
 
   // ===== SAVE FEEDBACK =====
   const handleSaveFeedback = useCallback(async (workoutId: string, feedback: FeedbackData) => {
@@ -323,7 +326,7 @@ const App: React.FC = () => {
       if (workout) syncWorkoutToCloud(workout, user.id).catch(console.error);
     }
 
-    setView('result');
+    setView('lift');
   }, [history, liftRecords, user]);
 
   // ===== DELETE WORKOUT =====
@@ -421,8 +424,7 @@ const App: React.FC = () => {
     { label: 'Gym Setup',        view: 'gym-setup',       icon: <Wrench size={16} /> },
   ];
 
-  const liftSubItems: { label: string; view: ViewState; icon: React.ReactNode }[] = [
-    { label: 'Generate Workout',  view: 'form',             icon: <Dumbbell size={16} /> },
+  const liftSecondaryItems: { label: string; view: ViewState; icon: React.ReactNode }[] = [
     { label: 'Exercise Library',  view: 'exercise-library',  icon: <BookOpen size={16} /> },
     { label: 'Plate Calculator',  view: 'plate-calculator',  icon: <Calculator size={16} /> },
   ];
@@ -434,9 +436,9 @@ const App: React.FC = () => {
     { label: 'Tracking',        view: 'tracking',       icon: <Target size={16} /> },
   ];
 
-  const subItemsForTab: Record<PrimaryTab, typeof liftSubItems> = {
+  const subItemsForTab: Record<PrimaryTab, typeof analyzeSubItems> = {
     plan: planSecondaryItems,
-    lift: liftSubItems,
+    lift: liftSecondaryItems,
     analyze: analyzeSubItems,
   };
 
@@ -537,16 +539,52 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* LIFT / ANALYZE hubs */}
-        {['lift', 'analyze'].includes(view) && (
+        {/* LIFT tab — LiftView inline + secondary links */}
+        {view === 'lift' && (
+          <div className="max-w-2xl mx-auto space-y-8">
+            <LiftView
+              activeBlock={trainingBlocks.find(b => b.isActive) || null}
+              currentPlan={currentPlan}
+              currentWorkout={currentSavedWorkout}
+              gymSetup={gymSetup}
+              readiness={formData.readiness}
+              duration={formData.duration}
+              isGenerating={isGenerating}
+              error={error}
+              onReadinessChange={(r) => setFormData(prev => ({ ...prev, readiness: r }))}
+              onDurationChange={(d) => setFormData(prev => ({ ...prev, duration: d }))}
+              onGenerate={handleGenerate}
+              onStartSession={() => setView('session')}
+              onNewWorkout={() => setCurrentPlan(null)}
+              onSaveFeedback={handleSaveFeedback}
+              onNavigatePlan={() => setView('plan')}
+            />
+            {/* Secondary links */}
+            <div className="border-t border-neutral-800 pt-6">
+              <p className="text-xs text-gray-500 mb-3 uppercase tracking-wider">Tools</p>
+              <div className="grid grid-cols-2 gap-2">
+                {liftSecondaryItems.map(item => (
+                  <button
+                    key={item.view}
+                    onClick={() => setView(item.view)}
+                    className="flex items-center gap-2 p-3 rounded-xl bg-neutral-800/50 border border-neutral-700/50 hover:border-amber-500/50 hover:bg-neutral-800 transition-all text-gray-400 hover:text-amber-400 text-xs font-medium"
+                  >
+                    {item.icon}
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ANALYZE hub */}
+        {view === 'analyze' && (
           <div className="max-w-2xl mx-auto">
-            <h2 className="text-xl font-bold text-white mb-1 capitalize">{activeTab}</h2>
-            <p className="text-sm text-gray-400 mb-6">
-              {activeTab === 'lift' && 'Generate workouts and use gym tools.'}
-              {activeTab === 'analyze' && 'Review progress, records, and analytics.'}
-            </p>
+            <h2 className="text-xl font-bold text-white mb-1">Analyze</h2>
+            <p className="text-sm text-gray-400 mb-6">Review progress, records, and analytics.</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {subItemsForTab[activeTab].map(item => (
+              {analyzeSubItems.map(item => (
                 <button
                   key={item.view}
                   onClick={() => setView(item.view)}
@@ -611,10 +649,10 @@ const App: React.FC = () => {
                 🏋️ Start Session
               </button>
               <button
-                onClick={() => setView('form')}
+                onClick={() => setView('lift')}
                 className="px-6 py-3 bg-neutral-800 hover:bg-neutral-700 text-gray-300 font-medium rounded-xl transition-all"
               >
-                New Workout
+                Back to Lift
               </button>
             </div>
             {currentSavedWorkout && (
@@ -634,7 +672,7 @@ const App: React.FC = () => {
             audioMuted={audioMuted}
             onAudioMutedChange={handleAudioMutedChange}
             onComplete={(sets, rpe) => handleSaveSession(currentSavedWorkout.id, sets, rpe)}
-            onCancel={() => setView('result')}
+            onCancel={() => setView('lift')}
           />
         )}
 
