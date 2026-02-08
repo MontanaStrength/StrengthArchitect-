@@ -347,6 +347,21 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Block Focus</label>
             <div className="space-y-2">
+              <div className="flex justify-between items-baseline mb-1">
+                <span className={`text-xs font-mono ${goalBias < 30 ? 'text-amber-400 font-bold' : 'text-gray-500'}`}>{100 - goalBias}% Hypertrophy</span>
+                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                  goalBias < 30 ? 'bg-purple-500/20 text-purple-300' :
+                  goalBias > 70 ? 'bg-red-500/20 text-red-300' :
+                  'bg-amber-500/20 text-amber-300'
+                }`}>
+                  {goalBias < 20 ? 'Size' :
+                   goalBias < 40 ? 'Size + Strength' :
+                   goalBias < 60 ? 'Balanced' :
+                   goalBias < 80 ? 'Strength + Size' :
+                   'Strength'}
+                </span>
+                <span className={`text-xs font-mono ${goalBias > 70 ? 'text-amber-400 font-bold' : 'text-gray-500'}`}>{goalBias}% Strength</span>
+              </div>
               <input
                 type="range"
                 min={0}
@@ -361,19 +376,8 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
                 {[0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100].map(n => <option key={n} value={n} />)}
               </datalist>
               <div className="flex justify-between items-center text-xs">
-                <span className={goalBias < 30 ? 'text-amber-400 font-bold' : 'text-gray-500'}>💪 Hypertrophy</span>
-                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                  goalBias < 30 ? 'bg-purple-500/20 text-purple-300' :
-                  goalBias > 70 ? 'bg-red-500/20 text-red-300' :
-                  'bg-amber-500/20 text-amber-300'
-                }`}>
-                  {goalBias < 20 ? 'Size' :
-                   goalBias < 40 ? 'Size + Strength' :
-                   goalBias < 60 ? 'Balanced' :
-                   goalBias < 80 ? 'Strength + Size' :
-                   'Strength'}
-                </span>
-                <span className={goalBias > 70 ? 'text-amber-400 font-bold' : 'text-gray-500'}>🏋️ Strength</span>
+                <span className="text-gray-600">💪 Size</span>
+                <span className="text-gray-600">🏋️ Strength</span>
               </div>
             </div>
           </div>
