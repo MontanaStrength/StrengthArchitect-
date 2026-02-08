@@ -439,23 +439,23 @@ const App: React.FC = () => {
     setGymSetup(setup);
     setFormData(prev => ({ ...prev, availableEquipment: setup.availableEquipment }));
     if (user) {
-      syncUserPreferencesToCloud({ gymSetup: setup, optimizerConfig, audioMuted }, user.id).catch(console.error);
+      syncUserPreferencesToCloud({ gymSetup: setup, optimizerConfig, audioMuted, appMode: appMode || undefined }, user.id).catch(console.error);
     }
-  }, [user, optimizerConfig, audioMuted]);
+  }, [user, optimizerConfig, audioMuted, appMode]);
 
   const handleOptimizerConfigChange = useCallback(async (config: OptimizerConfig) => {
     setOptimizerConfig(config);
     if (user) {
-      syncUserPreferencesToCloud({ gymSetup, optimizerConfig: config, audioMuted }, user.id).catch(console.error);
+      syncUserPreferencesToCloud({ gymSetup, optimizerConfig: config, audioMuted, appMode: appMode || undefined }, user.id).catch(console.error);
     }
-  }, [user, gymSetup, audioMuted]);
+  }, [user, gymSetup, audioMuted, appMode]);
 
   const handleAudioMutedChange = useCallback(async (muted: boolean) => {
     setAudioMuted(muted);
     if (user) {
-      syncUserPreferencesToCloud({ gymSetup, optimizerConfig, audioMuted: muted }, user.id).catch(console.error);
+      syncUserPreferencesToCloud({ gymSetup, optimizerConfig, audioMuted: muted, appMode: appMode || undefined }, user.id).catch(console.error);
     }
-  }, [user, gymSetup, optimizerConfig]);
+  }, [user, gymSetup, optimizerConfig, appMode]);
 
   const handleDismissAlert = useCallback(async (alertId: string) => {
     const updated = [...dismissedAlertIds, alertId];
@@ -583,6 +583,20 @@ const App: React.FC = () => {
   }
 
   // ===== MODE SELECTION GATE =====
+  if (!prefsLoaded) {
+    return (
+      <div className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-center gap-6">
+        <div className="flex items-center gap-3">
+          <Dumbbell size={28} className="text-amber-500" />
+          <span className="text-xl font-bold text-white">Strength <span className="text-amber-500">Architect</span></span>
+        </div>
+        <div className="space-y-3 w-64">
+          <div className="h-3 bg-neutral-800 rounded-full animate-pulse" />
+          <div className="h-3 bg-neutral-800 rounded-full animate-pulse w-4/5" />
+        </div>
+      </div>
+    );
+  }
   if (appMode === null) {
     return <ModeSelectionView onSelectMode={handleSelectMode} />;
   }
@@ -637,6 +651,7 @@ const App: React.FC = () => {
                 gymSetup: { ...gymSetup, availableEquipment: data.equipment },
                 optimizerConfig,
                 audioMuted,
+                appMode: appMode || undefined,
               }, user.id).catch(console.error);
               if (appMode !== 'coach') {
                 supabase.auth.updateUser({
