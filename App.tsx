@@ -42,6 +42,7 @@ import GymSetupView from './components/GymSetupView';
 import PlateCalculatorView from './components/PlateCalculatorView';
 import ExerciseLibraryView from './components/ExerciseLibraryView';
 import TrackingView from './components/TrackingView';
+import PlanView from './components/PlanView';
 import { WorkoutWizard } from './components/wizard';
 import { BlockWizard } from './components/block-wizard';
 import { computeOptimizerRecommendations } from './services/optimizerEngine';
@@ -239,7 +240,11 @@ const App: React.FC = () => {
         trainingContext,
       );
 
-      const plan = await generateWorkout(formData, history, trainingContext, optimizerRecs);
+      // Get exercise preferences from active block
+      const activeBlock = trainingBlocks.find(b => b.isActive);
+      const exercisePrefs = activeBlock?.exercisePreferences || null;
+
+      const plan = await generateWorkout(formData, history, trainingContext, optimizerRecs, exercisePrefs);
       setCurrentPlan(plan);
 
       const saved: SavedWorkout = {
@@ -408,13 +413,11 @@ const App: React.FC = () => {
     { id: 'analyze', label: 'Analyze', icon: <BarChart3 size={18} />, defaultView: 'analyze' },
   ];
 
-  /** Sub-items visible within each tab's hub view */
-  const planSubItems: { label: string; view: ViewState; icon: React.ReactNode }[] = [
-    { label: 'New Block',        view: 'block-wizard',    icon: <Plus size={16} /> },
+  /** Secondary links shown below PlanView */
+  const planSecondaryItems: { label: string; view: ViewState; icon: React.ReactNode }[] = [
     { label: 'My Blocks',        view: 'training-blocks', icon: <Layers size={16} /> },
     { label: 'Calendar',         view: 'calendar',        icon: <Calendar size={16} /> },
     { label: 'Goals',            view: 'goals',           icon: <Target size={16} /> },
-    { label: 'Custom Templates', view: 'custom-templates', icon: <LayoutList size={16} /> },
     { label: 'Gym Setup',        view: 'gym-setup',       icon: <Wrench size={16} /> },
   ];
 
@@ -431,8 +434,8 @@ const App: React.FC = () => {
     { label: 'Tracking',        view: 'tracking',       icon: <Target size={16} /> },
   ];
 
-  const subItemsForTab: Record<PrimaryTab, typeof planSubItems> = {
-    plan: planSubItems,
+  const subItemsForTab: Record<PrimaryTab, typeof liftSubItems> = {
+    plan: planSecondaryItems,
     lift: liftSubItems,
     analyze: analyzeSubItems,
   };
@@ -496,11 +499,49 @@ const App: React.FC = () => {
       <main className="max-w-6xl mx-auto px-4 py-6">
 
         {/* ── HUB VIEWS ─────────────────────────────────────── */}
-        {['plan', 'lift', 'analyze'].includes(view) && (
+        {/* PLAN tab — PlanView inline + secondary links */}
+        {view === 'plan' && (
+          <div className="max-w-2xl mx-auto space-y-8">
+            <PlanView
+              block={trainingBlocks.find(b => b.isActive) || null}
+              onSave={async (block) => {
+                const exists = trainingBlocks.find(b => b.id === block.id);
+                const updated = exists
+                  ? trainingBlocks.map(b => b.id === block.id ? block : b)
+                  : [...trainingBlocks, block];
+                const final = block.isActive
+                  ? updated.map(b => b.id === block.id ? b : { ...b, isActive: false })
+                  : updated;
+                setTrainingBlocks(final);
+                if (user) {
+                  for (const b of final) syncTrainingBlockToCloud(b, user.id).catch(console.error);
+                }
+              }}
+            />
+            {/* Secondary links */}
+            <div className="border-t border-neutral-800 pt-6">
+              <p className="text-xs text-gray-500 mb-3 uppercase tracking-wider">More</p>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {planSecondaryItems.map(item => (
+                  <button
+                    key={item.view}
+                    onClick={() => setView(item.view)}
+                    className="flex items-center gap-2 p-3 rounded-xl bg-neutral-800/50 border border-neutral-700/50 hover:border-amber-500/50 hover:bg-neutral-800 transition-all text-gray-400 hover:text-amber-400 text-xs font-medium"
+                  >
+                    {item.icon}
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* LIFT / ANALYZE hubs */}
+        {['lift', 'analyze'].includes(view) && (
           <div className="max-w-2xl mx-auto">
             <h2 className="text-xl font-bold text-white mb-1 capitalize">{activeTab}</h2>
             <p className="text-sm text-gray-400 mb-6">
-              {activeTab === 'plan' && 'Build blocks, set goals, and design your training.'}
               {activeTab === 'lift' && 'Generate workouts and use gym tools.'}
               {activeTab === 'analyze' && 'Review progress, records, and analytics.'}
             </p>

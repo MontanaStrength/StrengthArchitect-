@@ -1,7 +1,7 @@
 import { GoogleGenAI, Type } from '@google/genai';
-import type { FormData, SavedWorkout, StrengthWorkoutPlan, OptimizerRecommendations } from '../types';
+import type { FormData, SavedWorkout, StrengthWorkoutPlan, OptimizerRecommendations, ExercisePreferences } from '../types';
 import { STRENGTH_ARCHETYPES } from '../services/strengthArchetypes';
-import { getExerciseListForPrompt } from '../services/exerciseLibrary';
+import { getExerciseListForPrompt, getExerciseById } from '../services/exerciseLibrary';
 import { parseRepsToAverage } from '../utils';
 
 // ===== TRAINING INTELLIGENCE =====
@@ -137,7 +137,8 @@ export const generateWorkoutServer = async (
   data: FormData,
   history: SavedWorkout[] = [],
   trainingContext?: TrainingContext | null,
-  optimizerRecommendations?: OptimizerRecommendations | null
+  optimizerRecommendations?: OptimizerRecommendations | null,
+  exercisePreferences?: ExercisePreferences | null
 ): Promise<StrengthWorkoutPlan> => {
   const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
   if (!apiKey) {
@@ -244,6 +245,30 @@ export const generateWorkoutServer = async (
     `;
   }
 
+  // ===== EXERCISE PREFERENCES INTEGRATION =====
+  let exercisePrefsContext = '';
+  if (exercisePreferences?.slots) {
+    const filled = exercisePreferences.slots.filter(s => s.exerciseId);
+    if (filled.length > 0) {
+      const lines = filled.map(s => {
+        const ex = getExerciseById(s.exerciseId!);
+        return `- ${s.category.toUpperCase()} (${s.tier}): ${ex?.name || s.exerciseId} (${s.exerciseId})`;
+      });
+      exercisePrefsContext = `
+    ### ATHLETE'S EXERCISE PREFERENCES
+    The athlete has selected specific exercises for their training block. PRIORITIZE these exercises:
+    ${lines.join('\n    ')}
+
+    RULES:
+    - Use the athlete's PRIMARY selections as the main compound lifts for the session.
+    - Use SECONDARY/TERTIARY selections as supplemental/variation work.
+    - Respect the core selections (anti-flexion, anti-extension, anti-rotation) for core work.
+    - Accessory slot selections should be included when they fit the session's focus.
+    - Slots marked "AI chooses" (not listed above) are yours to fill based on the session's needs.
+    `;
+    }
+  }
+
   // Build 1RM context
   const liftPRs = [
     data.squat1RM ? `Squat 1RM: ${data.squat1RM} lbs` : null,
@@ -266,6 +291,7 @@ export const generateWorkoutServer = async (
     ${historyContext}
     ${blockContext}
     ${optimizerContext}
+    ${exercisePrefsContext}
 
     ### EXERCISE LIBRARY (Select exercises ONLY from this list, use the exact exerciseId)
     ${getExerciseListForPrompt()}

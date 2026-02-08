@@ -28,6 +28,7 @@ const localApiPlugin = () => {
               Array.isArray(body?.history) ? body.history : [],
               body?.trainingContext || null,
               body?.optimizerRecommendations || null,
+              body?.exercisePreferences || null,
             );
 
             res.statusCode = 200;

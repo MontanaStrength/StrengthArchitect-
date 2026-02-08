@@ -14,6 +14,7 @@ const TrainingBlockView: React.FC<Props> = ({ blocks, onSave, onDelete }) => {
   const [name, setName] = useState('');
   const [goalEvent, setGoalEvent] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const handleCreate = () => {
     const template = PERIODIZATION_TEMPLATES[selectedTemplate];
@@ -183,12 +184,29 @@ const TrainingBlockView: React.FC<Props> = ({ blocks, onSave, onDelete }) => {
                       >
                         {block.isActive ? <><Square size={12} /> Deactivate</> : <><Play size={12} /> Activate</>}
                       </button>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); if (confirm('Delete this block?')) onDelete(block.id); }}
-                        className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-neutral-800 hover:bg-amber-900/50 text-gray-400 hover:text-amber-400 rounded-lg transition-all"
-                      >
-                        <Trash2 size={12} /> Delete
-                      </button>
+                      {confirmDeleteId === block.id ? (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onDelete(block.id); setConfirmDeleteId(null); }}
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all"
+                          >
+                            <Trash2 size={12} /> Confirm
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(null); }}
+                            className="px-3 py-1.5 text-xs font-medium bg-neutral-800 hover:bg-neutral-700 text-gray-400 rounded-lg transition-all"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setConfirmDeleteId(block.id); }}
+                          className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-neutral-800 hover:bg-amber-900/50 text-gray-400 hover:text-amber-400 rounded-lg transition-all"
+                        >
+                          <Trash2 size={12} /> Delete
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}

@@ -253,6 +253,28 @@ export interface TrainingBlock {
   goalEvent?: string; // e.g., "Powerlifting Meet", "Body Recomp"
   goalDate?: number;
   isActive: boolean;
+  /** How many weeks this block runs */
+  lengthWeeks?: number;
+  /** Days of the week the user lifts (0=Sun, 1=Mon, ..., 6=Sat) */
+  trainingDays?: number[];
+  /** Exercise selection preferences */
+  exercisePreferences?: ExercisePreferences;
+}
+
+// ===== EXERCISE PREFERENCES (18-slot selection) =====
+
+export type ExerciseSlotCategory = 'squat' | 'bench' | 'deadlift' | 'ohp' | 'core' | 'accessory';
+export type ExerciseTier = 'primary' | 'secondary' | 'tertiary';
+export type CoreSlotType = 'anti-flexion' | 'anti-extension' | 'anti-rotation';
+
+export interface ExerciseSlot {
+  category: ExerciseSlotCategory;
+  tier: ExerciseTier | CoreSlotType | 'slot-1' | 'slot-2' | 'slot-3';
+  exerciseId: string | null; // null = not yet chosen
+}
+
+export interface ExercisePreferences {
+  slots: ExerciseSlot[];
 }
 
 export type SplitPattern =
