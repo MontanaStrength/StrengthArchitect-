@@ -1,3 +1,69 @@
+// Utility: Logical exercise sorting by slot context
+function sortExercisesForSlot(category: string, tier: string, exercises: typeof EXERCISE_LIBRARY) {
+  // Define priority lists for each category and tier
+  const PRIORITY: Record<string, Record<string, string[]>> = {
+    squat: {
+      primary: [
+        'back_squat', 'front_squat', 'high_bar_squat', 'low_bar_squat', 'safety_bar_squat', 'overhead_squat', 'box_squat', 'pause_squat', 'tempo_squat', 'leg_press', 'goblet_squat', 'bulgarian_split_squat'
+      ],
+      secondary: [
+        'front_squat', 'high_bar_squat', 'low_bar_squat', 'safety_bar_squat', 'box_squat', 'pause_squat', 'tempo_squat', 'leg_press', 'goblet_squat', 'bulgarian_split_squat', 'overhead_squat'
+      ],
+      tertiary: [
+        'goblet_squat', 'bulgarian_split_squat', 'leg_press', 'box_squat', 'pause_squat', 'tempo_squat', 'overhead_squat', 'front_squat', 'high_bar_squat', 'low_bar_squat', 'safety_bar_squat'
+      ]
+    },
+    bench: {
+      primary: [
+        'bench_press', 'pause_bench', 'incline_bench', 'dumbbell_bench', 'close_grip_bench'
+      ],
+      secondary: [
+        'incline_bench', 'dumbbell_bench', 'pause_bench', 'close_grip_bench', 'bench_press'
+      ],
+      tertiary: [
+        'dumbbell_bench', 'incline_bench', 'close_grip_bench', 'pause_bench', 'bench_press'
+      ]
+    },
+    deadlift: {
+      primary: [
+        'conventional_deadlift', 'sumo_deadlift', 'trap_bar_deadlift', 'romanian_deadlift', 'deficit_deadlift', 'snatch_grip_deadlift'
+      ],
+      secondary: [
+        'romanian_deadlift', 'trap_bar_deadlift', 'sumo_deadlift', 'deficit_deadlift', 'snatch_grip_deadlift', 'conventional_deadlift'
+      ],
+      tertiary: [
+        'good_morning', 'romanian_deadlift', 'deficit_deadlift', 'snatch_grip_deadlift', 'trap_bar_deadlift', 'sumo_deadlift', 'conventional_deadlift'
+      ]
+    },
+    ohp: {
+      primary: [
+        'overhead_press', 'push_press', 'seated_dumbbell_press'
+      ],
+      secondary: [
+        'push_press', 'seated_dumbbell_press', 'overhead_press'
+      ],
+      tertiary: [
+        'seated_dumbbell_press', 'push_press', 'overhead_press'
+      ]
+    },
+    // For core and accessory, just sort alphabetically
+    core: {},
+    accessory: {},
+  };
+
+  if (category === 'core' || category === 'accessory') {
+    return [...exercises].sort((a, b) => a.name.localeCompare(b.name));
+  }
+  const priority = PRIORITY[category]?.[tier] || [];
+  return [
+    // Priority exercises first, in order
+    ...priority
+      .map(id => exercises.find(e => e.id === id))
+      .filter(Boolean),
+    // Then the rest, alphabetically
+    ...exercises.filter(e => !priority.includes(e.id)).sort((a, b) => a.name.localeCompare(b.name))
+  ];
+}
 import React, { useState, useMemo } from 'react';
 import { TrainingBlock, ExerciseSlot, ExercisePreferences, MovementPattern } from '../types';
 import { EXERCISE_LIBRARY } from '../services/exerciseLibrary';
@@ -548,6 +614,8 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
             const categorySlots = slots
               .map((s, i) => ({ ...s, index: i }))
               .filter(s => s.category === category);
+
+            // Sort exercises logically for this slot
             const exercises = exercisesByCategory[category] || [];
 
             return (
@@ -556,24 +624,27 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
                   <h3 className="text-sm font-bold text-gray-200">{CATEGORY_LABELS[category]}</h3>
                 </div>
                 <div className="divide-y divide-neutral-800/50">
-                  {categorySlots.map(slot => (
-                    <div key={slot.index} className="flex items-center gap-3 px-4 py-3">
-                      <span className="text-xs text-gray-500 w-28 shrink-0 font-medium">{TIER_LABELS[slot.tier]}</span>
-                      <select
-                        value={slot.exerciseId || ''}
-                        onChange={e => updateSlot(slot.index, e.target.value || null)}
-                        className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white focus:border-amber-500 outline-none transition-all appearance-none cursor-pointer"
-                      >
-                        <option value="">— AI chooses —</option>
-                        {exercises.map(ex => (
-                          <option key={ex.id} value={ex.id}>{ex.name}</option>
-                        ))}
-                      </select>
-                      {slot.exerciseId && (
-                        <Check size={14} className="text-amber-400 shrink-0" />
-                      )}
-                    </div>
-                  ))}
+                  {categorySlots.map(slot => {
+                    const sortedExercises = sortExercisesForSlot(category, slot.tier, exercises);
+                    return (
+                      <div key={slot.index} className="flex items-center gap-3 px-4 py-3">
+                        <span className="text-xs text-gray-500 w-28 shrink-0 font-medium">{TIER_LABELS[slot.tier]}</span>
+                        <select
+                          value={slot.exerciseId || ''}
+                          onChange={e => updateSlot(slot.index, e.target.value || null)}
+                          className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white focus:border-amber-500 outline-none transition-all appearance-none cursor-pointer"
+                        >
+                          <option value="">— AI chooses —</option>
+                          {sortedExercises.map(ex => (
+                            <option key={ex.id} value={ex.id}>{ex.name}</option>
+                          ))}
+                        </select>
+                        {slot.exerciseId && (
+                          <Check size={14} className="text-amber-400 shrink-0" />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             );

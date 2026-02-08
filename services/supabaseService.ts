@@ -93,6 +93,17 @@ export const deleteWorkoutFromCloud = async (id: string, userId: string) => {
 // ===== TRAINING BLOCKS =====
 
 export const syncTrainingBlockToCloud = async (block: TrainingBlock, userId: string) => {
+  // Pack extra block fields into phases JSONB (no schema migration required)
+  const phasesPayload = {
+    __v: 2,
+    phases: block.phases,
+    exercisePreferences: block.exercisePreferences,
+    goalBias: block.goalBias,
+    volumeTolerance: block.volumeTolerance,
+    lengthWeeks: block.lengthWeeks,
+    trainingDays: block.trainingDays,
+  };
+
   const { data, error } = await supabase
     .from('training_blocks')
     .upsert({
@@ -103,7 +114,7 @@ export const syncTrainingBlockToCloud = async (block: TrainingBlock, userId: str
       goal_event: block.goalEvent,
       goal_date: block.goalDate,
       is_active: block.isActive,
-      phases: block.phases,
+      phases: phasesPayload,
     });
 
   if (error) {
@@ -122,15 +133,29 @@ export const fetchTrainingBlocksFromCloud = async (userId: string): Promise<Trai
 
   if (error) throw error;
 
-  return (data || []).map(row => ({
-    id: row.id,
-    name: row.name,
-    startDate: row.start_date,
-    goalEvent: row.goal_event,
-    goalDate: row.goal_date,
-    isActive: row.is_active,
-    phases: row.phases,
-  }));
+  return (data || []).map(row => {
+    // Handle both old format (plain array) and new format (wrapper object)
+    const rawPhases = row.phases;
+    const isWrapped = rawPhases && !Array.isArray(rawPhases) && rawPhases.__v;
+    const phases = isWrapped ? rawPhases.phases : rawPhases;
+
+    return {
+      id: row.id,
+      name: row.name,
+      startDate: row.start_date,
+      goalEvent: row.goal_event,
+      goalDate: row.goal_date,
+      isActive: row.is_active,
+      phases: phases || [],
+      ...(isWrapped && {
+        exercisePreferences: rawPhases.exercisePreferences,
+        goalBias: rawPhases.goalBias,
+        volumeTolerance: rawPhases.volumeTolerance,
+        lengthWeeks: rawPhases.lengthWeeks,
+        trainingDays: rawPhases.trainingDays,
+      }),
+    };
+  });
 };
 
 export const deleteTrainingBlockFromCloud = async (id: string, userId: string) => {

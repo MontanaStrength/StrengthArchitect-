@@ -97,8 +97,8 @@ const DashboardView: React.FC<Props> = ({ history, liftRecords, goals, sleepEntr
   // ── ACUTE:CHRONIC RATIO ─────────────────────────
   const acuteChronicRatio = useMemo(() => {
     const now = Date.now();
-    const acute7 = history.filter(w => w.date > now - 7 * 86400000).reduce((s, w) => s + (w.actualTonnage || 0), 0);
-    const chronic28 = history.filter(w => w.date > now - 28 * 86400000).reduce((s, w) => s + (w.actualTonnage || 0), 0);
+    const acute7 = history.filter(w => w.timestamp > now - 7 * 86400000).reduce((s, w) => s + (w.actualTonnage || 0), 0);
+    const chronic28 = history.filter(w => w.timestamp > now - 28 * 86400000).reduce((s, w) => s + (w.actualTonnage || 0), 0);
     const weeklyAvg = chronic28 / 4;
     if (weeklyAvg === 0) return null;
     return Math.round((acute7 / weeklyAvg) * 100) / 100;
@@ -111,7 +111,7 @@ const DashboardView: React.FC<Props> = ({ history, liftRecords, goals, sleepEntr
     for (let i = 3; i >= 0; i--) {
       const start = now - (i + 1) * 7 * 86400000;
       const end = now - i * 7 * 86400000;
-      const workouts = history.filter(w => w.date >= start && w.date < end);
+      const workouts = history.filter(w => w.timestamp >= start && w.timestamp < end);
       bars.push({
         label: i === 0 ? 'This wk' : i + 'wk ago',
         tonnage: workouts.reduce((s, w) => s + (w.actualTonnage || 0), 0),
@@ -126,7 +126,7 @@ const DashboardView: React.FC<Props> = ({ history, liftRecords, goals, sleepEntr
     const now = Date.now();
     const oneWeek = 7 * 86400000;
     const fourWeeks = 28 * 86400000;
-    const last4 = history.filter(w => w.date > now - fourWeeks);
+    const last4 = history.filter(w => w.timestamp > now - fourWeeks);
 
     const scoreToGrade = (s: number) => s >= 90 ? 'A' : s >= 80 ? 'B' : s >= 70 ? 'C' : s >= 60 ? 'D' : 'F';
 
@@ -135,7 +135,7 @@ const DashboardView: React.FC<Props> = ({ history, liftRecords, goals, sleepEntr
     for (let i = 0; i < 4; i++) {
       const start = now - (i + 1) * oneWeek;
       const end = now - i * oneWeek;
-      weeklyCounts.push(history.filter(w => w.date > start && w.date <= end).length);
+      weeklyCounts.push(history.filter(w => w.timestamp > start && w.timestamp <= end).length);
     }
     const avgPerWeek = weeklyCounts.reduce((a, b) => a + b, 0) / 4;
     const consistencyScore = Math.min(avgPerWeek / 4 * 100, 100);
@@ -145,7 +145,7 @@ const DashboardView: React.FC<Props> = ({ history, liftRecords, goals, sleepEntr
     for (let i = 0; i < 4; i++) {
       const start = now - (i + 1) * oneWeek;
       const end = now - i * oneWeek;
-      weeklyTonnage.push(history.filter(w => w.date > start && w.date <= end).reduce((s, w) => s + (w.actualTonnage || 0), 0));
+      weeklyTonnage.push(history.filter(w => w.timestamp > start && w.timestamp <= end).reduce((s, w) => s + (w.actualTonnage || 0), 0));
     }
     weeklyTonnage.reverse();
     const trend = weeklyTonnage.length >= 2 ? weeklyTonnage[weeklyTonnage.length - 1] - weeklyTonnage[0] : 0;
@@ -206,15 +206,15 @@ const DashboardView: React.FC<Props> = ({ history, liftRecords, goals, sleepEntr
     const now = Date.now();
     const d = 86400000;
 
-    const recent7d = history.filter(w => w.date > now - 7 * d);
+    const recent7d = history.filter(w => w.timestamp > now - 7 * d);
     if (history.length > 0 && recent7d.length === 0) {
       items.push({ id: 'no-recent', type: 'warning', icon: '⚠️', title: 'No workouts this week', msg: 'Consistency is key — even a light session helps.' });
     }
-    const last3d = history.filter(w => w.date > now - 3 * d);
+    const last3d = history.filter(w => w.timestamp > now - 3 * d);
     if (last3d.length >= 4) {
       items.push({ id: 'high-freq', type: 'danger', icon: '🔴', title: 'High training frequency', msg: last3d.length + ' sessions in 3 days. Consider rest.' });
     }
-    const highRPE = history.filter(w => w.date > now - 7 * d && w.sessionRPE && w.sessionRPE >= 9).length;
+    const highRPE = history.filter(w => w.timestamp > now - 7 * d && w.sessionRPE && w.sessionRPE >= 9).length;
     if (highRPE >= 3) {
       items.push({ id: 'high-rpe', type: 'warning', icon: '😤', title: 'Multiple RPE 9+ sessions', msg: 'Consider a deload session next.' });
     }

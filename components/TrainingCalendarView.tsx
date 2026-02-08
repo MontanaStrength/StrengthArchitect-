@@ -117,7 +117,8 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
       </div>
 
       {/* Calendar Grid */}
-      <div className="grid grid-cols-7 gap-1">
+      <div className="overflow-x-auto -mx-4 px-4">
+        <div className="grid grid-cols-7 gap-1 min-w-[420px]">
         {dayNames.map(d => (
           <div key={d} className="text-center text-xs text-gray-500 py-1 font-medium">{d}</div>
         ))}
@@ -153,6 +154,7 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
             ))}
           </div>
         ))}
+        </div>
       </div>
 
       {/* Legend */}

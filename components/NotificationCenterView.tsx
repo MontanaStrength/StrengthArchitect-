@@ -28,7 +28,7 @@ const NotificationCenterView: React.FC<Props> = ({ history, liftRecords, sleepEn
     const oneWeek = 7 * oneDay;
 
     // 1. No recent workouts
-    const recentWorkouts = history.filter(w => w.date > now - oneWeek);
+    const recentWorkouts = history.filter(w => w.timestamp > now - oneWeek);
     if (history.length > 0 && recentWorkouts.length === 0) {
       items.push({
         id: 'no-recent-workouts',
@@ -41,7 +41,7 @@ const NotificationCenterView: React.FC<Props> = ({ history, liftRecords, sleepEn
     }
 
     // 2. High training frequency
-    const last3Days = history.filter(w => w.date > now - 3 * oneDay);
+    const last3Days = history.filter(w => w.timestamp > now - 3 * oneDay);
     if (last3Days.length >= 4) {
       items.push({
         id: 'high-frequency-3d',
@@ -55,7 +55,7 @@ const NotificationCenterView: React.FC<Props> = ({ history, liftRecords, sleepEn
 
     // 3. High RPE streak
     const highRPESessions = history
-      .filter(w => w.date > now - oneWeek && w.sessionRPE && w.sessionRPE >= 9)
+      .filter(w => w.timestamp > now - oneWeek && w.sessionRPE && w.sessionRPE >= 9)
       .length;
     if (highRPESessions >= 3) {
       items.push({
@@ -135,7 +135,7 @@ const NotificationCenterView: React.FC<Props> = ({ history, liftRecords, sleepEn
     // 7. Tonnage spike warning
     if (recentWorkouts.length > 0) {
       const thisWeekTonnage = recentWorkouts.reduce((s, w) => s + (w.actualTonnage || 0), 0);
-      const prevWeek = history.filter(w => w.date > now - 2 * oneWeek && w.date <= now - oneWeek);
+      const prevWeek = history.filter(w => w.timestamp > now - 2 * oneWeek && w.timestamp <= now - oneWeek);
       const prevWeekTonnage = prevWeek.reduce((s, w) => s + (w.actualTonnage || 0), 0);
       if (prevWeekTonnage > 0 && thisWeekTonnage > prevWeekTonnage * 1.3) {
         items.push({

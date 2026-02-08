@@ -42,11 +42,16 @@ import GymSetupView from './components/GymSetupView';
 import PlateCalculatorView from './components/PlateCalculatorView';
 import ExerciseLibraryView from './components/ExerciseLibraryView';
 import TrackingView from './components/TrackingView';
+import NotificationCenterView from './components/NotificationCenterView';
 import PlanView from './components/PlanView';
 import LiftView from './components/LiftView';
 import { WorkoutWizard } from './components/wizard';
 import { BlockWizard } from './components/block-wizard';
+import OnboardingView from './components/OnboardingView';
+import SessionRecapView from './components/SessionRecapView';
 import { computeOptimizerRecommendations } from './services/optimizerEngine';
+
+import ErrorBoundary from './components/ErrorBoundary';
 
 import { Dumbbell, BarChart3, Calendar, Target, Activity, Bell, ChevronLeft, LogOut, Wrench, Calculator, BookOpen, Layers, LayoutList, Plus } from 'lucide-react';
 
@@ -55,6 +60,7 @@ type ViewState =
   | 'loading'
   | 'result'
   | 'session'
+  | 'session-recap'
   | 'history'
   | 'dashboard'
   | 'training-blocks'
@@ -98,6 +104,8 @@ const App: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [history, setHistory] = useState<SavedWorkout[]>([]);
   const [error, setError] = useState<string>('');
+  const [lastSessionPRs, setLastSessionPRs] = useState<LiftRecord[]>([]);
+  const [lastSessionDuration, setLastSessionDuration] = useState(0);
 
   // ===== FEATURE STATE =====
   const [trainingBlocks, setTrainingBlocks] = useState<TrainingBlock[]>([]);
@@ -114,6 +122,8 @@ const App: React.FC = () => {
   const [optimizerConfig, setOptimizerConfig] = useState<OptimizerConfig>(DEFAULT_OPTIMIZER_CONFIG);
   const [audioMuted, setAudioMuted] = useState(false);
   const [dismissedAlertIds, setDismissedAlertIds] = useState<string[]>([]);
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   // ===== AUTH LISTENER =====
   useEffect(() => {
@@ -167,6 +177,12 @@ const App: React.FC = () => {
         if (prefs.gymSetup) setGymSetup(prefs.gymSetup);
         if (prefs.optimizerConfig) setOptimizerConfig(prefs.optimizerConfig);
         if (prefs.audioMuted !== undefined) setAudioMuted(prefs.audioMuted);
+
+        // Show onboarding for new users (no blocks, no workouts)
+        if (blocks.length === 0 && workouts.length === 0) {
+          setShowOnboarding(true);
+        }
+        setDataLoaded(true);
 
         // Restore 1RM data from user metadata
         const meta = user.user_metadata || {};
@@ -335,7 +351,10 @@ const App: React.FC = () => {
       if (workout) syncWorkoutToCloud(workout, user.id).catch(console.error);
     }
 
-    setView('lift');
+    // Navigate to session recap
+    setLastSessionPRs(newRecords);
+    setLastSessionDuration(Math.round((Date.now() - (completedSets[0]?.timestamp || Date.now())) / 1000) || 0);
+    setView('session-recap');
   }, [history, liftRecords, user]);
 
   // ===== DELETE WORKOUT =====
@@ -388,11 +407,62 @@ const App: React.FC = () => {
 
   // ===== AUTH GATE =====
   if (authLoading) {
-    return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-amber-500"></div></div>;
+    return (
+      <div className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-center gap-6">
+        <div className="flex items-center gap-3">
+          <Dumbbell size={28} className="text-amber-500" />
+          <span className="text-xl font-bold text-white">Strength <span className="text-amber-500">Architect</span></span>
+        </div>
+        <div className="space-y-3 w-64">
+          <div className="h-3 bg-neutral-800 rounded-full animate-pulse" />
+          <div className="h-3 bg-neutral-800 rounded-full animate-pulse w-4/5" />
+          <div className="h-3 bg-neutral-800 rounded-full animate-pulse w-3/5" />
+        </div>
+        <p className="text-xs text-gray-500">Loading your training data…</p>
+      </div>
+    );
   }
 
   if (!user) {
     return <AuthView />;
+  }
+
+  // ===== ONBOARDING GATE =====
+  if (showOnboarding && dataLoaded) {
+    return (
+      <div className="min-h-screen bg-[#0f0f0f] text-white flex items-center justify-center px-4 py-12">
+        <OnboardingView
+          onComplete={async (data) => {
+            setFormData(prev => ({
+              ...prev,
+              trainingExperience: data.experience,
+              availableEquipment: data.equipment,
+              weightLbs: data.weightLbs,
+              age: data.age,
+              gender: data.gender,
+            }));
+            setGymSetup(prev => ({ ...prev, availableEquipment: data.equipment }));
+
+            // Save the block
+            setTrainingBlocks([data.block]);
+            if (user) {
+              syncTrainingBlockToCloud(data.block, user.id).catch(console.error);
+              syncUserPreferencesToCloud({
+                gymSetup: { ...gymSetup, availableEquipment: data.equipment },
+                optimizerConfig,
+                audioMuted,
+              }, user.id).catch(console.error);
+              supabase.auth.updateUser({
+                data: { weightLbs: data.weightLbs, age: data.age, gender: data.gender },
+              }).catch(console.error);
+            }
+
+            setShowOnboarding(false);
+          }}
+          onSkip={() => setShowOnboarding(false)}
+        />
+      </div>
+    );
   }
 
   // ===== LATEST WORKOUT =====
@@ -408,7 +478,7 @@ const App: React.FC = () => {
     'block-wizard': 'plan', 'training-blocks': 'plan', 'custom-templates': 'plan',
     'goals': 'plan', 'gym-setup': 'plan', 'calendar': 'plan',
     // LIFT
-    'form': 'lift', 'loading': 'lift', 'result': 'lift', 'session': 'lift',
+    'form': 'lift', 'loading': 'lift', 'result': 'lift', 'session': 'lift', 'session-recap': 'lift',
     'plate-calculator': 'lift', 'exercise-library': 'lift', 'strength-test': 'lift',
     // ANALYZE
     'dashboard': 'analyze', 'history': 'analyze', 'lift-records': 'analyze',
@@ -471,7 +541,7 @@ const App: React.FC = () => {
             </h1>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => setView('notifications')} className="p-2 text-gray-400 hover:text-white transition-colors">
+            <button onClick={() => setView('notifications')} className="relative p-2 text-gray-400 hover:text-white transition-colors">
               <Bell size={18} />
             </button>
             <button onClick={handleSignOut} className="p-2 text-gray-400 hover:text-amber-400 transition-colors" title="Sign Out">
@@ -503,6 +573,7 @@ const App: React.FC = () => {
 
       {/* Content */}
       <main className="max-w-6xl mx-auto px-4 py-6">
+        <ErrorBoundary>
 
         {/* ── HUB VIEWS ─────────────────────────────────────── */}
         {/* PLAN tab — PlanView inline + secondary links */}
@@ -577,11 +648,46 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* ANALYZE hub */}
+        {/* ANALYZE hub — inline stats + sub-links */}
         {view === 'analyze' && (
-          <div className="max-w-2xl mx-auto">
-            <h2 className="text-xl font-bold text-white mb-1">Analyze</h2>
-            <p className="text-sm text-gray-400 mb-6">Review progress, records, and analytics.</p>
+          <div className="max-w-2xl mx-auto space-y-5">
+            <div>
+              <h2 className="text-xl font-bold text-white mb-1">Analyze</h2>
+              <p className="text-sm text-gray-400 mb-5">Review progress, records, and analytics.</p>
+            </div>
+
+            {/* Quick stats bar */}
+            {(() => {
+              const now = Date.now();
+              const weekAgo = now - 7 * 86400000;
+              const monthAgo = now - 30 * 86400000;
+              const thisWeek = history.filter(w => w.timestamp > weekAgo);
+              const thisMonth = history.filter(w => w.timestamp > monthAgo);
+              const weekTonnage = thisWeek.reduce((s, w) => s + (w.actualTonnage || w.estimatedTonnage || 0), 0);
+              const topLifts: Record<string, number> = {};
+              for (const r of liftRecords) {
+                if (!topLifts[r.exerciseId] || r.estimated1RM > topLifts[r.exerciseId]) topLifts[r.exerciseId] = r.estimated1RM;
+              }
+              const bigFourTotal = (topLifts['back_squat'] || 0) + (topLifts['bench_press'] || 0) + (topLifts['conventional_deadlift'] || 0) + (topLifts['overhead_press'] || 0);
+
+              return (
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-3 text-center">
+                    <p className="text-2xl font-bold text-white">{thisWeek.length}</p>
+                    <p className="text-[10px] text-gray-500 uppercase">Sessions/wk</p>
+                  </div>
+                  <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-3 text-center">
+                    <p className="text-2xl font-bold text-amber-400">{weekTonnage > 0 ? (weekTonnage / 1000).toFixed(0) + 'k' : '0'}</p>
+                    <p className="text-[10px] text-gray-500 uppercase">Wk Tonnage</p>
+                  </div>
+                  <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-3 text-center">
+                    <p className="text-2xl font-bold text-yellow-400">{bigFourTotal > 0 ? Math.round(bigFourTotal) : '—'}</p>
+                    <p className="text-[10px] text-gray-500 uppercase">Est. Total</p>
+                  </div>
+                </div>
+              );
+            })()}
+
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {analyzeSubItems.map(item => (
                 <button
@@ -673,6 +779,18 @@ const App: React.FC = () => {
             onComplete={(sets, rpe) => handleSaveSession(currentSavedWorkout.id, sets, rpe)}
             onCancel={() => setView('lift')}
           />
+        )}
+
+        {view === 'session-recap' && currentSavedWorkout && (
+          <ErrorBoundary fallbackMessage="Could not display session recap.">
+            <SessionRecapView
+              workout={currentSavedWorkout}
+              newPRs={lastSessionPRs}
+              sessionDurationSec={lastSessionDuration}
+              onContinue={() => { setCurrentPlan(null); setView('lift'); }}
+              onViewHistory={() => setView('history')}
+            />
+          </ErrorBoundary>
         )}
 
         {view === 'history' && (
@@ -819,6 +937,18 @@ const App: React.FC = () => {
             }}
           />
         )}
+        {view === 'notifications' && (
+          <NotificationCenterView
+            history={history}
+            liftRecords={liftRecords}
+            sleepEntries={sleepEntries}
+            goals={goals}
+            dismissedAlertIds={dismissedAlertIds}
+            onDismissAlert={handleDismissAlert}
+            onClearDismissed={handleClearDismissed}
+          />
+        )}
+        </ErrorBoundary>
       </main>
     </div>
   );
