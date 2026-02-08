@@ -65,7 +65,7 @@ const StepReview: React.FC<StepReviewProps> = ({
       </div>
 
       {/* Optimizer badge */}
-      {optimizerConfig?.enabled && optimizerConfig.recommendations && (
+      {optimizerConfig?.recommendations && (
         <div className="bg-purple-900/30 border border-purple-700 rounded-xl p-4">
           <div className="flex items-center gap-2 text-purple-300 text-sm font-semibold">
             <Sparkles size={16} />

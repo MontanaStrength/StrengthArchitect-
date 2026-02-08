@@ -231,16 +231,13 @@ const App: React.FC = () => {
     initAudio();
 
     try {
-      // Compute optimizer recommendations live from user settings + history + context
-      let optimizerRecs: OptimizerRecommendations | null = null;
-      if (optimizerConfig.enabled) {
-        optimizerRecs = computeOptimizerRecommendations(
-          optimizerConfig,
-          formData,
-          history,
-          trainingContext,
-        );
-      }
+      // Optimizer always active — computes volume, intensity, fatigue, metabolic stress
+      const optimizerRecs = computeOptimizerRecommendations(
+        optimizerConfig,
+        formData,
+        history,
+        trainingContext,
+      );
 
       const plan = await generateWorkout(formData, history, trainingContext, optimizerRecs);
       setCurrentPlan(plan);

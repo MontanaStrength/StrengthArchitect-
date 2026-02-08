@@ -193,7 +193,7 @@ export interface OptimizerRecommendations {
 }
 
 export const DEFAULT_OPTIMIZER_CONFIG: OptimizerConfig = {
-  enabled: false,
+  enabled: true,
   maxSetsPerSession: 25,
   repRangePreference: 'auto',
   autoDeload: true,
