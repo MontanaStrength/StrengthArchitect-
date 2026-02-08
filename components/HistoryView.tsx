@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { SavedWorkout } from '../types';
-import { History, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { History, Trash2, ChevronDown, ChevronUp, Download } from 'lucide-react';
 
 interface Props {
   history: SavedWorkout[];
@@ -8,9 +8,46 @@ interface Props {
   onSelect: (workout: SavedWorkout) => void;
 }
 
+const handleExport = (history: SavedWorkout[], format: 'json' | 'csv') => {
+  let content: string;
+  let filename: string;
+  let mimeType: string;
+
+  if (format === 'json') {
+    const data = history.map(w => ({
+      id: w.id, title: w.title, focus: w.focus, timestamp: w.timestamp,
+      date: new Date(w.timestamp).toISOString(),
+      exercises: w.exercises.map(e => ({ name: e.exerciseName, sets: e.sets, reps: e.reps, weight: e.weightLbs, percentOf1RM: e.percentOf1RM, rest: e.restSeconds })),
+      estimatedTonnage: w.estimatedTonnage, actualTonnage: w.actualTonnage, sessionRPE: w.sessionRPE,
+      completedSets: w.completedSets, feedback: w.feedback,
+    }));
+    content = JSON.stringify(data, null, 2);
+    filename = `strength-architect-export-${new Date().toISOString().split('T')[0]}.json`;
+    mimeType = 'application/json';
+  } else {
+    const rows: string[] = [];
+    rows.push(['Date', 'Title', 'Focus', 'Exercise', 'Sets', 'Reps', 'Weight (lbs)', '%1RM', 'Rest (s)', 'Est Tonnage', 'Actual Tonnage', 'Session RPE'].join(','));
+    for (const w of history) {
+      for (const e of w.exercises) {
+        rows.push([new Date(w.timestamp).toISOString().split('T')[0], `"${w.title}"`, w.focus, `"${e.exerciseName}"`, e.sets, `"${e.reps}"`, e.weightLbs || '', e.percentOf1RM || '', e.restSeconds, w.estimatedTonnage || '', w.actualTonnage || '', w.sessionRPE || ''].join(','));
+      }
+    }
+    content = rows.join('\n');
+    filename = `strength-architect-export-${new Date().toISOString().split('T')[0]}.csv`;
+    mimeType = 'text/csv';
+  }
+
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+};
+
 const HistoryView: React.FC<Props> = ({ history, onDelete, onSelect }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('all');
+  const [showExport, setShowExport] = useState(false);
 
   const focusOptions = ['all', 'Strength', 'Hypertrophy', 'Power', 'Endurance', 'Deload'];
 
@@ -18,9 +55,27 @@ const HistoryView: React.FC<Props> = ({ history, onDelete, onSelect }) => {
 
   return (
     <div className="max-w-4xl mx-auto space-y-4">
-      <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-        <History size={24} className="text-amber-500" /> Workout History
-      </h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+          <History size={24} className="text-amber-500" /> Workout History
+        </h2>
+        {history.length > 0 && (
+          <div className="relative">
+            <button
+              onClick={() => setShowExport(!showExport)}
+              className="flex items-center gap-1.5 px-3 py-2 bg-neutral-800 hover:bg-neutral-700 text-gray-300 text-sm font-medium rounded-lg transition-all"
+            >
+              <Download size={14} /> Export
+            </button>
+            {showExport && (
+              <div className="absolute right-0 mt-1 bg-neutral-800 border border-neutral-700 rounded-lg shadow-xl z-10 overflow-hidden">
+                <button onClick={() => { handleExport(history, 'json'); setShowExport(false); }} className="block w-full px-4 py-2.5 text-sm text-gray-300 hover:bg-neutral-700 hover:text-white text-left">Export JSON</button>
+                <button onClick={() => { handleExport(history, 'csv'); setShowExport(false); }} className="block w-full px-4 py-2.5 text-sm text-gray-300 hover:bg-neutral-700 hover:text-white text-left">Export CSV</button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Filter */}
       <div className="flex flex-wrap gap-2">

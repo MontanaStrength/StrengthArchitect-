@@ -34,32 +34,19 @@ import HistoryView from './components/HistoryView';
 import FeedbackSection from './components/FeedbackSection';
 import TrainingBlockView from './components/TrainingBlockView';
 import LiftRecordsView from './components/LiftRecordsView';
-import BodyCompTrackerView from './components/BodyCompTrackerView';
-import RecoveryAdvisorView from './components/RecoveryAdvisorView';
 import TrainingCalendarView from './components/TrainingCalendarView';
-import AchievementsView from './components/AchievementsView';
-import SleepJournalView from './components/SleepJournalView';
 import GoalSettingView from './components/GoalSettingView';
 import StrengthTestView from './components/StrengthTestView';
-import ExportView from './components/ExportView';
 import CustomTemplateBuilder from './components/CustomTemplateBuilder';
 import GymSetupView from './components/GymSetupView';
-import OptimizerView from './components/OptimizerView';
-import TrainingLoadView from './components/TrainingLoadView';
-import WarmupCooldownView from './components/WarmupCooldownView';
-import RPECalibrationView from './components/RPECalibrationView';
 import PlateCalculatorView from './components/PlateCalculatorView';
-import NotificationCenterView from './components/NotificationCenterView';
-import ReportCardsView from './components/ReportCardsView';
 import ExerciseLibraryView from './components/ExerciseLibraryView';
-import SupersetBuilderView from './components/SupersetBuilderView';
-import FrederickToolView from './components/FrederickToolView';
-import HanleyToolView from './components/HanleyToolView';
+import TrackingView from './components/TrackingView';
 import { WorkoutWizard } from './components/wizard';
 import { BlockWizard } from './components/block-wizard';
 import { computeOptimizerRecommendations } from './services/optimizerEngine';
 
-import { Dumbbell, History, BarChart3, Calendar, Moon, Target, Trophy, Activity, Settings, Bell, FileText, ChevronLeft, LogOut, Wrench, Calculator, BookOpen, Layers, LayoutList, Heart, Zap, ClipboardList, Sparkles, Plus, FlaskConical } from 'lucide-react';
+import { Dumbbell, BarChart3, Calendar, Target, Activity, Bell, ChevronLeft, LogOut, Wrench, Calculator, BookOpen, Layers, LayoutList, Plus } from 'lucide-react';
 
 type ViewState =
   | 'form'
@@ -70,28 +57,15 @@ type ViewState =
   | 'dashboard'
   | 'training-blocks'
   | 'lift-records'
-  | 'body-comp'
-  | 'recovery'
   | 'calendar'
-  | 'achievements'
-  | 'sleep'
   | 'goals'
   | 'strength-test'
-  | 'export'
   | 'custom-templates'
   | 'gym-setup'
-  | 'optimizer'
-  | 'training-load'
-  | 'warmup-cooldown'
-  | 'rpe-calibration'
   | 'plate-calculator'
-  | 'notifications'
-  | 'report-cards'
   | 'exercise-library'
-  | 'superset-builder'
-  | 'frederick-tool'
-  | 'hanley-tool'
-  | 'tools'
+  | 'tracking'
+  | 'notifications'
   | 'block-wizard'
   | 'plan'
   | 'lift'
@@ -418,18 +392,13 @@ const App: React.FC = () => {
   const tabForView: Record<ViewState, PrimaryTab> = {
     // PLAN
     'block-wizard': 'plan', 'training-blocks': 'plan', 'custom-templates': 'plan',
-    'optimizer': 'plan', 'goals': 'plan', 'gym-setup': 'plan',
+    'goals': 'plan', 'gym-setup': 'plan', 'calendar': 'plan',
     // LIFT
     'form': 'lift', 'loading': 'lift', 'result': 'lift', 'session': 'lift',
-    'plate-calculator': 'lift', 'warmup-cooldown': 'lift', 'rpe-calibration': 'lift',
-    'superset-builder': 'lift', 'exercise-library': 'lift', 'frederick-tool': 'lift', 'hanley-tool': 'lift',
+    'plate-calculator': 'lift', 'exercise-library': 'lift', 'strength-test': 'lift',
     // ANALYZE
     'dashboard': 'analyze', 'history': 'analyze', 'lift-records': 'analyze',
-    'calendar': 'analyze', 'training-load': 'analyze', 'body-comp': 'analyze',
-    'recovery': 'analyze', 'sleep': 'analyze', 'achievements': 'analyze',
-    'report-cards': 'analyze', 'strength-test': 'analyze',
-    // Misc — default to analyze
-    'export': 'analyze', 'notifications': 'analyze', 'tools': 'analyze',
+    'tracking': 'analyze', 'notifications': 'analyze',
     // Hubs
     'plan': 'plan', 'lift': 'lift', 'analyze': 'analyze',
   };
@@ -446,7 +415,7 @@ const App: React.FC = () => {
   const planSubItems: { label: string; view: ViewState; icon: React.ReactNode }[] = [
     { label: 'New Block',        view: 'block-wizard',    icon: <Plus size={16} /> },
     { label: 'My Blocks',        view: 'training-blocks', icon: <Layers size={16} /> },
-    { label: 'Optimizer',        view: 'optimizer',       icon: <Sparkles size={16} /> },
+    { label: 'Calendar',         view: 'calendar',        icon: <Calendar size={16} /> },
     { label: 'Goals',            view: 'goals',           icon: <Target size={16} /> },
     { label: 'Custom Templates', view: 'custom-templates', icon: <LayoutList size={16} /> },
     { label: 'Gym Setup',        view: 'gym-setup',       icon: <Wrench size={16} /> },
@@ -456,26 +425,13 @@ const App: React.FC = () => {
     { label: 'Generate Workout',  view: 'form',             icon: <Dumbbell size={16} /> },
     { label: 'Exercise Library',  view: 'exercise-library',  icon: <BookOpen size={16} /> },
     { label: 'Plate Calculator',  view: 'plate-calculator',  icon: <Calculator size={16} /> },
-    { label: 'Superset Builder',  view: 'superset-builder',  icon: <Zap size={16} /> },
-    { label: 'Warmup / Cooldown', view: 'warmup-cooldown',   icon: <Activity size={16} /> },
-    { label: 'RPE Calibration',   view: 'rpe-calibration',   icon: <Settings size={16} /> },
-    { label: 'Metabolic Stress',   view: 'frederick-tool',    icon: <FlaskConical size={16} /> },
-    { label: 'Volume Stress',      view: 'hanley-tool',       icon: <Calculator size={16} /> },
   ];
 
   const analyzeSubItems: { label: string; view: ViewState; icon: React.ReactNode }[] = [
     { label: 'Dashboard',      view: 'dashboard',     icon: <BarChart3 size={16} /> },
-    { label: 'History',         view: 'history',        icon: <History size={16} /> },
-    { label: 'Lift Records',    view: 'lift-records',   icon: <Trophy size={16} /> },
-    { label: 'Calendar',        view: 'calendar',       icon: <Calendar size={16} /> },
-    { label: 'Training Load',   view: 'training-load',  icon: <Activity size={16} /> },
-    { label: 'Body Comp',       view: 'body-comp',      icon: <BarChart3 size={16} /> },
-    { label: 'Recovery',        view: 'recovery',       icon: <Heart size={16} /> },
-    { label: 'Sleep',            view: 'sleep',           icon: <Moon size={16} /> },
-    { label: 'Strength Tests',  view: 'strength-test',  icon: <ClipboardList size={16} /> },
-    { label: 'Achievements',    view: 'achievements',   icon: <Trophy size={16} /> },
-    { label: 'Report Cards',    view: 'report-cards',   icon: <FileText size={16} /> },
-    { label: 'Export',           view: 'export',          icon: <FileText size={16} /> },
+    { label: 'History',         view: 'history',        icon: <Activity size={16} /> },
+    { label: 'Lift Records',    view: 'lift-records',   icon: <Dumbbell size={16} /> },
+    { label: 'Tracking',        view: 'tracking',       icon: <Target size={16} /> },
   ];
 
   const subItemsForTab: Record<PrimaryTab, typeof planSubItems> = {
@@ -548,8 +504,8 @@ const App: React.FC = () => {
             <h2 className="text-xl font-bold text-white mb-1 capitalize">{activeTab}</h2>
             <p className="text-sm text-gray-400 mb-6">
               {activeTab === 'plan' && 'Build blocks, set goals, and design your training.'}
-              {activeTab === 'lift' && 'Generate workouts, track sessions, and use lifting tools.'}
-              {activeTab === 'analyze' && 'Review progress, records, and training analytics.'}
+              {activeTab === 'lift' && 'Generate workouts and use gym tools.'}
+              {activeTab === 'analyze' && 'Review progress, records, and analytics.'}
             </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {subItemsForTab[activeTab].map(item => (
@@ -653,7 +609,7 @@ const App: React.FC = () => {
         )}
 
         {view === 'dashboard' && (
-          <DashboardView history={history} liftRecords={liftRecords} goals={goals} sleepEntries={sleepEntries} />
+          <DashboardView history={history} liftRecords={liftRecords} goals={goals} sleepEntries={sleepEntries} dismissedAlertIds={dismissedAlertIds} onDismissAlert={handleDismissAlert} />
         )}
 
         {view === 'training-blocks' && (
@@ -694,24 +650,6 @@ const App: React.FC = () => {
           />
         )}
 
-        {view === 'body-comp' && (
-          <BodyCompTrackerView
-            entries={bodyCompEntries}
-            onSave={async (entry) => {
-              setBodyCompEntries(prev => [entry, ...prev]);
-              if (user) syncBodyCompToCloud(entry, user.id).catch(console.error);
-            }}
-            onDelete={async (id) => {
-              setBodyCompEntries(prev => prev.filter(e => e.id !== id));
-              if (user) deleteBodyCompFromCloud(id, user.id).catch(console.error);
-            }}
-          />
-        )}
-
-        {view === 'recovery' && (
-          <RecoveryAdvisorView history={history} sleepEntries={sleepEntries} />
-        )}
-
         {view === 'calendar' && (
           <TrainingCalendarView
             scheduled={scheduledWorkouts}
@@ -728,20 +666,6 @@ const App: React.FC = () => {
           />
         )}
 
-        {view === 'achievements' && <AchievementsView history={history} liftRecords={liftRecords} />}
-        {view === 'sleep' && (
-          <SleepJournalView
-            entries={sleepEntries}
-            onSave={async (entry) => {
-              setSleepEntries(prev => [entry, ...prev]);
-              if (user) syncSleepEntryToCloud(entry, user.id).catch(console.error);
-            }}
-            onDelete={async (id) => {
-              setSleepEntries(prev => prev.filter(e => e.id !== id));
-              if (user) deleteSleepEntryFromCloud(id, user.id).catch(console.error);
-            }}
-          />
-        )}
         {view === 'goals' && (
           <GoalSettingView
             goals={goals}
@@ -762,7 +686,6 @@ const App: React.FC = () => {
             weightLbs={formData.weightLbs}
             onSave={async (result) => {
               setStrengthTests(prev => [result, ...prev]);
-              // Update 1RMs in form data
               const exerciseIdTo1RMKey: Record<string, keyof FormData> = {
                 'back_squat': 'squat1RM',
                 'bench_press': 'benchPress1RM',
@@ -772,7 +695,6 @@ const App: React.FC = () => {
               const key = exerciseIdTo1RMKey[result.exerciseId];
               if (key) {
                 setFormData(prev => ({ ...prev, [key]: result.estimated1RM }));
-                // Persist to user metadata
                 if (user) {
                   supabase.auth.updateUser({ data: { [key]: result.estimated1RM } }).catch(console.error);
                 }
@@ -781,7 +703,6 @@ const App: React.FC = () => {
             }}
           />
         )}
-        {view === 'export' && <ExportView history={history} />}
         {view === 'custom-templates' && (
           <CustomTemplateBuilder
             templates={customTemplates}
@@ -799,36 +720,30 @@ const App: React.FC = () => {
         {view === 'gym-setup' && (
           <GymSetupView gymSetup={gymSetup} onSave={handleGymSetupChange} />
         )}
-        {view === 'optimizer' && (
-          <OptimizerView
-            config={optimizerConfig}
-            onChange={handleOptimizerConfigChange}
-            history={history}
-            liftRecords={liftRecords}
-            formData={formData}
-            trainingContext={trainingContext}
-          />
-        )}
-        {view === 'training-load' && <TrainingLoadView history={history} />}
-        {view === 'warmup-cooldown' && <WarmupCooldownView />}
-        {view === 'rpe-calibration' && <RPECalibrationView />}
         {view === 'plate-calculator' && <PlateCalculatorView gymSetup={gymSetup} />}
-        {view === 'notifications' && (
-          <NotificationCenterView
-            history={history}
-            liftRecords={liftRecords}
+        {view === 'exercise-library' && <ExerciseLibraryView />}
+        {view === 'tracking' && (
+          <TrackingView
             sleepEntries={sleepEntries}
-            goals={goals}
-            dismissedAlertIds={dismissedAlertIds}
-            onDismissAlert={handleDismissAlert}
-            onClearDismissed={handleClearDismissed}
+            onSaveSleep={async (entry) => {
+              setSleepEntries(prev => [entry, ...prev]);
+              if (user) syncSleepEntryToCloud(entry, user.id).catch(console.error);
+            }}
+            onDeleteSleep={async (id) => {
+              setSleepEntries(prev => prev.filter(e => e.id !== id));
+              if (user) deleteSleepEntryFromCloud(id, user.id).catch(console.error);
+            }}
+            bodyCompEntries={bodyCompEntries}
+            onSaveBodyComp={async (entry) => {
+              setBodyCompEntries(prev => [entry, ...prev]);
+              if (user) syncBodyCompToCloud(entry, user.id).catch(console.error);
+            }}
+            onDeleteBodyComp={async (id) => {
+              setBodyCompEntries(prev => prev.filter(e => e.id !== id));
+              if (user) deleteBodyCompFromCloud(id, user.id).catch(console.error);
+            }}
           />
         )}
-        {view === 'report-cards' && <ReportCardsView history={history} liftRecords={liftRecords} goals={goals} />}
-        {view === 'exercise-library' && <ExerciseLibraryView />}
-        {view === 'superset-builder' && <SupersetBuilderView />}
-        {view === 'frederick-tool' && <FrederickToolView />}
-        {view === 'hanley-tool' && <HanleyToolView />}
       </main>
     </div>
   );
