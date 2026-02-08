@@ -427,15 +427,32 @@ export function computeOptimizerRecommendations(
   formData: FormData,
   history: SavedWorkout[],
   trainingContext?: TrainingContext | null,
+  volumeTolerance: number = 3,
 ): OptimizerRecommendations {
   const goal = formData.trainingGoalFocus as TrainingGoalFocus;
   const profile = GOAL_PROFILES[goal] || GOAL_PROFILES['general'];
+
+  // Volume tolerance scalar: 1=0.7x, 2=0.85x, 3=1.0x, 4=1.2x, 5=1.4x
+  const volTolScalar = volumeTolerance <= 1 ? 0.70
+    : volumeTolerance <= 2 ? 0.85
+    : volumeTolerance <= 3 ? 1.0
+    : volumeTolerance <= 4 ? 1.20
+    : 1.40;
+
+  // Sets-per-exercise scalar (separate from session volume)
+  // This is the key lever: at level 5, you might do 5×10 instead of 3×10
+  const setsPerExScalar = volumeTolerance <= 1 ? 0.75
+    : volumeTolerance <= 2 ? 0.85
+    : volumeTolerance <= 3 ? 1.0
+    : volumeTolerance <= 4 ? 1.25
+    : 1.50;
 
   // ── 1. Base session volume (working sets) ──────────────
   const userMaxSets = config.maxSetsPerSession || 25;
   let sessionVolume = Math.round(
     userMaxSets
     * profile.volumeMultiplier
+    * volTolScalar
     * readinessScalar(formData.readiness)
     * phaseVolumeScalar(trainingContext)
   );
@@ -457,10 +474,14 @@ export function computeOptimizerRecommendations(
   // Clamp
   sessionVolume = Math.max(6, Math.min(sessionVolume, 40));
 
-  // ── 4. Rep scheme ──────────────────────────────────────
-  let repScheme = profile.repScheme;
+  // ── 4. Rep scheme (scaled by volume tolerance) ──────────
+  let repScheme = `${scaledSetsMin}-${scaledSetsMax} sets × ${profile.repScheme.split('×')[1]?.trim() || profile.repScheme}`;
   if (config.repRangePreference && config.repRangePreference !== 'auto') {
-    repScheme = REP_PREF_MAP[config.repRangePreference]?.scheme || repScheme;
+    const prefScheme = REP_PREF_MAP[config.repRangePreference]?.scheme;
+    if (prefScheme) {
+      const repPart = prefScheme.split('×')[1]?.trim() || prefScheme;
+      repScheme = `${scaledSetsMin}-${scaledSetsMax} sets × ${repPart}`;
+    }
   }
   if (forceDeload) {
     repScheme = '2-3 sets × 8-12 reps (deload: technique focus)';
@@ -491,9 +512,12 @@ export function computeOptimizerRecommendations(
   if (forceDeload) restRange = { min: 60, max: 120 };
 
   // ── 7. Exercise count ──────────────────────────────────
-  const avgSetsPerExercise = (profile.setsPerExercise[0] + profile.setsPerExercise[1]) / 2;
-  let exerciseCountMin = Math.max(3, Math.floor(sessionVolume / profile.setsPerExercise[1]));
-  let exerciseCountMax = Math.min(10, Math.ceil(sessionVolume / profile.setsPerExercise[0]));
+  // Scale sets-per-exercise by volume tolerance
+  const scaledSetsMin = Math.max(2, Math.round(profile.setsPerExercise[0] * setsPerExScalar));
+  const scaledSetsMax = Math.max(scaledSetsMin, Math.round(profile.setsPerExercise[1] * setsPerExScalar));
+  const avgSetsPerExercise = (scaledSetsMin + scaledSetsMax) / 2;
+  let exerciseCountMin = Math.max(3, Math.floor(sessionVolume / scaledSetsMax));
+  let exerciseCountMax = Math.min(10, Math.ceil(sessionVolume / scaledSetsMin));
   if (exerciseCountMin > exerciseCountMax) exerciseCountMax = exerciseCountMin;
   // Also cap by time budget (rough: ~4 min per working set including rest)
   const timeCap = Math.floor(formData.duration / 4);
@@ -609,7 +633,7 @@ export function computeOptimizerRecommendations(
     const midIntensity = (intMin + intMax) / 2;
     const targetMidScore = (fTarget.min + fTarget.max) / 2;
     const computedReps = reverseCalculateReps(targetMidScore, midIntensity);
-    targetRepsPerExercise = Math.max(1, Math.round(computedReps));
+    targetRepsPerExercise = Math.max(1, Math.round(computedReps * setsPerExScalar));
 
     // Readiness adjustment: low readiness → trim reps ~20%
     if (String(formData.readiness).toLowerCase().includes('low')) {

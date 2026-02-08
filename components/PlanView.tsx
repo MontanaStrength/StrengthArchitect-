@@ -115,6 +115,7 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
   const [name, setName] = useState(block?.name || '');
   const [lengthWeeks, setLengthWeeks] = useState(block?.lengthWeeks || 8);
   const [goalBias, setGoalBias] = useState(block?.goalBias ?? 50);
+  const [volumeTolerance, setVolumeTolerance] = useState(block?.volumeTolerance ?? 3);
   const [trainingDays, setTrainingDays] = useState<number[]>(block?.trainingDays || []);
   const [slots, setSlots] = useState<ExerciseSlot[]>(
     block?.exercisePreferences?.slots || [...DEFAULT_SLOTS]
@@ -157,6 +158,7 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
       isActive: block?.isActive ?? true,
       lengthWeeks,
       goalBias,
+      volumeTolerance,
       trainingDays,
       exercisePreferences: { slots },
     };
@@ -379,6 +381,50 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
                 <span className="text-gray-600">💪 Size</span>
                 <span className="text-gray-600">🏋️ Strength</span>
               </div>
+            </div>
+          </div>
+
+          {/* Volume Tolerance */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Volume Tolerance</label>
+            <div className="space-y-2">
+              <div className="flex justify-between items-baseline mb-1">
+                <span className="text-xs font-mono text-gray-500">Level {volumeTolerance}/5</span>
+                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                  volumeTolerance <= 1 ? 'bg-blue-500/20 text-blue-300' :
+                  volumeTolerance <= 2 ? 'bg-cyan-500/20 text-cyan-300' :
+                  volumeTolerance <= 3 ? 'bg-amber-500/20 text-amber-300' :
+                  volumeTolerance <= 4 ? 'bg-orange-500/20 text-orange-300' :
+                  'bg-red-500/20 text-red-300'
+                }`}>
+                  {volumeTolerance <= 1 ? 'Conservative' :
+                   volumeTolerance <= 2 ? 'Below Average' :
+                   volumeTolerance <= 3 ? 'Moderate' :
+                   volumeTolerance <= 4 ? 'Above Average' :
+                   'High Capacity'}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={1}
+                max={5}
+                step={1}
+                value={volumeTolerance}
+                onChange={e => setVolumeTolerance(Number(e.target.value))}
+                className="w-full accent-amber-500"
+                list="vol-ticks"
+              />
+              <datalist id="vol-ticks">
+                {[1,2,3,4,5].map(n => <option key={n} value={n} />)}
+              </datalist>
+              <div className="flex justify-between px-0.5">
+                {[1,2,3,4,5].map(n => (
+                  <span key={n} className={`text-[10px] ${n === volumeTolerance ? 'text-amber-400 font-bold' : 'text-gray-600'}`}>{n}</span>
+                ))}
+              </div>
+              <p className="text-[10px] text-gray-600">
+                How much training volume can you recover from? Higher = more sets per exercise (e.g., 5×10 vs 3×10).
+              </p>
             </div>
           </div>
 

@@ -17,14 +17,15 @@ export const generateWorkout = async (
   trainingContext?: TrainingContext | null,
   optimizerRecommendations?: OptimizerRecommendations | null,
   exercisePreferences?: ExercisePreferences | null,
-  goalBias?: number | null
+  goalBias?: number | null,
+  volumeTolerance?: number | null
 ): Promise<StrengthWorkoutPlan> => {
   const response = await fetch('/api/generate-workout', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ data, history, trainingContext, optimizerRecommendations, exercisePreferences, goalBias }),
+    body: JSON.stringify({ data, history, trainingContext, optimizerRecommendations, exercisePreferences, goalBias, volumeTolerance }),
   });
 
   if (!response.ok) {

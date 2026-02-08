@@ -30,6 +30,7 @@ const localApiPlugin = () => {
               body?.optimizerRecommendations || null,
               body?.exercisePreferences || null,
               body?.goalBias ?? null,
+              body?.volumeTolerance ?? null,
             );
 
             res.statusCode = 200;

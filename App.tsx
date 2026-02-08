@@ -247,14 +247,16 @@ const App: React.FC = () => {
       const biasedFormData = { ...formData, trainingGoalFocus: biasGoal };
 
       // Optimizer always active — computes volume, intensity, fatigue, metabolic stress
+      const volTol = activeBlock?.volumeTolerance ?? 3;
       const optimizerRecs = computeOptimizerRecommendations(
         optimizerConfig,
         biasedFormData,
         history,
         trainingContext,
+        volTol,
       );
 
-      const plan = await generateWorkout(biasedFormData, history, trainingContext, optimizerRecs, exercisePrefs, bias);
+      const plan = await generateWorkout(biasedFormData, history, trainingContext, optimizerRecs, exercisePrefs, bias, volTol);
       setCurrentPlan(plan);
 
       const saved: SavedWorkout = {

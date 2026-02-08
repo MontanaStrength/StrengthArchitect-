@@ -262,6 +262,8 @@ export interface TrainingBlock {
   exercisePreferences?: ExercisePreferences;
   /** 0 = pure hypertrophy, 50 = balanced, 100 = pure strength */
   goalBias?: number;
+  /** 1 = conservative, 3 = moderate (default), 5 = high capacity */
+  volumeTolerance?: number;
 }
 
 // ===== EXERCISE PREFERENCES (18-slot selection) =====

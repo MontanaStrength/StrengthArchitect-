@@ -139,7 +139,8 @@ export const generateWorkoutServer = async (
   trainingContext?: TrainingContext | null,
   optimizerRecommendations?: OptimizerRecommendations | null,
   exercisePreferences?: ExercisePreferences | null,
-  goalBias?: number | null
+  goalBias?: number | null,
+  volumeTolerance?: number | null
 ): Promise<StrengthWorkoutPlan> => {
   const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
   if (!apiKey) {
@@ -212,13 +213,15 @@ export const generateWorkoutServer = async (
   let optimizerContext = '';
   if (optimizerRecommendations) {
     optimizerContext = `
-    ### SESSION OPTIMIZER RECOMMENDATIONS (RESPECT THESE)
-    The user has an active session optimizer providing evidence-based recommendations:
-    - Recommended total working sets this session: ${optimizerRecommendations.sessionVolume}
-    - Recommended rep scheme: ${optimizerRecommendations.repScheme}
-    - Recommended intensity range: ${optimizerRecommendations.intensityRange.min}-${optimizerRecommendations.intensityRange.max}% 1RM
-    - Recommended rest between sets: ${optimizerRecommendations.restRange.min}-${optimizerRecommendations.restRange.max} seconds
-    - Recommended exercise count: ${optimizerRecommendations.exerciseCount.min}-${optimizerRecommendations.exerciseCount.max} exercises
+    ### ⚡ SESSION OPTIMIZER — BINDING PRESCRIPTIONS (DO NOT OVERRIDE)
+    The optimizer has computed these numbers from the athlete's training history,
+    fatigue signals, and periodization context. These are NOT suggestions — they
+    are the prescription. DO NOT average them with the NSCA defaults below.
+    DO NOT fall back to generic 3×10 @ 70%. Use EXACTLY these parameters:
+    - TOTAL WORKING SETS this session: ${optimizerRecommendations.sessionVolume}
+    - SET × REP SCHEME per exercise: ${optimizerRecommendations.repScheme}
+    - INTENSITY RANGE: ${optimizerRecommendations.intensityRange.min}–${optimizerRecommendations.intensityRange.max}% 1RM
+    - EXERCISE COUNT: ${optimizerRecommendations.exerciseCount.min}–${optimizerRecommendations.exerciseCount.max} exercises
     - Optimizer rationale: ${optimizerRecommendations.rationale}
     ${optimizerRecommendations.muscleGroupPriorities ? `- Muscle group priorities: ${Object.entries(optimizerRecommendations.muscleGroupPriorities).map(([mg, p]) => `${mg}: ${p}`).join(', ')}` : ''}
     ${optimizerRecommendations.suggestedFocus ? `- Suggested session focus: ${optimizerRecommendations.suggestedFocus}` : ''}
@@ -227,23 +230,22 @@ export const generateWorkoutServer = async (
     - Target metabolic load PER EXERCISE: ${optimizerRecommendations.metabolicLoadTarget.min}–${optimizerRecommendations.metabolicLoadTarget.max}
     - Current projected zone: ${optimizerRecommendations.metabolicLoadZone || 'unknown'}
     - Estimated load per working set: ${optimizerRecommendations.metabolicLoadPerSet || 'N/A'}
-    ${optimizerRecommendations.metabolicSetsPerExercise ? `- Recommended sets per exercise: ${optimizerRecommendations.metabolicSetsPerExercise.min}–${optimizerRecommendations.metabolicSetsPerExercise.max}` : ''}
-    - Formula: Load_set = Intensity × Σ(i=1→reps) e^(-0.215 × (RIR + reps - i))
-    CRITICAL FOR HYPERTROPHY: EACH EXERCISE's total metabolic load (sum of that exercise's working sets) should land within ${optimizerRecommendations.metabolicLoadTarget.min}–${optimizerRecommendations.metabolicLoadTarget.max}. This is PER EXERCISE, not the whole session. The moderate zone (500-800) per exercise is the productive hypertrophy zone.` : ''}
+    ${optimizerRecommendations.metabolicSetsPerExercise ? `- REQUIRED sets per exercise: ${optimizerRecommendations.metabolicSetsPerExercise.min}–${optimizerRecommendations.metabolicSetsPerExercise.max} (this is the NUMBER OF SETS each exercise must have)` : ''}
+    BINDING: EACH EXERCISE's total metabolic load must land within ${optimizerRecommendations.metabolicLoadTarget.min}–${optimizerRecommendations.metabolicLoadTarget.max}. PER EXERCISE, not session total.` : ''}
     ${optimizerRecommendations.fatigueScoreTarget ? `
-    ### VOLUME STRESS PRESCRIPTION (Hanley Fatigue Metric)
-    - Formula: Score = Reps × (100 / (100 - Intensity))²
-    - Target per-exercise fatigue zone: ${optimizerRecommendations.fatigueScoreTarget.min}–${optimizerRecommendations.fatigueScoreTarget.max} (${optimizerRecommendations.fatigueScoreZone || 'moderate'})
+    ### VOLUME STRESS PRESCRIPTION (Hanley Fatigue Metric) — PER EXERCISE
     - Prescribed total reps per exercise: ${optimizerRecommendations.targetRepsPerExercise || 'N/A'}
-    CRITICAL: EACH INDIVIDUAL EXERCISE should aim for approximately ${optimizerRecommendations.targetRepsPerExercise} total working reps at the recommended intensity. This target is PER EXERCISE, not total across the session. Structure sets × reps per exercise to hit this total while respecting the metabolic stress targets above (for hypertrophy) or using appropriate set/rep schemes for the goal.` : ''}
+    BINDING: EACH EXERCISE should have approximately ${optimizerRecommendations.targetRepsPerExercise} total working reps. Structure sets × reps to hit this number.` : ''}
     ${optimizerRecommendations.strengthSetDivision ? `
-    ### PEAK FORCE SET DIVISION (Strength/Power)
-    - Peak force drops after rep ${optimizerRecommendations.peakForceDropRep} at the recommended intensity
-    - Prescribed set structure: ${optimizerRecommendations.strengthSetDivision.sets} sets × ${optimizerRecommendations.strengthSetDivision.repsPerSet} reps
-    - Rest between sets: ${Math.round(optimizerRecommendations.strengthSetDivision.restSeconds / 60)}+ minutes (full neural recovery)
-    CRITICAL FOR STRENGTH/POWER: Cap working sets at ${optimizerRecommendations.peakForceDropRep} reps maximum. Every rep must be a quality force rep — no grinding past the force drop-off point. Use the prescribed rest periods to ensure full neural recovery between sets.` : ''}
+    ### PEAK FORCE SET DIVISION (Strength/Power) — BINDING
+    - Peak force drops after rep ${optimizerRecommendations.peakForceDropRep}
+    - REQUIRED set structure: ${optimizerRecommendations.strengthSetDivision.sets} sets × ${optimizerRecommendations.strengthSetDivision.repsPerSet} reps
+    - Cap ALL working sets at ${optimizerRecommendations.peakForceDropRep} reps maximum. No grinding past force drop-off.` : ''}
 
-    IMPORTANT: The optimizer recommendations should be treated as STRONG guidance. Adjust the selected archetype's volume and rep scheme to match the optimizer's output. The optimizer has analyzed the athlete's weekly volume, fatigue, and recovery to produce these numbers.
+    COMPLIANCE CHECK: Before finalizing, verify that EVERY exercise in the output
+    matches the optimizer's prescribed sets/reps/intensity. If the optimizer says
+    "${optimizerRecommendations.repScheme}" at ${optimizerRecommendations.intensityRange.min}–${optimizerRecommendations.intensityRange.max}%, then the exercises
+    must reflect that — not a generic 3×10 @ 70%.
     `;
   }
 
@@ -291,6 +293,25 @@ export const generateWorkoutServer = async (
     `;
   }
 
+  // ===== VOLUME TOLERANCE INTEGRATION =====
+  let volumeToleranceContext = '';
+  if (volumeTolerance !== undefined && volumeTolerance !== null) {
+    const volLabel =
+      volumeTolerance <= 1 ? 'Conservative (low recovery capacity — fewer sets per exercise, e.g. 2-3 sets)' :
+      volumeTolerance <= 2 ? 'Below average (moderate-low recovery — stick to standard set counts)' :
+      volumeTolerance <= 3 ? 'Moderate (standard recovery — use the optimizer\'s prescribed sets directly)' :
+      volumeTolerance <= 4 ? 'Above average (good recovery — can handle more sets per exercise, e.g. 4-5 sets of compounds)' :
+      'High capacity (experienced lifter with excellent recovery — can handle high volume, e.g. 5-6 sets per compound exercise)';
+    volumeToleranceContext = `
+    ### VOLUME TOLERANCE (${volumeTolerance}/5)
+    The athlete has self-assessed their volume tolerance as: ${volLabel}
+    The optimizer has ALREADY scaled its set prescriptions to match this tolerance level.
+    DO NOT reduce the optimizer's prescribed sets — they already account for this athlete's capacity.
+    ${volumeTolerance >= 4 ? 'This athlete can handle substantial volume. If the optimizer prescribes 4-5+ sets per exercise, TRUST THAT. Do not default to 3 sets.' : ''}
+    ${volumeTolerance <= 2 ? 'This athlete needs conservative volume. Keep to the optimizer\'s reduced set counts.' : ''}
+    `;
+  }
+
   // Build 1RM context
   const liftPRs = [
     data.squat1RM ? `Squat 1RM: ${data.squat1RM} lbs` : null,
@@ -315,6 +336,7 @@ export const generateWorkoutServer = async (
     ${optimizerContext}
     ${exercisePrefsContext}
     ${goalBiasContext}
+    ${volumeToleranceContext}
 
     ### EXERCISE LIBRARY (Select exercises ONLY from this list, use the exact exerciseId)
     ${getExerciseListForPrompt()}
@@ -329,12 +351,11 @@ export const generateWorkoutServer = async (
     - All weights must be in lbs and achievable with standard plates.
     - For the "reps" field, use a string: "5" for fixed, "8-12" for range, "AMRAP" for max reps, "5/3/1" for Wendler sets.
 
-    ### EVIDENCE-BASED SESSION DESIGN (NSCA CSCS, ACSM, Schoenfeld et al.)
-    Apply these peer-reviewed best practices as DEFAULTS. When the SESSION OPTIMIZER
-    above provides specific targets (Frederick metabolic load, Hanley fatigue reps,
-    Peak Force set caps), those OVERRIDE the generic ranges below. The NSCA guidelines
-    govern everything the optimizer does NOT specify (exercise order, movement balance,
-    warmup protocol, rest periods for accessories, etc.).
+    ### EVIDENCE-BASED FALLBACK DEFAULTS (NSCA CSCS, ACSM, Schoenfeld et al.)
+    USE THESE ONLY when the SESSION OPTIMIZER above does NOT specify a value.
+    The optimizer's numbers for sets, reps, intensity, and exercise count are BINDING
+    and ALWAYS override these generic ranges. These defaults govern ONLY what the
+    optimizer does not address (exercise order, warmup protocol, movement balance, etc.).
 
     EXERCISE ORDER (NSCA Essentials of Strength Training & Conditioning, 4th Ed.):
     1. Power/Olympic lifts first (if applicable) — highest neural demand, fatigue-sensitive.

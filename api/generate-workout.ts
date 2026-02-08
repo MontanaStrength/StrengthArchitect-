@@ -94,7 +94,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { data, history = [], trainingContext, optimizerRecommendations, exercisePreferences, goalBias } = req.body;
+    const { data, history = [], trainingContext, optimizerRecommendations, exercisePreferences, goalBias, volumeTolerance } = req.body;
     if (!data) return res.status(400).json({ error: 'Missing form data' });
 
     const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
@@ -133,15 +133,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let optimizerContext = '';
     if (optimizerRecommendations) {
       const metLoad = optimizerRecommendations.metabolicLoadTarget
-        ? ` METABOLIC STRESS PER EXERCISE: ${optimizerRecommendations.metabolicLoadTarget.min}-${optimizerRecommendations.metabolicLoadTarget.max} (zone: ${optimizerRecommendations.metabolicLoadZone}, per-set: ${optimizerRecommendations.metabolicLoadPerSet}${optimizerRecommendations.metabolicSetsPerExercise ? `, ${optimizerRecommendations.metabolicSetsPerExercise.min}-${optimizerRecommendations.metabolicSetsPerExercise.max} sets/exercise` : ''}). For hypertrophy, EACH EXERCISE's metabolic load must land in 500-800 range (not session total).`
+        ? ` METABOLIC STRESS PER EXERCISE (BINDING): ${optimizerRecommendations.metabolicLoadTarget.min}-${optimizerRecommendations.metabolicLoadTarget.max} (zone: ${optimizerRecommendations.metabolicLoadZone}, per-set: ${optimizerRecommendations.metabolicLoadPerSet}${optimizerRecommendations.metabolicSetsPerExercise ? `, REQUIRED ${optimizerRecommendations.metabolicSetsPerExercise.min}-${optimizerRecommendations.metabolicSetsPerExercise.max} sets/exercise` : ''}). EACH EXERCISE's metabolic load must land in this range (not session total).`
         : '';
       const fatigueLoad = optimizerRecommendations.fatigueScoreTarget
-        ? ` VOLUME STRESS (Hanley) PER EXERCISE: target ${optimizerRecommendations.fatigueScoreTarget.min}-${optimizerRecommendations.fatigueScoreTarget.max} per exercise (zone: ${optimizerRecommendations.fatigueScoreZone}). Prescribe ~${optimizerRecommendations.targetRepsPerExercise} total reps PER EXERCISE at recommended intensity — not total session reps.`
+        ? ` VOLUME STRESS (Hanley, BINDING) PER EXERCISE: ~${optimizerRecommendations.targetRepsPerExercise} total reps PER EXERCISE at recommended intensity. Structure sets×reps to hit this number.`
         : '';
       const peakForceRx = optimizerRecommendations.strengthSetDivision
-        ? ` PEAK FORCE PER EXERCISE (strength/power): force drops after rep ${optimizerRecommendations.peakForceDropRep}. Rx per compound exercise: ${optimizerRecommendations.strengthSetDivision.sets}×${optimizerRecommendations.strengthSetDivision.repsPerSet} with ${Math.round(optimizerRecommendations.strengthSetDivision.restSeconds / 60)}+ min rest. Cap ALL working sets at ${optimizerRecommendations.peakForceDropRep} reps max.`
+        ? ` PEAK FORCE (BINDING): force drops after rep ${optimizerRecommendations.peakForceDropRep}. REQUIRED: ${optimizerRecommendations.strengthSetDivision.sets}×${optimizerRecommendations.strengthSetDivision.repsPerSet}. Cap ALL sets at ${optimizerRecommendations.peakForceDropRep} reps max.`
         : '';
-      optimizerContext = `OPTIMIZER: ${optimizerRecommendations.sessionVolume} working sets, ${optimizerRecommendations.repScheme}, ${optimizerRecommendations.intensityRange.min}-${optimizerRecommendations.intensityRange.max}% 1RM, rest ${optimizerRecommendations.restRange.min}-${optimizerRecommendations.restRange.max}s, ${optimizerRecommendations.exerciseCount.min}-${optimizerRecommendations.exerciseCount.max} exercises. Rationale: ${optimizerRecommendations.rationale}${metLoad}${fatigueLoad}${peakForceRx}`;
+      optimizerContext = `⚡ OPTIMIZER (BINDING — DO NOT OVERRIDE WITH GENERIC DEFAULTS): ${optimizerRecommendations.sessionVolume} working sets, ${optimizerRecommendations.repScheme}, ${optimizerRecommendations.intensityRange.min}-${optimizerRecommendations.intensityRange.max}% 1RM, ${optimizerRecommendations.exerciseCount.min}-${optimizerRecommendations.exerciseCount.max} exercises. Rationale: ${optimizerRecommendations.rationale}${metLoad}${fatigueLoad}${peakForceRx} COMPLIANCE: Every exercise must match the optimizer's sets/reps/intensity. Do NOT default to 3×10 @ 70%.`;
+    }
+
+    let volumeToleranceContext = '';
+    if (volumeTolerance !== undefined && volumeTolerance !== null) {
+      const volLabel = volumeTolerance <= 1 ? 'Conservative' : volumeTolerance <= 2 ? 'Below average' : volumeTolerance <= 3 ? 'Moderate' : volumeTolerance <= 4 ? 'Above average' : 'High capacity';
+      volumeToleranceContext = `VOLUME TOLERANCE: ${volLabel} (${volumeTolerance}/5). Optimizer has already scaled sets to match. ${volumeTolerance >= 4 ? 'This athlete handles high volume — trust the prescribed set counts.' : ''}`;
     }
 
     const liftPRs = [
@@ -162,8 +168,9 @@ ${historyContext}
 ${blockContext}
 ${optimizerContext}
 ${goalBiasContext}
+${volumeToleranceContext}
 GUARDRAILS: Max ${guardrails.maxSetsPerSession} working sets, ${guardrails.maxExercises} exercises, ${guardrails.maxPercentOf1RM}% max 1RM. Weekly load: ${safetyExposure.last7Count} sessions, ${safetyExposure.hardSessions} hard. Disallowed archetypes: ${disallowedArchetypes.join(', ') || 'None'}. ${guardrails.forceCompounds ? 'BEGINNER: compounds only + 1-2 accessories.' : ''}
-EVIDENCE-BASED DEFAULTS (NSCA CSCS / ACSM / Schoenfeld et al.) — use these ONLY where the OPTIMIZER above does not provide specific targets. Frederick metabolic load, Hanley fatigue reps, and Peak Force set caps ALWAYS override these generic ranges:
+FALLBACK DEFAULTS (NSCA/ACSM) — use ONLY where the OPTIMIZER does not specify. Optimizer's sets/reps/intensity are BINDING and always override these:
 - Exercise order: power → multi-joint compounds → single-joint isolation → core last.
 - Exercises per session: Beginner 4-6, Intermediate 5-7, Advanced 6-8. Never exceed 8.
 - Volume per exercise: Strength 4-6×1-5, Hypertrophy 3-4×8-12, Power 3-5×1-3. 15-25 total working sets/session.
