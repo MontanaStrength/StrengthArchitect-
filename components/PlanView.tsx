@@ -355,7 +355,11 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
                 value={goalBias}
                 onChange={e => setGoalBias(Number(e.target.value))}
                 className="w-full accent-amber-500"
+                list="bias-ticks"
               />
+              <datalist id="bias-ticks">
+                {[0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100].map(n => <option key={n} value={n} />)}
+              </datalist>
               <div className="flex justify-between items-center text-xs">
                 <span className={goalBias < 30 ? 'text-amber-400 font-bold' : 'text-gray-500'}>💪 Hypertrophy</span>
                 <span className={`px-3 py-1 rounded-full text-xs font-bold ${
