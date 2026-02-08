@@ -1,8 +1,91 @@
-/* Basic styles for Strength Architect */
+/* ═══════════════════════════════════════════════════
+   Strength Architect — Design System
+   ═══════════════════════════════════════════════════ */
+
+/* ── 1. Design Tokens (CSS Custom Properties) ───── */
+
+:root {
+  /* Background */
+  --sa-bg:             #0f0f0f;
+  --sa-bg-elevated:    #141414;
+
+  /* Surfaces (cards, panels) */
+  --sa-surface-1:      #171717;   /* neutral-900 */
+  --sa-surface-2:      #262626;   /* neutral-800 */
+  --sa-surface-3:      #404040;   /* neutral-700 */
+
+  /* Borders */
+  --sa-border:         #262626;   /* neutral-800 */
+  --sa-border-subtle:  rgba(38, 38, 38, 0.5);
+
+  /* Accent — single amber palette */
+  --sa-accent:         #f59e0b;   /* amber-500 */
+  --sa-accent-hover:   #d97706;   /* amber-600 */
+  --sa-accent-soft:    rgba(245, 158, 11, 0.10);
+  --sa-accent-text:    #fbbf24;   /* amber-400 */
+
+  /* Text hierarchy */
+  --sa-text-primary:   #ffffff;
+  --sa-text-secondary: #d1d5db;   /* gray-300 */
+  --sa-text-tertiary:  #9ca3af;   /* gray-400 */
+  --sa-text-muted:     #6b7280;   /* gray-500 */
+  --sa-text-faint:     #4b5563;   /* gray-600 */
+
+  /* Semantic */
+  --sa-success:        #22c55e;
+  --sa-warning:        #f59e0b;
+  --sa-danger:         #ef4444;
+  --sa-info:           #3b82f6;
+
+  /* Type scale (8pt baseline, Inter) */
+  --sa-font:           'Inter', system-ui, -apple-system, sans-serif;
+  --sa-text-display:   1.5rem;    /* 24px — hero headings */
+  --sa-text-heading:   1.125rem;  /* 18px — view titles */
+  --sa-text-subhead:   0.875rem;  /* 14px — section labels */
+  --sa-text-body:      0.875rem;  /* 14px — body text */
+  --sa-text-caption:   0.75rem;   /* 12px — metadata, tags */
+  --sa-text-micro:     0.6875rem; /* 11px — badges (replaces 10px) */
+
+  /* Line heights */
+  --sa-leading-tight:  1.25;
+  --sa-leading-normal: 1.5;
+  --sa-leading-relaxed: 1.625;
+
+  /* Spacing (8pt grid) */
+  --sa-space-1:  0.25rem;  /* 4px */
+  --sa-space-2:  0.5rem;   /* 8px */
+  --sa-space-3:  0.75rem;  /* 12px */
+  --sa-space-4:  1rem;     /* 16px */
+  --sa-space-5:  1.25rem;  /* 20px */
+  --sa-space-6:  1.5rem;   /* 24px */
+  --sa-space-8:  2rem;     /* 32px */
+  --sa-space-10: 2.5rem;   /* 40px */
+  --sa-space-12: 3rem;     /* 48px */
+
+  /* Radii */
+  --sa-radius-sm:   0.5rem;   /* 8px  — tags, badges */
+  --sa-radius-md:   0.75rem;  /* 12px — buttons, inputs */
+  --sa-radius-lg:   1rem;     /* 16px — cards */
+  --sa-radius-full: 9999px;   /* pills */
+
+  /* Shadows */
+  --sa-shadow-card: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+
+  /* Transitions */
+  --sa-transition: 150ms ease;
+}
+
+
+/* ── 2. Base Resets ──────────────────────────────── */
+
 body {
-  font-family: 'Inter', sans-serif;
-  background-color: #0f0f0f;
-  color: #f8fafc;
+  font-family: var(--sa-font);
+  font-size: var(--sa-text-body);
+  line-height: var(--sa-leading-normal);
+  background-color: var(--sa-bg);
+  color: var(--sa-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
@@ -11,16 +94,187 @@ body {
   flex-direction: column;
 }
 
-::-webkit-scrollbar {
-  width: 8px;
-}
-::-webkit-scrollbar-track {
-  background: #1a1a1a;
-}
+
+/* ── 3. Scrollbar ────────────────────────────────── */
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--sa-bg); }
 ::-webkit-scrollbar-thumb {
-  background: #525252;
-  border-radius: 4px;
+  background: var(--sa-surface-3);
+  border-radius: var(--sa-radius-full);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #f59e0b;
+  background: var(--sa-accent);
+}
+
+
+/* ── 4. Component Classes ────────────────────────── */
+
+/* Card — the universal container */
+.sa-card {
+  background: var(--sa-surface-1);
+  border: 1px solid var(--sa-border);
+  border-radius: var(--sa-radius-lg);
+}
+
+.sa-card-interactive {
+  background: var(--sa-surface-1);
+  border: 1px solid var(--sa-border);
+  border-radius: var(--sa-radius-lg);
+  transition: border-color var(--sa-transition), background var(--sa-transition);
+}
+.sa-card-interactive:hover {
+  border-color: rgba(245, 158, 11, 0.35);
+  background: var(--sa-bg-elevated);
+}
+
+/* Primary button */
+.sa-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  border-radius: var(--sa-radius-md);
+  transition: background var(--sa-transition), transform var(--sa-transition);
+  cursor: pointer;
+  border: none;
+  line-height: 1;
+}
+.sa-btn:active { transform: scale(0.98); }
+
+.sa-btn-primary {
+  background: var(--sa-accent);
+  color: #000;
+  padding: 0.75rem 1.5rem;
+  font-size: var(--sa-text-body);
+}
+.sa-btn-primary:hover { background: var(--sa-accent-hover); }
+
+.sa-btn-secondary {
+  background: var(--sa-surface-2);
+  color: var(--sa-text-secondary);
+  padding: 0.625rem 1.25rem;
+  font-size: var(--sa-text-body);
+}
+.sa-btn-secondary:hover { background: var(--sa-surface-3); }
+
+.sa-btn-sm {
+  padding: 0.5rem 0.75rem;
+  font-size: var(--sa-text-caption);
+  font-weight: 600;
+}
+
+/* Input / Select */
+.sa-input {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  background: var(--sa-surface-2);
+  border: 1px solid var(--sa-surface-3);
+  border-radius: var(--sa-radius-md);
+  color: var(--sa-text-primary);
+  font-size: var(--sa-text-body);
+  transition: border-color var(--sa-transition);
+}
+.sa-input:focus {
+  outline: none;
+  border-color: var(--sa-accent);
+}
+.sa-input::placeholder {
+  color: var(--sa-text-muted);
+}
+
+/* View header — title row with optional action */
+.sa-view-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sa-space-4);
+}
+.sa-view-title {
+  font-size: var(--sa-text-heading);
+  font-weight: 700;
+  color: var(--sa-text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--sa-space-2);
+}
+.sa-view-subtitle {
+  font-size: var(--sa-text-body);
+  color: var(--sa-text-tertiary);
+  margin-top: var(--sa-space-1);
+}
+
+/* Section label (uppercase, muted) */
+.sa-section-label {
+  font-size: var(--sa-text-micro);
+  font-weight: 600;
+  color: var(--sa-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Tag / Badge */
+.sa-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.625rem;
+  font-size: var(--sa-text-caption);
+  font-weight: 500;
+  border-radius: var(--sa-radius-sm);
+  background: var(--sa-surface-2);
+  color: var(--sa-text-tertiary);
+}
+.sa-tag-accent {
+  background: var(--sa-accent-soft);
+  color: var(--sa-accent-text);
+}
+
+/* Stat card (for dashboards/analyze) */
+.sa-stat {
+  text-align: center;
+  padding: var(--sa-space-4);
+}
+.sa-stat-value {
+  font-size: var(--sa-text-display);
+  font-weight: 700;
+  line-height: var(--sa-leading-tight);
+}
+.sa-stat-label {
+  font-size: var(--sa-text-micro);
+  font-weight: 600;
+  color: var(--sa-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: var(--sa-space-1);
+}
+
+/* Error banner */
+.sa-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--sa-radius-md);
+  padding: var(--sa-space-3) var(--sa-space-4);
+  font-size: var(--sa-text-body);
+  color: #fca5a5;
+}
+
+
+/* ── 5. Focus Styles ─────────────────────────────── */
+
+:focus-visible {
+  outline: 2px solid var(--sa-accent);
+  outline-offset: 2px;
+}
+button:focus:not(:focus-visible) {
+  outline: none;
+}
+
+
+/* ── 6. Selection ────────────────────────────────── */
+
+::selection {
+  background: rgba(245, 158, 11, 0.3);
+  color: var(--sa-text-primary);
 }

@@ -721,10 +721,10 @@ const App: React.FC = () => {
 
   // ===== MAIN RENDER =====
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-white">
-      {/* Header */}
-      <header className="bg-neutral-900/80 backdrop-blur border-b border-neutral-800 sticky top-0 z-50">
-        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+    <div className="min-h-screen bg-sa-bg text-white">
+      {/* ── Header ── */}
+      <header className="bg-sa-surface1/80 backdrop-blur-md border-b border-sa-surface2 sticky top-0 z-50">
+        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             {!['plan', 'lift', 'analyze'].includes(view) && (
               <button
@@ -732,52 +732,52 @@ const App: React.FC = () => {
                   const hub = activeTab;
                   setView(hub as ViewState);
                 }}
-                className="text-gray-400 hover:text-white transition-colors"
+                className="p-1 -ml-1 text-gray-400 hover:text-white transition-colors"
               >
                 <ChevronLeft size={20} />
               </button>
             )}
-            <h1 className="text-lg font-bold flex items-center gap-2">
-              <Dumbbell size={22} className="text-amber-500" />
+            <h1 className="text-lg font-bold flex items-center gap-2 tracking-tight">
+              <Dumbbell size={20} className="text-amber-500" />
               <span className="text-white">Strength</span>
               <span className="text-amber-500">Architect</span>
             </h1>
             {appMode === 'coach' && (
-              <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-medium">Coach</span>
+              <span className="text-micro bg-blue-500/15 text-blue-400 px-2 py-0.5 rounded-full font-semibold">Coach</span>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => setView('notifications')} className="relative p-2 text-gray-400 hover:text-white transition-colors">
+          <div className="flex items-center gap-1">
+            <button onClick={() => setView('notifications')} className="p-2 text-gray-500 hover:text-white transition-colors rounded-btn">
               <Bell size={18} />
             </button>
-            <button onClick={handleSignOut} className="p-2 text-gray-400 hover:text-amber-400 transition-colors" title="Sign Out">
+            <button onClick={handleSignOut} className="p-2 text-gray-500 hover:text-amber-400 transition-colors rounded-btn" title="Sign Out">
               <LogOut size={18} />
             </button>
           </div>
         </div>
       </header>
 
-      {/* Coach: Client Banner */}
+      {/* ── Coach: Client Banner ── */}
       {appMode === 'coach' && activeClient && (
-        <div className="bg-blue-500/5 border-b border-blue-500/20">
-          <div className="max-w-6xl mx-auto px-4 py-2 flex items-center justify-between">
+        <div className="bg-blue-500/5 border-b border-blue-500/15">
+          <div className="max-w-2xl mx-auto px-4 py-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div
-                className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
+                className="w-6 h-6 rounded-full flex items-center justify-center text-micro font-bold"
                 style={{
-                  backgroundColor: (activeClient.avatarColor || '#3b82f6') + '20',
+                  backgroundColor: (activeClient.avatarColor || '#3b82f6') + '15',
                   color: activeClient.avatarColor || '#3b82f6',
                 }}
               >
                 {activeClient.name.charAt(0).toUpperCase()}
               </div>
               <span className="text-sm font-medium text-blue-300">
-                Training: <span className="text-white">{activeClient.name}</span>
+                Training: <span className="text-white font-semibold">{activeClient.name}</span>
               </span>
             </div>
             <button
               onClick={handleBackToRoster}
-              className="text-xs text-blue-400 hover:text-blue-300 font-medium transition-colors"
+              className="text-xs text-blue-400 hover:text-blue-300 font-semibold transition-colors"
             >
               ← All Athletes
             </button>
@@ -785,14 +785,14 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* 3-Tab Nav Bar */}
-      <nav className="bg-neutral-900/50 border-b border-neutral-800">
-        <div className="max-w-6xl mx-auto px-4 flex justify-around">
+      {/* ── 3-Tab Nav Bar ── */}
+      <nav className="bg-sa-bg border-b border-sa-surface2">
+        <div className="max-w-2xl mx-auto px-4 flex">
           {primaryTabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setView(tab.defaultView)}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold tracking-wide border-b-2 transition-all ${
+              className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-semibold border-b-2 transition-colors ${
                 activeTab === tab.id
                   ? 'border-amber-500 text-amber-400'
                   : 'border-transparent text-gray-500 hover:text-gray-300'
@@ -805,14 +805,14 @@ const App: React.FC = () => {
         </div>
       </nav>
 
-      {/* Content */}
-      <main className="max-w-6xl mx-auto px-4 py-6">
+      {/* ── Content ── */}
+      <main className="max-w-2xl mx-auto px-4 py-6">
         <ErrorBoundary>
 
         {/* ── HUB VIEWS ─────────────────────────────────────── */}
         {/* PLAN tab — PlanView inline + secondary links */}
         {view === 'plan' && (
-          <div className="max-w-2xl mx-auto space-y-8">
+          <div className="space-y-8">
             <PlanView
               block={trainingBlocks.find(b => b.isActive) || null}
               estimatedMaxes={{
@@ -843,14 +843,14 @@ const App: React.FC = () => {
               onNavigateToLift={() => setView('lift')}
             />
             {/* Secondary links */}
-            <div className="border-t border-neutral-800 pt-6">
-              <p className="text-xs text-gray-500 mb-3 uppercase tracking-wider">More</p>
+            <div className="border-t border-sa-surface2 pt-6">
+              <p className="sa-section-label mb-3">More</p>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {planSecondaryItems.map(item => (
                   <button
                     key={item.view}
                     onClick={() => setView(item.view)}
-                    className="flex items-center gap-2 p-3 rounded-xl bg-neutral-800/50 border border-neutral-700/50 hover:border-amber-500/50 hover:bg-neutral-800 transition-all text-gray-400 hover:text-amber-400 text-xs font-medium"
+                    className="sa-card-interactive flex items-center gap-2 p-3 text-gray-400 hover:text-amber-400 text-xs font-medium"
                   >
                     {item.icon}
                     {item.label}
@@ -863,7 +863,7 @@ const App: React.FC = () => {
 
         {/* LIFT tab — LiftView inline + secondary links */}
         {view === 'lift' && (
-          <div className="max-w-2xl mx-auto space-y-8">
+          <div className="space-y-8">
             <LiftView
               activeBlock={trainingBlocks.find(b => b.isActive) || null}
               currentPlan={currentPlan}
@@ -884,10 +884,10 @@ const App: React.FC = () => {
 
         {/* ANALYZE hub — inline stats + sub-links */}
         {view === 'analyze' && (
-          <div className="max-w-2xl mx-auto space-y-5">
+          <div className="space-y-6">
             <div>
-              <h2 className="text-xl font-bold text-white mb-1">Analyze</h2>
-              <p className="text-sm text-gray-400 mb-5">Review progress, records, and analytics.</p>
+              <h2 className="sa-view-title">Analyze</h2>
+              <p className="sa-view-subtitle">Review progress, records, and analytics.</p>
             </div>
 
             {/* Quick stats bar */}
@@ -906,17 +906,17 @@ const App: React.FC = () => {
 
               return (
                 <div className="grid grid-cols-3 gap-3">
-                  <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-3 text-center">
-                    <p className="text-2xl font-bold text-white">{thisWeek.length}</p>
-                    <p className="text-[10px] text-gray-500 uppercase">Sessions/wk</p>
+                  <div className="sa-card sa-stat">
+                    <p className="sa-stat-value text-white">{thisWeek.length}</p>
+                    <p className="sa-stat-label">Sessions/wk</p>
                   </div>
-                  <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-3 text-center">
-                    <p className="text-2xl font-bold text-amber-400">{weekTonnage > 0 ? (weekTonnage / 1000).toFixed(0) + 'k' : '0'}</p>
-                    <p className="text-[10px] text-gray-500 uppercase">Wk Tonnage</p>
+                  <div className="sa-card sa-stat">
+                    <p className="sa-stat-value text-amber-400">{weekTonnage > 0 ? (weekTonnage / 1000).toFixed(0) + 'k' : '0'}</p>
+                    <p className="sa-stat-label">Wk Tonnage</p>
                   </div>
-                  <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-3 text-center">
-                    <p className="text-2xl font-bold text-yellow-400">{bigFourTotal > 0 ? Math.round(bigFourTotal) : '—'}</p>
-                    <p className="text-[10px] text-gray-500 uppercase">Est. Total</p>
+                  <div className="sa-card sa-stat">
+                    <p className="sa-stat-value text-yellow-400">{bigFourTotal > 0 ? Math.round(bigFourTotal) : '—'}</p>
+                    <p className="sa-stat-label">Est. Total</p>
                   </div>
                 </div>
               );
@@ -927,9 +927,9 @@ const App: React.FC = () => {
                 <button
                   key={item.view}
                   onClick={() => setView(item.view)}
-                  className="flex flex-col items-center gap-2.5 p-5 rounded-xl bg-neutral-800/50 border border-neutral-700/50 hover:border-amber-500/50 hover:bg-neutral-800 transition-all text-gray-400 hover:text-amber-400 group"
+                  className="sa-card-interactive flex flex-col items-center gap-3 p-5 text-gray-400 hover:text-amber-400 group"
                 >
-                  <span className="p-2.5 rounded-lg bg-neutral-700/50 group-hover:bg-amber-500/10 transition-colors">
+                  <span className="p-2.5 rounded-tag bg-sa-surface2 group-hover:bg-amber-500/10 transition-colors">
                     {item.icon}
                   </span>
                   <span className="text-xs font-medium text-center leading-tight">{item.label}</span>

@@ -6,26 +6,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Strength Architect</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            },
+            fontSize: {
+              'micro': ['0.6875rem', { lineHeight: '1rem' }],   /* 11px */
+            },
+            borderRadius: {
+              'card': '1rem',      /* 16px — all cards */
+              'btn':  '0.75rem',   /* 12px — buttons & inputs */
+              'tag':  '0.5rem',    /* 8px  — tags & badges */
+            },
+            colors: {
+              sa: {
+                bg:       '#0f0f0f',
+                elevated: '#141414',
+                surface1: '#171717',
+                surface2: '#262626',
+                surface3: '#404040',
+                accent:   '#f59e0b',
+              }
+            }
+          },
+        },
+      }
+    </script>
     <style>
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
-      body {
-        font-family: 'Inter', sans-serif;
-        background-color: #0f0f0f;
-        color: #f8fafc;
-      }
-      ::-webkit-scrollbar {
-        width: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #1a1a1a;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #525252;
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #f59e0b;
-      }
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
     </style>
   <script type="importmap">
 {

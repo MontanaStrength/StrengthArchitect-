@@ -72,16 +72,16 @@ const LiftView: React.FC<Props> = ({
   if (!activeBlock) {
     return (
       <div className="text-center py-16 space-y-4">
-        <div className="w-16 h-16 rounded-2xl bg-neutral-800 flex items-center justify-center mx-auto">
+        <div className="w-16 h-16 rounded-card bg-sa-surface2 flex items-center justify-center mx-auto">
           <Layers size={32} className="text-gray-600" />
         </div>
-        <h2 className="text-xl font-bold text-white">No Active Block</h2>
-        <p className="text-gray-400 text-sm max-w-xs mx-auto">
+        <h2 className="text-lg font-bold text-white">No Active Block</h2>
+        <p className="text-gray-400 text-sm max-w-xs mx-auto leading-relaxed">
           Set up your training plan first — block name, schedule, and exercises.
         </p>
         <button
           onClick={onNavigatePlan}
-          className="mt-4 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-xl transition-all"
+          className="sa-btn sa-btn-primary mt-4"
         >
           Go to Plan →
         </button>
@@ -96,7 +96,7 @@ const LiftView: React.FC<Props> = ({
     return (
       <div className="text-center py-16 space-y-4">
         <div className="text-5xl">🛌</div>
-        <h2 className="text-xl font-bold text-white">Rest Day</h2>
+        <h2 className="text-lg font-bold text-white">Rest Day</h2>
         <p className="text-gray-400 text-sm">
           Week {blockContext.weekNum} of {blockContext.totalWeeks} · {blockContext.blockName}
         </p>
@@ -134,7 +134,7 @@ const LiftView: React.FC<Props> = ({
       <div className="space-y-6">
         {blockContext && (
           <div className="text-center">
-            <p className="text-xs text-gray-500">
+            <p className="sa-section-label">
               Week {blockContext.weekNum}/{blockContext.totalWeeks} · {blockContext.blockName}
             </p>
           </div>
@@ -145,13 +145,13 @@ const LiftView: React.FC<Props> = ({
         <div className="flex gap-3">
           <button
             onClick={onStartSession}
-            className="flex-1 py-3.5 bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+            className="sa-btn sa-btn-primary flex-1 py-3.5 text-base flex items-center justify-center gap-2"
           >
             <Dumbbell size={18} /> Start Session
           </button>
           <button
             onClick={onNewWorkout}
-            className="px-5 py-3.5 bg-neutral-800 hover:bg-neutral-700 text-gray-300 font-medium rounded-xl transition-all flex items-center gap-2"
+            className="sa-btn sa-btn-secondary px-5 py-3.5 flex items-center gap-2"
           >
             <RefreshCw size={16} /> Rebuild
           </button>
@@ -176,7 +176,7 @@ const LiftView: React.FC<Props> = ({
       {/* Header */}
       {blockContext && (
         <div className="text-center">
-          <h2 className="text-lg font-bold text-white">Today's Lift</h2>
+          <h2 className="text-lg font-bold text-white tracking-tight">Today's Lift</h2>
           <p className="text-sm text-gray-500 mt-1">
             Week {blockContext.weekNum}/{blockContext.totalWeeks} · {blockContext.blockName}
           </p>
@@ -185,7 +185,7 @@ const LiftView: React.FC<Props> = ({
 
       {/* Readiness */}
       <div className="space-y-3">
-        <label className="block text-sm font-medium text-gray-300">How are you feeling?</label>
+        <label className="block text-sm font-semibold text-gray-300">How are you feeling?</label>
         <div className="grid grid-cols-3 gap-3">
           {READINESS_OPTIONS.map(opt => {
             const active = readiness === opt.level;
@@ -193,8 +193,8 @@ const LiftView: React.FC<Props> = ({
               <button
                 key={opt.level}
                 onClick={() => onReadinessChange(opt.level)}
-                className={`py-5 rounded-xl text-center transition-all border-2 ${
-                  active ? opt.activeClass : 'border-neutral-700 bg-neutral-900 text-gray-500 hover:border-neutral-600'
+                className={`py-5 rounded-card text-center transition-all border-2 ${
+                  active ? opt.activeClass : 'border-sa-surface2 bg-sa-surface1 text-gray-500 hover:border-sa-surface3'
                 }`}
               >
                 <div className="text-2xl mb-1">{opt.emoji}</div>
@@ -207,15 +207,13 @@ const LiftView: React.FC<Props> = ({
 
       {/* Error */}
       {error && (
-        <div className="bg-red-900/30 border border-red-800 rounded-xl p-3 text-sm text-red-300">
-          {error}
-        </div>
+        <div className="sa-error">{error}</div>
       )}
 
       {/* Generate */}
       <button
         onClick={onGenerate}
-        className="w-full py-4 bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-xl transition-all text-lg flex items-center justify-center gap-2"
+        className="sa-btn sa-btn-primary w-full py-4 text-lg flex items-center justify-center gap-2"
       >
         <Zap size={20} /> Build Today's Workout
       </button>
