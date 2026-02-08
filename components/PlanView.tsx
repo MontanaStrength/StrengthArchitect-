@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { TrainingBlock, ExerciseSlot, ExercisePreferences, MovementPattern } from '../types';
 import { EXERCISE_LIBRARY } from '../services/exerciseLibrary';
-import { Layers, Calendar, Dumbbell, ChevronRight, Check, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Layers, Calendar, Dumbbell, ChevronRight, Check, CheckCircle2, ArrowRight, Rocket } from 'lucide-react';
 
 interface EstimatedMaxes {
   squat1RM?: number;
@@ -181,7 +181,14 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
     const filledSlots = savedBlock.exercisePreferences?.slots?.filter(s => s.exerciseId).length || 0;
 
     return (
-      <div className="max-w-2xl mx-auto">
+      <div className="max-w-2xl mx-auto relative">
+        {/* Full-screen amber pulse — one warm breath, then gone */}
+        <div className="fixed inset-0 pointer-events-none z-50" style={{ animation: 'screenPulse 1.8s ease-out forwards' }}>
+          <div className="absolute inset-0 bg-amber-500/0" style={{ animation: 'screenGlow 1.8s ease-out forwards' }} />
+          {/* Radial light from center */}
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(245,158,11,0.12) 0%, transparent 70%)', animation: 'screenGlow 1.8s ease-out forwards' }} />
+        </div>
+
         {/* Animated container */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-neutral-900 via-neutral-900 to-neutral-950 border border-neutral-800" style={{ animation: 'confirmFadeIn 0.5s ease-out' }}>
           {/* Subtle amber glow at top */}
@@ -265,6 +272,11 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
             0% { opacity: 0; transform: scale(0.5); }
             60% { transform: scale(1.1); }
             100% { opacity: 1; transform: scale(1); }
+          }
+          @keyframes screenGlow {
+            0% { opacity: 0; }
+            25% { opacity: 1; }
+            100% { opacity: 0; }
           }
         `}</style>
       </div>
@@ -382,11 +394,32 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
             </div>
           </div>
 
+          {/* Primary CTA */}
+          <div className="relative mt-2">
+            {isComplete && <div className="absolute -inset-1 bg-amber-500/20 rounded-2xl blur-lg pointer-events-none" style={{ animation: 'ctaPulse 2s ease-in-out infinite' }} />}
+            <button
+              onClick={handleSave}
+              disabled={!isComplete}
+              className={`relative w-full flex items-center justify-center gap-2.5 py-4 rounded-xl text-base font-bold tracking-wide transition-all ${
+                isComplete
+                  ? 'bg-amber-500 hover:bg-amber-400 text-black shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40'
+                  : 'bg-neutral-800 text-gray-600 cursor-not-allowed'
+              }`}
+            >
+              <Rocket size={18} />
+              {block ? 'Update Block' : 'Create Block'}
+            </button>
+            {!isComplete && (
+              <p className="text-center text-xs text-gray-600 mt-2">Enter a block name to get started</p>
+            )}
+          </div>
+
+          {/* Secondary: continue configuring */}
           <button
             onClick={() => setSubTab('schedule')}
-            className="w-full flex items-center justify-center gap-2 bg-neutral-800 hover:bg-neutral-700 text-white py-3 rounded-xl text-sm font-medium transition-all"
+            className="w-full flex items-center justify-center gap-2 text-gray-500 hover:text-gray-300 py-2 text-xs font-medium transition-all"
           >
-            Next: Schedule <ChevronRight size={16} />
+            or continue to Schedule &amp; Exercises <ChevronRight size={14} />
           </button>
         </div>
       )}
@@ -417,11 +450,28 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
             </div>
           </div>
 
+          {/* Primary CTA */}
+          <div className="relative mt-2">
+            {isComplete && <div className="absolute -inset-1 bg-amber-500/20 rounded-2xl blur-lg pointer-events-none" style={{ animation: 'ctaPulse 2s ease-in-out infinite' }} />}
+            <button
+              onClick={handleSave}
+              disabled={!isComplete}
+              className={`relative w-full flex items-center justify-center gap-2.5 py-4 rounded-xl text-base font-bold tracking-wide transition-all ${
+                isComplete
+                  ? 'bg-amber-500 hover:bg-amber-400 text-black shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40'
+                  : 'bg-neutral-800 text-gray-600 cursor-not-allowed'
+              }`}
+            >
+              <Rocket size={18} />
+              {block ? 'Update Block' : 'Create Block'}
+            </button>
+          </div>
+
           <button
             onClick={() => setSubTab('exercises')}
-            className="w-full flex items-center justify-center gap-2 bg-neutral-800 hover:bg-neutral-700 text-white py-3 rounded-xl text-sm font-medium transition-all"
+            className="w-full flex items-center justify-center gap-2 text-gray-500 hover:text-gray-300 py-2 text-xs font-medium transition-all"
           >
-            Next: Exercises <ChevronRight size={16} />
+            or pick your exercises first <ChevronRight size={14} />
           </button>
         </div>
       )}
@@ -467,34 +517,31 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
           })}
 
           {/* Save button pinned at end of exercises list */}
-          <button
-            onClick={handleSave}
-            disabled={!isComplete}
-            className={`w-full py-3.5 rounded-xl text-sm font-bold transition-all ${
-              isComplete
-                ? 'bg-amber-500 hover:bg-amber-600 text-black'
-                : 'bg-neutral-800 text-gray-600 cursor-not-allowed'
-            }`}
-          >
-            {block ? 'Update Block' : 'Create Block'}
-          </button>
+          <div className="relative">
+            {isComplete && <div className="absolute -inset-1 bg-amber-500/20 rounded-2xl blur-lg pointer-events-none" style={{ animation: 'ctaPulse 2s ease-in-out infinite' }} />}
+            <button
+              onClick={handleSave}
+              disabled={!isComplete}
+              className={`relative w-full flex items-center justify-center gap-2.5 py-4 rounded-xl text-base font-bold tracking-wide transition-all ${
+                isComplete
+                  ? 'bg-amber-500 hover:bg-amber-400 text-black shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40'
+                  : 'bg-neutral-800 text-gray-600 cursor-not-allowed'
+              }`}
+            >
+              <Rocket size={18} />
+              {block ? 'Update Block' : 'Create Block'}
+            </button>
+          </div>
         </div>
       )}
 
-      {/* ===== SAVE BUTTON (Block & Schedule tabs) ===== */}
-      {subTab !== 'exercises' && (
-        <button
-          onClick={handleSave}
-          disabled={!isComplete}
-          className={`w-full py-3.5 rounded-xl text-sm font-bold transition-all ${
-            isComplete
-              ? 'bg-amber-500 hover:bg-amber-600 text-black'
-              : 'bg-neutral-800 text-gray-600 cursor-not-allowed'
-          }`}
-        >
-          {block ? 'Update Block' : 'Create Block'}
-        </button>
-      )}
+      {/* Pulse animation for CTA glow */}
+      <style>{`
+        @keyframes ctaPulse {
+          0%, 100% { opacity: 0.5; }
+          50% { opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 };
