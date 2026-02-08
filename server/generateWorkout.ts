@@ -223,18 +223,19 @@ export const generateWorkoutServer = async (
     ${optimizerRecommendations.muscleGroupPriorities ? `- Muscle group priorities: ${Object.entries(optimizerRecommendations.muscleGroupPriorities).map(([mg, p]) => `${mg}: ${p}`).join(', ')}` : ''}
     ${optimizerRecommendations.suggestedFocus ? `- Suggested session focus: ${optimizerRecommendations.suggestedFocus}` : ''}
     ${optimizerRecommendations.metabolicLoadTarget ? `
-    ### METABOLIC STRESS PRESCRIPTION (Frederick Formula)
-    - Target metabolic load range: ${optimizerRecommendations.metabolicLoadTarget.min}–${optimizerRecommendations.metabolicLoadTarget.max}
+    ### METABOLIC STRESS PRESCRIPTION (Frederick Formula) — PER EXERCISE
+    - Target metabolic load PER EXERCISE: ${optimizerRecommendations.metabolicLoadTarget.min}–${optimizerRecommendations.metabolicLoadTarget.max}
     - Current projected zone: ${optimizerRecommendations.metabolicLoadZone || 'unknown'}
     - Estimated load per working set: ${optimizerRecommendations.metabolicLoadPerSet || 'N/A'}
+    ${optimizerRecommendations.metabolicSetsPerExercise ? `- Recommended sets per exercise: ${optimizerRecommendations.metabolicSetsPerExercise.min}–${optimizerRecommendations.metabolicSetsPerExercise.max}` : ''}
     - Formula: Load_set = Intensity × Σ(i=1→reps) e^(-0.215 × (RIR + reps - i))
-    CRITICAL FOR HYPERTROPHY: Design the session so total metabolic load (sum across all working sets) lands within the target range. This means choosing intensity, rep counts, and RPE that produce per-set loads summing to ${optimizerRecommendations.metabolicLoadTarget.min}–${optimizerRecommendations.metabolicLoadTarget.max}. The moderate zone (500-800) is the productive hypertrophy zone — prioritize landing there.` : ''}
+    CRITICAL FOR HYPERTROPHY: EACH EXERCISE's total metabolic load (sum of that exercise's working sets) should land within ${optimizerRecommendations.metabolicLoadTarget.min}–${optimizerRecommendations.metabolicLoadTarget.max}. This is PER EXERCISE, not the whole session. The moderate zone (500-800) per exercise is the productive hypertrophy zone.` : ''}
     ${optimizerRecommendations.fatigueScoreTarget ? `
     ### VOLUME STRESS PRESCRIPTION (Hanley Fatigue Metric)
     - Formula: Score = Reps × (100 / (100 - Intensity))²
     - Target per-exercise fatigue zone: ${optimizerRecommendations.fatigueScoreTarget.min}–${optimizerRecommendations.fatigueScoreTarget.max} (${optimizerRecommendations.fatigueScoreZone || 'moderate'})
     - Prescribed total reps per exercise: ${optimizerRecommendations.targetRepsPerExercise || 'N/A'}
-    CRITICAL: Each exercise in the session should aim for approximately ${optimizerRecommendations.targetRepsPerExercise} total working reps at the recommended intensity. This is the volume blueprint — the number of sets and reps per set should be structured to hit this total while respecting the metabolic stress targets above (for hypertrophy) or using appropriate set/rep schemes for the goal.` : ''}
+    CRITICAL: EACH INDIVIDUAL EXERCISE should aim for approximately ${optimizerRecommendations.targetRepsPerExercise} total working reps at the recommended intensity. This target is PER EXERCISE, not total across the session. Structure sets × reps per exercise to hit this total while respecting the metabolic stress targets above (for hypertrophy) or using appropriate set/rep schemes for the goal.` : ''}
     ${optimizerRecommendations.strengthSetDivision ? `
     ### PEAK FORCE SET DIVISION (Strength/Power)
     - Peak force drops after rep ${optimizerRecommendations.peakForceDropRep} at the recommended intensity

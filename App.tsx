@@ -431,11 +431,6 @@ const App: React.FC = () => {
     { label: 'Gym Setup',        view: 'gym-setup',       icon: <Wrench size={16} /> },
   ];
 
-  const liftSecondaryItems: { label: string; view: ViewState; icon: React.ReactNode }[] = [
-    { label: 'Exercise Library',  view: 'exercise-library',  icon: <BookOpen size={16} /> },
-    { label: 'Plate Calculator',  view: 'plate-calculator',  icon: <Calculator size={16} /> },
-  ];
-
   const analyzeSubItems: { label: string; view: ViewState; icon: React.ReactNode }[] = [
     { label: 'Dashboard',      view: 'dashboard',     icon: <BarChart3 size={16} /> },
     { label: 'History',         view: 'history',        icon: <Activity size={16} /> },
@@ -445,7 +440,7 @@ const App: React.FC = () => {
 
   const subItemsForTab: Record<PrimaryTab, typeof analyzeSubItems> = {
     plan: planSecondaryItems,
-    lift: liftSecondaryItems,
+    lift: [],
     analyze: analyzeSubItems,
   };
 
@@ -577,22 +572,6 @@ const App: React.FC = () => {
               onSaveFeedback={handleSaveFeedback}
               onNavigatePlan={() => setView('plan')}
             />
-            {/* Secondary links */}
-            <div className="border-t border-neutral-800 pt-6">
-              <p className="text-xs text-gray-500 mb-3 uppercase tracking-wider">Tools</p>
-              <div className="grid grid-cols-2 gap-2">
-                {liftSecondaryItems.map(item => (
-                  <button
-                    key={item.view}
-                    onClick={() => setView(item.view)}
-                    className="flex items-center gap-2 p-3 rounded-xl bg-neutral-800/50 border border-neutral-700/50 hover:border-amber-500/50 hover:bg-neutral-800 transition-all text-gray-400 hover:text-amber-400 text-xs font-medium"
-                  >
-                    {item.icon}
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
           </div>
         )}
 

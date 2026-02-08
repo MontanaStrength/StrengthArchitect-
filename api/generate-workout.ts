@@ -133,13 +133,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let optimizerContext = '';
     if (optimizerRecommendations) {
       const metLoad = optimizerRecommendations.metabolicLoadTarget
-        ? ` METABOLIC STRESS TARGET: ${optimizerRecommendations.metabolicLoadTarget.min}-${optimizerRecommendations.metabolicLoadTarget.max} (zone: ${optimizerRecommendations.metabolicLoadZone}, per-set: ${optimizerRecommendations.metabolicLoadPerSet}). For hypertrophy, total session metabolic load MUST land in 500-800 range.`
+        ? ` METABOLIC STRESS PER EXERCISE: ${optimizerRecommendations.metabolicLoadTarget.min}-${optimizerRecommendations.metabolicLoadTarget.max} (zone: ${optimizerRecommendations.metabolicLoadZone}, per-set: ${optimizerRecommendations.metabolicLoadPerSet}${optimizerRecommendations.metabolicSetsPerExercise ? `, ${optimizerRecommendations.metabolicSetsPerExercise.min}-${optimizerRecommendations.metabolicSetsPerExercise.max} sets/exercise` : ''}). For hypertrophy, EACH EXERCISE's metabolic load must land in 500-800 range (not session total).`
         : '';
       const fatigueLoad = optimizerRecommendations.fatigueScoreTarget
-        ? ` VOLUME STRESS (Hanley): target ${optimizerRecommendations.fatigueScoreTarget.min}-${optimizerRecommendations.fatigueScoreTarget.max} per exercise (zone: ${optimizerRecommendations.fatigueScoreZone}). Prescribe ~${optimizerRecommendations.targetRepsPerExercise} total reps per exercise at recommended intensity.`
+        ? ` VOLUME STRESS (Hanley) PER EXERCISE: target ${optimizerRecommendations.fatigueScoreTarget.min}-${optimizerRecommendations.fatigueScoreTarget.max} per exercise (zone: ${optimizerRecommendations.fatigueScoreZone}). Prescribe ~${optimizerRecommendations.targetRepsPerExercise} total reps PER EXERCISE at recommended intensity — not total session reps.`
         : '';
       const peakForceRx = optimizerRecommendations.strengthSetDivision
-        ? ` PEAK FORCE (strength/power): force drops after rep ${optimizerRecommendations.peakForceDropRep}. Rx: ${optimizerRecommendations.strengthSetDivision.sets}×${optimizerRecommendations.strengthSetDivision.repsPerSet} with ${Math.round(optimizerRecommendations.strengthSetDivision.restSeconds / 60)}+ min rest. Cap ALL working sets at ${optimizerRecommendations.peakForceDropRep} reps max.`
+        ? ` PEAK FORCE PER EXERCISE (strength/power): force drops after rep ${optimizerRecommendations.peakForceDropRep}. Rx per compound exercise: ${optimizerRecommendations.strengthSetDivision.sets}×${optimizerRecommendations.strengthSetDivision.repsPerSet} with ${Math.round(optimizerRecommendations.strengthSetDivision.restSeconds / 60)}+ min rest. Cap ALL working sets at ${optimizerRecommendations.peakForceDropRep} reps max.`
         : '';
       optimizerContext = `OPTIMIZER: ${optimizerRecommendations.sessionVolume} working sets, ${optimizerRecommendations.repScheme}, ${optimizerRecommendations.intensityRange.min}-${optimizerRecommendations.intensityRange.max}% 1RM, rest ${optimizerRecommendations.restRange.min}-${optimizerRecommendations.restRange.max}s, ${optimizerRecommendations.exerciseCount.min}-${optimizerRecommendations.exerciseCount.max} exercises. Rationale: ${optimizerRecommendations.rationale}${metLoad}${fatigueLoad}${peakForceRx}`;
     }

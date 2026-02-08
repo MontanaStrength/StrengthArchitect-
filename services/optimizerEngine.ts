@@ -550,8 +550,11 @@ export function computeOptimizerRecommendations(
   const effectiveGoal = suggestedFocus || goal;
   const isHypertrophyLike = effectiveGoal === 'hypertrophy' || effectiveGoal === 'general';
 
+  // NEW FIELD: metabolic sets per exercise
+  let metabolicSetsPerExercise: { min: number; max: number } | undefined;
+
   if (isHypertrophyLike && !forceDeload) {
-    // Target zones by goal
+    // Target zones by goal — these are PER EXERCISE, not session total
     const targetMin = effectiveGoal === 'hypertrophy' ? 500 : 400;
     const targetMax = effectiveGoal === 'hypertrophy' ? 800 : 700;
     metabolicLoadTarget = { min: targetMin, max: targetMax };
@@ -564,31 +567,26 @@ export function computeOptimizerRecommendations(
     metabolicLoadPerSet = Math.round(perSet * 100) / 100;
 
     if (perSet > 0) {
-      // Use metabolic load to refine session volume
-      const metMinSets = Math.ceil(targetMin / perSet);
-      const metMaxSets = Math.floor(targetMax / perSet);
-
-      // Blend: take the intersection of volume-based and metabolic-based ranges
-      const blendedVolume = Math.max(
-        Math.min(sessionVolume, metMaxSets),
-        metMinSets,
-      );
-      // Only adjust if the metabolic prescription is meaningfully different
-      if (Math.abs(blendedVolume - sessionVolume) >= 2) {
-        sessionVolume = Math.max(6, Math.min(blendedVolume, 40));
-      }
+      // Compute how many sets PER EXERCISE to hit the metabolic target
+      const metMinSets = Math.max(1, Math.ceil(targetMin / perSet));
+      const metMaxSets = Math.max(metMinSets, Math.floor(targetMax / perSet));
+      metabolicSetsPerExercise = { min: metMinSets, max: metMaxSets };
     }
 
-    // Compute what zone we'll actually land in
-    const projectedLoad = metabolicLoadPerSet * sessionVolume;
+    // Project per-exercise zone (mid sets × per-set load)
+    const avgSets = metabolicSetsPerExercise
+      ? (metabolicSetsPerExercise.min + metabolicSetsPerExercise.max) / 2
+      : avgSetsPerExercise;
+    const projectedLoad = metabolicLoadPerSet * avgSets;
     metabolicLoadZone = getMetabolicZone(projectedLoad).zone;
   } else if (effectiveGoal === 'strength') {
-    // Strength sessions: compute the load for context but don't prescribe
+    // Strength sessions: compute per-exercise load for context
     const midIntensity = (intMin + intMax) / 2;
     const midReps = 4;
     const midRPE = 8.5;
     metabolicLoadPerSet = Math.round(calculateSetMetabolicLoad(midIntensity, midReps, midRPE) * 100) / 100;
-    const projectedLoad = metabolicLoadPerSet * sessionVolume;
+    const avgSets = (profile.setsPerExercise[0] + profile.setsPerExercise[1]) / 2;
+    const projectedLoad = metabolicLoadPerSet * avgSets;
     metabolicLoadZone = getMetabolicZone(projectedLoad).zone;
   }
 
@@ -668,8 +666,11 @@ export function computeOptimizerRecommendations(
     parts.push(`Under-volume muscles to prioritize: ${underMuscles.join(', ')}.`);
   }
   if (metabolicLoadTarget && metabolicLoadPerSet) {
-    const projectedLoad = Math.round(metabolicLoadPerSet * sessionVolume);
-    parts.push(`Frederick metabolic load: ~${projectedLoad} (target: ${metabolicLoadTarget.min}–${metabolicLoadTarget.max}, zone: ${metabolicLoadZone}).`);
+    const avgSets = metabolicSetsPerExercise
+      ? (metabolicSetsPerExercise.min + metabolicSetsPerExercise.max) / 2
+      : avgSetsPerExercise;
+    const projectedLoad = Math.round(metabolicLoadPerSet * avgSets);
+    parts.push(`Frederick metabolic load per exercise: ~${projectedLoad} (target: ${metabolicLoadTarget.min}–${metabolicLoadTarget.max}, zone: ${metabolicLoadZone}, ${metabolicSetsPerExercise ? `${metabolicSetsPerExercise.min}-${metabolicSetsPerExercise.max} sets/exercise` : ''}).`);
   }
   if (fatigueScoreTarget && targetRepsPerExercise) {
     const midInt = Math.round((intMin + intMax) / 2);
@@ -692,6 +693,7 @@ export function computeOptimizerRecommendations(
     metabolicLoadTarget,
     metabolicLoadZone,
     metabolicLoadPerSet,
+    metabolicSetsPerExercise,
     fatigueScoreTarget,
     fatigueScoreZone,
     targetRepsPerExercise,

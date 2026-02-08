@@ -179,10 +179,11 @@ export interface OptimizerRecommendations {
   muscleGroupPriorities?: Partial<Record<MuscleGroup, 'increase' | 'maintain' | 'decrease'>>;
   suggestedFocus?: TrainingGoalFocus;
   weeklyVolumeStatus?: Partial<Record<MuscleGroup, { current: number; target: number; status: 'under' | 'on-track' | 'over' }>>;
-  // Frederick metabolic stress — prescriptive for hypertrophy
-  metabolicLoadTarget?: { min: number; max: number }; // target session load range
+  // Frederick metabolic stress — prescriptive per exercise for hypertrophy
+  metabolicLoadTarget?: { min: number; max: number }; // target per-exercise load range
   metabolicLoadZone?: 'light' | 'moderate' | 'moderate-high' | 'high' | 'extreme';
   metabolicLoadPerSet?: number; // estimated load per working set at recommended intensity/reps/RPE
+  metabolicSetsPerExercise?: { min: number; max: number }; // sets per exercise to hit metabolic target
   // Hanley Fatigue Metric — prescriptive total reps per exercise
   fatigueScoreTarget?: { min: number; max: number }; // target per-exercise fatigue zone
   fatigueScoreZone?: 'light' | 'moderate' | 'moderate-high' | 'high' | 'extreme';
