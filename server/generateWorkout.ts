@@ -233,6 +233,12 @@ export const generateWorkoutServer = async (
     - Target per-exercise fatigue zone: ${optimizerRecommendations.fatigueScoreTarget.min}–${optimizerRecommendations.fatigueScoreTarget.max} (${optimizerRecommendations.fatigueScoreZone || 'moderate'})
     - Prescribed total reps per exercise: ${optimizerRecommendations.targetRepsPerExercise || 'N/A'}
     CRITICAL: Each exercise in the session should aim for approximately ${optimizerRecommendations.targetRepsPerExercise} total working reps at the recommended intensity. This is the volume blueprint — the number of sets and reps per set should be structured to hit this total while respecting the metabolic stress targets above (for hypertrophy) or using appropriate set/rep schemes for the goal.` : ''}
+    ${optimizerRecommendations.strengthSetDivision ? `
+    ### PEAK FORCE SET DIVISION (Strength/Power)
+    - Peak force drops after rep ${optimizerRecommendations.peakForceDropRep} at the recommended intensity
+    - Prescribed set structure: ${optimizerRecommendations.strengthSetDivision.sets} sets × ${optimizerRecommendations.strengthSetDivision.repsPerSet} reps
+    - Rest between sets: ${Math.round(optimizerRecommendations.strengthSetDivision.restSeconds / 60)}+ minutes (full neural recovery)
+    CRITICAL FOR STRENGTH/POWER: Cap working sets at ${optimizerRecommendations.peakForceDropRep} reps maximum. Every rep must be a quality force rep — no grinding past the force drop-off point. Use the prescribed rest periods to ensure full neural recovery between sets.` : ''}
 
     IMPORTANT: The optimizer recommendations should be treated as STRONG guidance. Adjust the selected archetype's volume and rep scheme to match the optimizer's output. The optimizer has analyzed the athlete's weekly volume, fatigue, and recovery to produce these numbers.
     `;

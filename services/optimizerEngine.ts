@@ -241,6 +241,91 @@ const FATIGUE_TARGETS: Record<TrainingGoalFocus, { min: number; max: number }> =
   general:     { min: 400, max: 500 },  // balanced
 };
 
+// ── Peak Force Drop-Off Heuristic ────────────────────────────
+//   Approximates when peak force begins to decline during a set,
+//   eliminating the need for a linear displacement transducer (LDT).
+//
+//   Grounded in velocity-based training research (Sanchez-Medina &
+//   González-Badillo 2011, Izquierdo et al. 2006) which shows that
+//   peak velocity/force degrades once ~40-60% of max reps are
+//   completed, with the ratio being intensity-dependent:
+//     - Higher intensity → motor units saturated sooner, force drops
+//       earlier (as % of max reps)
+//     - Lower intensity → more reserve motor units, force maintained
+//       longer before recruitment ceiling is hit
+//
+//   Calibrated to LDT data:  75% 1RM, ~10 max reps → force drops
+//   around rep 5-6 (qualityRatio ≈ 0.49).
+//
+//   For intensity > 90%: always returns 1 (neural demand so high
+//   that peak force declines after the very first rep).
+//
+//   Model:
+//     maxReps       = 30 × (100 / intensity - 1)                    [Epley]
+//     qualityRatio  = 0.30 + 0.30 × ((90 - intensity) / 30) ^ 0.7  [concave]
+//     dropRep       = round(maxReps × qualityRatio)
+//
+//   The 0.7 exponent creates a concave curve: quality ratio rises
+//   quickly at moderate intensities (large motor-unit reserve) and
+//   compresses near 90% where force drops almost immediately.
+
+/**
+ * Estimate the last rep in a set where peak force is still ≥ 95%
+ * of the first rep's peak force. Beyond this rep, force output
+ * degrades — shifting the stimulus from strength/power toward
+ * metabolic fatigue.
+ *
+ * @param intensityPct  %1RM (30-100)
+ * @returns number of quality reps before force drops (≥ 1)
+ */
+export const estimatePeakForceDropRep = (intensityPct: number): number => {
+  const intensity = Math.max(30, Math.min(intensityPct, 100));
+  // Above 90%: force drops after first rep
+  if (intensity > 90) return 1;
+
+  const maxReps = 30 * (100 / intensity - 1); // Epley
+  const normalised = (90 - intensity) / 30;   // 0 at 90%, 1 at 60%
+  const qualityRatio = 0.30 + 0.30 * Math.pow(normalised, 0.7);
+  return Math.max(1, Math.round(maxReps * qualityRatio));
+};
+
+/**
+ * For strength/power training, divide the Hanley-prescribed total
+ * reps into sets capped at the peak-force drop-off point.
+ * Every rep in every set is a "quality rep" at max force output.
+ *
+ * @param totalReps       Hanley-prescribed total reps for this exercise
+ * @param intensityPct    %1RM (30-100)
+ * @returns { sets, repsPerSet, qualityReps } — the strength-optimised scheme
+ */
+export const prescribeStrengthSets = (
+  totalReps: number,
+  intensityPct: number,
+): { sets: number; repsPerSet: number; qualityReps: number; restSeconds: number } => {
+  const dropRep = estimatePeakForceDropRep(intensityPct);
+  const repsPerSet = dropRep;
+  const sets = Math.max(1, Math.ceil(totalReps / repsPerSet));
+  const qualityReps = sets * repsPerSet;
+
+  // Full neural recovery between sets: higher intensity → more rest
+  let restSeconds: number;
+  if (intensityPct >= 85) restSeconds = 300;      // 5 min
+  else if (intensityPct >= 80) restSeconds = 240;  // 4 min
+  else if (intensityPct >= 75) restSeconds = 180;  // 3 min
+  else restSeconds = 150;                          // 2.5 min
+
+  return { sets, repsPerSet, qualityReps, restSeconds };
+};
+
+/** Peak force drop-off table — exported for the UI */
+export const PEAK_FORCE_TABLE = [60, 65, 70, 75, 80, 85, 90].map(pct => ({
+  intensity: pct,
+  maxReps: Math.round(30 * (100 / pct - 1)),
+  dropRep: estimatePeakForceDropRep(pct),
+  qualityRatio: Math.round(estimatePeakForceDropRep(pct) / (30 * (100 / pct - 1)) * 100),
+  multiplier: Math.round(Math.pow(100 / (100 - pct), 2) * 10) / 10,
+}));
+
 /** Readiness scalar: Low → 0.55, Medium → 1.0, High → 1.1 */
 const readinessScalar = (readiness: string): number => {
   const r = String(readiness).toLowerCase();
@@ -538,7 +623,32 @@ export function computeOptimizerRecommendations(
     fatigueScoreZone = getFatigueZone(projectedScore).zone;
   }
 
-  // ── 12. Build rationale ────────────────────────────────
+  // ── 12. Peak Force Drop-Off — strength/power set division ──
+  //   For strength and power goals, every rep should be performed at
+  //   peak force output. The heuristic estimates when force begins
+  //   to decline (approximating LDT data), then divides the Hanley-
+  //   prescribed total reps into sets capped at that threshold.
+  //   Rest periods are set for full neural recovery (3-5 min).
+  let peakForceDropRep: number | undefined;
+  let strengthSetDivision: { sets: number; repsPerSet: number; restSeconds: number } | undefined;
+
+  const isStrengthPower = effectiveGoal === 'strength' || effectiveGoal === 'power';
+
+  if (isStrengthPower && !forceDeload && targetRepsPerExercise) {
+    const midIntensity = (intMin + intMax) / 2;
+    peakForceDropRep = estimatePeakForceDropRep(midIntensity);
+    const division = prescribeStrengthSets(targetRepsPerExercise, midIntensity);
+    strengthSetDivision = {
+      sets: division.sets,
+      repsPerSet: division.repsPerSet,
+      restSeconds: division.restSeconds,
+    };
+
+    // Override the generic rep scheme with the strength-specific one
+    repScheme = `${division.sets} sets × ${division.repsPerSet} reps (peak force, ${Math.round(division.restSeconds / 60)}+ min rest)`;
+  }
+
+  // ── 13. Build rationale ────────────────────────────────
   const parts: string[] = [];
   parts.push(`Goal profile: ${goal}.`);
   parts.push(`Base max sets: ${userMaxSets}, adjusted to ${sessionVolume} working sets.`);
@@ -565,6 +675,9 @@ export function computeOptimizerRecommendations(
     const midInt = Math.round((intMin + intMax) / 2);
     parts.push(`Hanley fatigue: ${targetRepsPerExercise} total reps/exercise at ~${midInt}% (target zone: ${fatigueScoreTarget.min}–${fatigueScoreTarget.max}, ${fatigueScoreZone}).`);
   }
+  if (peakForceDropRep && strengthSetDivision) {
+    parts.push(`Peak force drops after rep ${peakForceDropRep} at ~${Math.round((intMin + intMax) / 2)}%. Strength prescription: ${strengthSetDivision.sets}×${strengthSetDivision.repsPerSet} with ${Math.round(strengthSetDivision.restSeconds / 60)}+ min rest.`);
+  }
 
   return {
     sessionVolume,
@@ -582,5 +695,7 @@ export function computeOptimizerRecommendations(
     fatigueScoreTarget,
     fatigueScoreZone,
     targetRepsPerExercise,
+    peakForceDropRep,
+    strengthSetDivision,
   };
 }

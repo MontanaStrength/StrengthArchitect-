@@ -187,6 +187,9 @@ export interface OptimizerRecommendations {
   fatigueScoreTarget?: { min: number; max: number }; // target per-exercise fatigue zone
   fatigueScoreZone?: 'light' | 'moderate' | 'moderate-high' | 'high' | 'extreme';
   targetRepsPerExercise?: number; // total reps per exercise at recommended intensity
+  // Peak Force Drop-Off — strength/power set division
+  peakForceDropRep?: number; // rep at which peak force starts to decline
+  strengthSetDivision?: { sets: number; repsPerSet: number; restSeconds: number }; // strength-optimised scheme
 }
 
 export const DEFAULT_OPTIMIZER_CONFIG: OptimizerConfig = {

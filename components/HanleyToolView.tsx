@@ -1,11 +1,14 @@
 import React, { useState, useMemo } from 'react';
-import { Calculator, ArrowRightLeft, Plus, Trash2 } from 'lucide-react';
+import { Calculator, ArrowRightLeft, Plus, Trash2, Zap, Dumbbell } from 'lucide-react';
 import {
   calculateSetFatigueScore,
   calculateSessionFatigueScore,
   getFatigueZone,
   reverseCalculateReps,
+  estimatePeakForceDropRep,
+  prescribeStrengthSets,
   FATIGUE_ZONES,
+  PEAK_FORCE_TABLE,
 } from '../services/optimizerEngine';
 
 // ─── Types ───────────────────────────────────────────────
@@ -16,6 +19,7 @@ interface SetEntry {
 }
 
 type Tab = 'forward' | 'reverse';
+type GoalBias = 'strength' | 'hypertrophy';
 
 // ─── Zone Colors (same palette as Frederick for consistency) ──
 const ZONE_COLORS: Record<string, { bg: string; border: string; text: string }> = {
@@ -39,6 +43,7 @@ const HanleyToolView: React.FC = () => {
   // ── Reverse calculator state ──
   const [revIntensity, setRevIntensity] = useState('80');
   const [revTargetZone, setRevTargetZone] = useState<'light' | 'moderate' | 'moderate-high' | 'high' | 'extreme'>('moderate');
+  const [goalBias, setGoalBias] = useState<GoalBias>('strength');
 
   // ── Forward helpers ──
   const DEFAULT_INTENSITY = 80;
@@ -122,6 +127,15 @@ const HanleyToolView: React.FC = () => {
     }
     return divisions.slice(0, 4); // show max 4
   }, [revMidReps]);
+
+  // ── Peak Force Drop-Off (strength/power set division) ──
+  const peakForceData = useMemo(() => {
+    const intensity = Math.min(revIntVal, 99);
+    const dropRep = estimatePeakForceDropRep(intensity);
+    const maxReps = Math.round(30 * (100 / intensity - 1));
+    const division = prescribeStrengthSets(revMidReps, intensity);
+    return { dropRep, maxReps, ...division };
+  }, [revIntVal, revMidReps]);
 
   // ─── Render ────────────────────────────────────────────
   return (
@@ -238,20 +252,81 @@ const HanleyToolView: React.FC = () => {
               {/* Example divisions */}
               {exampleDivisions.length > 0 && (
                 <div className="pt-3 border-t border-neutral-800">
-                  <p className="text-[10px] uppercase tracking-wider text-neutral-500 mb-2">Example set divisions</p>
-                  <div className="flex flex-wrap justify-center gap-2">
-                    {exampleDivisions.map((d, i) => (
-                      <span
-                        key={i}
-                        className="px-3 py-1.5 rounded-full bg-neutral-800 border border-neutral-700/50 text-sm text-neutral-300 font-mono"
-                      >
-                        {d.label}
-                      </span>
-                    ))}
+                  {/* Goal bias toggle */}
+                  <div className="flex items-center justify-center gap-2 mb-3">
+                    <button
+                      onClick={() => setGoalBias('strength')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                        goalBias === 'strength'
+                          ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                          : 'bg-neutral-800/50 border-neutral-700/50 text-neutral-500 hover:text-neutral-300'
+                      }`}
+                    >
+                      <Zap size={12} />
+                      Strength / Power
+                    </button>
+                    <button
+                      onClick={() => setGoalBias('hypertrophy')}
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                        goalBias === 'hypertrophy'
+                          ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                          : 'bg-neutral-800/50 border-neutral-700/50 text-neutral-500 hover:text-neutral-300'
+                      }`}
+                    >
+                      <Dumbbell size={12} />
+                      Hypertrophy
+                    </button>
                   </div>
-                  <p className="text-[10px] text-neutral-500 mt-2 italic">
-                    Set/rep division is refined by the Frederick formula (hypertrophy) or future strength/power logic.
-                  </p>
+
+                  {/* Strength/Power: Peak Force prescription */}
+                  {goalBias === 'strength' && (
+                    <div className="space-y-3">
+                      <div className="p-4 bg-amber-500/5 rounded-lg border border-amber-500/20">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Zap size={14} className="text-amber-400" />
+                          <span className="text-xs font-semibold text-amber-400 uppercase tracking-wider">Peak Force Prescription</span>
+                        </div>
+                        <p className="text-sm text-neutral-300">
+                          At <span className="text-amber-400 font-bold">{revIntVal}%</span>, peak force drops after rep <span className="text-white font-bold">{peakForceData.dropRep}</span> of {peakForceData.maxReps} possible.
+                          Cap every set at <span className="text-white font-bold">{peakForceData.repsPerSet} reps</span> so each rep is a quality force rep.
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-center gap-4 py-2">
+                        <div className="text-center">
+                          <p className="text-3xl font-bold text-white font-mono">{peakForceData.sets} × {peakForceData.repsPerSet}</p>
+                          <p className="text-[10px] text-neutral-500 mt-0.5">{peakForceData.qualityReps} quality reps total</p>
+                        </div>
+                        <div className="h-12 w-px bg-neutral-700" />
+                        <div className="text-center">
+                          <p className="text-lg font-bold text-neutral-300 font-mono">{Math.round(peakForceData.restSeconds / 60)}+ min</p>
+                          <p className="text-[10px] text-neutral-500 mt-0.5">rest between sets</p>
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-neutral-500 text-center italic">
+                        Full neural recovery between sets ensures maximal rate-of-force development on every rep.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Hypertrophy: metabolic set divisions (Frederick-informed) */}
+                  {goalBias === 'hypertrophy' && (
+                    <div className="space-y-3">
+                      <p className="text-[10px] uppercase tracking-wider text-neutral-500 mb-1">Hypertrophy set divisions</p>
+                      <div className="flex flex-wrap justify-center gap-2">
+                        {exampleDivisions.map((d, i) => (
+                          <span
+                            key={i}
+                            className="px-3 py-1.5 rounded-full bg-neutral-800 border border-neutral-700/50 text-sm text-neutral-300 font-mono"
+                          >
+                            {d.label}
+                          </span>
+                        ))}
+                      </div>
+                      <p className="text-[10px] text-neutral-500 text-center italic">
+                        Set/rep division refined by the Frederick metabolic stress formula — target 8-12 reps/set at RPE 8.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -286,6 +361,42 @@ const HanleyToolView: React.FC = () => {
                       <td className="py-2 px-3 text-right font-mono">{minR}</td>
                       <td className="py-2 px-3 text-right font-mono">{maxR}</td>
                       <td className="py-2 px-3 text-right text-neutral-400 font-mono">{bestSets}×{bestReps}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Peak Force Drop-Off reference */}
+          <div className="bg-neutral-900 rounded-xl p-5 border border-neutral-800 overflow-x-auto">
+            <h3 className="text-sm font-semibold text-white mb-1">Peak Force Drop-Off Table</h3>
+            <p className="text-[10px] text-neutral-500 mb-3">
+              Heuristic estimate of the last rep where peak force ≥ 95% of rep 1.
+              Based on velocity/force data — approximates LDT readings without the hardware.
+            </p>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-neutral-500 text-[10px] uppercase tracking-wider">
+                  <th className="text-left py-2 px-3">%1RM</th>
+                  <th className="text-right py-2 px-3">Max Reps</th>
+                  <th className="text-right py-2 px-3">Force Drops</th>
+                  <th className="text-right py-2 px-3">Quality %</th>
+                  <th className="text-right py-2 px-3">Strength Rx</th>
+                </tr>
+              </thead>
+              <tbody>
+                {PEAK_FORCE_TABLE.map(row => {
+                  const sets = Math.ceil(row.maxReps * 0.5 / row.dropRep); // rough target
+                  return (
+                    <tr key={row.intensity} className={`border-t border-neutral-800/50 ${
+                      Math.round(revIntVal) === row.intensity ? 'bg-amber-500/5 text-white' : 'text-neutral-300'
+                    }`}>
+                      <td className="py-2 px-3 font-mono text-amber-400">{row.intensity}%</td>
+                      <td className="py-2 px-3 text-right font-mono">{row.maxReps}</td>
+                      <td className="py-2 px-3 text-right font-mono font-bold">after rep {row.dropRep}</td>
+                      <td className="py-2 px-3 text-right font-mono">{row.qualityRatio}%</td>
+                      <td className="py-2 px-3 text-right text-neutral-400 font-mono">sets of {row.dropRep}</td>
                     </tr>
                   );
                 })}
@@ -456,25 +567,58 @@ const HanleyToolView: React.FC = () => {
         <p className="text-xs text-neutral-400 leading-relaxed">
           When the optimizer is enabled, the <span className="text-amber-400">Hanley fatigue metric</span> uses the
           reverse calculator to prescribe <span className="text-amber-400">total reps per exercise</span> at the
-          recommended intensity. This gives the AI a concrete volume target for each lift.
-          The <span className="text-amber-400">Frederick metabolic stress</span> formula then refines the
-          set/rep division for hypertrophy-biased sessions, ensuring each set lands in the productive metabolic zone.
-          Together they form a two-stage prescription pipeline: <em>Hanley → total reps</em>, then <em>Frederick → set structure</em>.
+          recommended intensity. The set/rep division then splits by goal:
         </p>
+        <ul className="text-xs text-neutral-400 mt-2 space-y-1.5 pl-4">
+          <li className="flex items-start gap-2">
+            <Zap size={12} className="text-amber-400 mt-0.5 shrink-0" />
+            <span>
+              <span className="text-amber-400 font-medium">Strength / Power</span> — sets are capped at the
+              <span className="text-white"> peak force drop-off rep</span> so every rep is
+              a max-force rep. Full neural recovery (3-5 min) between sets.
+            </span>
+          </li>
+          <li className="flex items-start gap-2">
+            <Dumbbell size={12} className="text-amber-400 mt-0.5 shrink-0" />
+            <span>
+              <span className="text-amber-400 font-medium">Hypertrophy</span> — the
+              <span className="text-white"> Frederick metabolic stress formula</span> refines
+              set/rep structure to maximise metabolic load per set (8-12 reps at RPE 8).
+            </span>
+          </li>
+        </ul>
       </div>
 
       {/* Formula */}
       <div className="bg-neutral-900 rounded-xl p-5 border border-neutral-800">
-        <h3 className="text-sm font-semibold text-neutral-400 mb-2">Formula</h3>
-        <p className="text-neutral-300 text-sm font-mono leading-relaxed">
-          Score = Reps × (100 / (100 − Intensity))<sup>2</sup>
-        </p>
-        <p className="text-neutral-400 text-xs font-mono mt-2">
-          Reverse: Reps = TargetScore / (100 / (100 − Intensity))<sup>2</sup>
-        </p>
-        <p className="text-xs text-neutral-500 mt-2">
-          The quadratic penalty models the exponential neuromuscular cost of high-intensity lifting.
-          At 90% 1RM each rep costs 100 fatigue points; at 70% only ~11.
+        <h3 className="text-sm font-semibold text-neutral-400 mb-2">Formulas</h3>
+        <div className="space-y-3">
+          <div>
+            <p className="text-[10px] uppercase tracking-wider text-neutral-500 mb-1">Hanley Fatigue Score</p>
+            <p className="text-neutral-300 text-sm font-mono leading-relaxed">
+              Score = Reps × (100 / (100 − Intensity))<sup>2</sup>
+            </p>
+            <p className="text-neutral-400 text-xs font-mono mt-1">
+              Reverse: Reps = TargetScore / (100 / (100 − Intensity))<sup>2</sup>
+            </p>
+          </div>
+          <div className="border-t border-neutral-800 pt-3">
+            <p className="text-[10px] uppercase tracking-wider text-neutral-500 mb-1">Peak Force Drop-Off</p>
+            <p className="text-neutral-300 text-xs font-mono leading-relaxed">
+              maxReps = 30 × (100 / I − 1)
+            </p>
+            <p className="text-neutral-300 text-xs font-mono leading-relaxed">
+              qualityRatio = 0.30 + 0.30 × ((90 − I) / 30)<sup>0.7</sup>
+            </p>
+            <p className="text-neutral-300 text-xs font-mono leading-relaxed">
+              dropRep = round(maxReps × qualityRatio)
+            </p>
+          </div>
+        </div>
+        <p className="text-xs text-neutral-500 mt-3">
+          The quadratic penalty models neuromuscular fatigue cost at high intensities.
+          The peak force heuristic approximates LDT data using a concave quality-ratio
+          curve calibrated to observed force drop-off at 75% 1RM (rep 5 of 10).
         </p>
       </div>
     </div>
