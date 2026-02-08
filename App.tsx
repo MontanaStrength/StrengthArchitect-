@@ -53,10 +53,12 @@ import NotificationCenterView from './components/NotificationCenterView';
 import ReportCardsView from './components/ReportCardsView';
 import ExerciseLibraryView from './components/ExerciseLibraryView';
 import SupersetBuilderView from './components/SupersetBuilderView';
+import FrederickToolView from './components/FrederickToolView';
 import { WorkoutWizard } from './components/wizard';
 import { BlockWizard } from './components/block-wizard';
+import { computeOptimizerRecommendations } from './services/optimizerEngine';
 
-import { Dumbbell, History, BarChart3, Calendar, Moon, Target, Trophy, Activity, Settings, Bell, FileText, ChevronLeft, LogOut, Wrench, Calculator, BookOpen, Layers, LayoutList, Heart, Zap, ClipboardList, Sparkles, Plus } from 'lucide-react';
+import { Dumbbell, History, BarChart3, Calendar, Moon, Target, Trophy, Activity, Settings, Bell, FileText, ChevronLeft, LogOut, Wrench, Calculator, BookOpen, Layers, LayoutList, Heart, Zap, ClipboardList, Sparkles, Plus, FlaskConical } from 'lucide-react';
 
 type ViewState =
   | 'form'
@@ -86,6 +88,7 @@ type ViewState =
   | 'report-cards'
   | 'exercise-library'
   | 'superset-builder'
+  | 'frederick-tool'
   | 'tools'
   | 'block-wizard'
   | 'plan'
@@ -252,10 +255,15 @@ const App: React.FC = () => {
     initAudio();
 
     try {
-      // Build optimizer recommendations if enabled
+      // Compute optimizer recommendations live from user settings + history + context
       let optimizerRecs: OptimizerRecommendations | null = null;
-      if (optimizerConfig.enabled && optimizerConfig.recommendations) {
-        optimizerRecs = optimizerConfig.recommendations;
+      if (optimizerConfig.enabled) {
+        optimizerRecs = computeOptimizerRecommendations(
+          optimizerConfig,
+          formData,
+          history,
+          trainingContext,
+        );
       }
 
       const plan = await generateWorkout(formData, history, trainingContext, optimizerRecs);
@@ -412,7 +420,7 @@ const App: React.FC = () => {
     // LIFT
     'form': 'lift', 'loading': 'lift', 'result': 'lift', 'session': 'lift',
     'plate-calculator': 'lift', 'warmup-cooldown': 'lift', 'rpe-calibration': 'lift',
-    'superset-builder': 'lift', 'exercise-library': 'lift',
+    'superset-builder': 'lift', 'exercise-library': 'lift', 'frederick-tool': 'lift',
     // ANALYZE
     'dashboard': 'analyze', 'history': 'analyze', 'lift-records': 'analyze',
     'calendar': 'analyze', 'training-load': 'analyze', 'body-comp': 'analyze',
@@ -449,6 +457,7 @@ const App: React.FC = () => {
     { label: 'Superset Builder',  view: 'superset-builder',  icon: <Zap size={16} /> },
     { label: 'Warmup / Cooldown', view: 'warmup-cooldown',   icon: <Activity size={16} /> },
     { label: 'RPE Calibration',   view: 'rpe-calibration',   icon: <Settings size={16} /> },
+    { label: 'Metabolic Stress',   view: 'frederick-tool',    icon: <FlaskConical size={16} /> },
   ];
 
   const analyzeSubItems: { label: string; view: ViewState; icon: React.ReactNode }[] = [
@@ -793,6 +802,8 @@ const App: React.FC = () => {
             onChange={handleOptimizerConfigChange}
             history={history}
             liftRecords={liftRecords}
+            formData={formData}
+            trainingContext={trainingContext}
           />
         )}
         {view === 'training-load' && <TrainingLoadView history={history} />}
@@ -813,6 +824,7 @@ const App: React.FC = () => {
         {view === 'report-cards' && <ReportCardsView history={history} liftRecords={liftRecords} goals={goals} />}
         {view === 'exercise-library' && <ExerciseLibraryView />}
         {view === 'superset-builder' && <SupersetBuilderView />}
+        {view === 'frederick-tool' && <FrederickToolView />}
       </main>
     </div>
   );

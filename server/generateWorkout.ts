@@ -220,6 +220,13 @@ export const generateWorkoutServer = async (
     - Optimizer rationale: ${optimizerRecommendations.rationale}
     ${optimizerRecommendations.muscleGroupPriorities ? `- Muscle group priorities: ${Object.entries(optimizerRecommendations.muscleGroupPriorities).map(([mg, p]) => `${mg}: ${p}`).join(', ')}` : ''}
     ${optimizerRecommendations.suggestedFocus ? `- Suggested session focus: ${optimizerRecommendations.suggestedFocus}` : ''}
+    ${optimizerRecommendations.metabolicLoadTarget ? `
+    ### METABOLIC STRESS PRESCRIPTION (Frederick Formula)
+    - Target metabolic load range: ${optimizerRecommendations.metabolicLoadTarget.min}–${optimizerRecommendations.metabolicLoadTarget.max}
+    - Current projected zone: ${optimizerRecommendations.metabolicLoadZone || 'unknown'}
+    - Estimated load per working set: ${optimizerRecommendations.metabolicLoadPerSet || 'N/A'}
+    - Formula: Load_set = Intensity × Σ(i=1→reps) e^(-0.215 × (RIR + reps - i))
+    CRITICAL FOR HYPERTROPHY: Design the session so total metabolic load (sum across all working sets) lands within the target range. This means choosing intensity, rep counts, and RPE that produce per-set loads summing to ${optimizerRecommendations.metabolicLoadTarget.min}–${optimizerRecommendations.metabolicLoadTarget.max}. The moderate zone (500-800) is the productive hypertrophy zone — prioritize landing there.` : ''}
 
     IMPORTANT: The optimizer recommendations should be treated as STRONG guidance. Adjust the selected archetype's volume and rep scheme to match the optimizer's output. The optimizer has analyzed the athlete's weekly volume, fatigue, and recovery to produce these numbers.
     `;

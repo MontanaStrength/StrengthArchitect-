@@ -1,11 +1,14 @@
 import React, { useState, useMemo } from 'react';
-import { OptimizerConfig, MuscleGroup, SavedWorkout, LiftRecord } from '../types';
+import { OptimizerConfig, MuscleGroup, SavedWorkout, LiftRecord, FormData } from '../types';
+import { computeOptimizerRecommendations, TrainingContext } from '../services/optimizerEngine';
 
 interface Props {
   config: OptimizerConfig;
   onChange: (config: OptimizerConfig) => void;
   history: SavedWorkout[];
   liftRecords: LiftRecord[];
+  formData: FormData;
+  trainingContext?: TrainingContext | null;
 }
 
 const MUSCLE_GROUPS = Object.values(MuscleGroup);
@@ -17,8 +20,14 @@ const REP_RANGE_OPTIONS: { value: OptimizerConfig['repRangePreference']; label: 
   { value: 'high', label: 'High (12-20+)', desc: 'Endurance & metabolic' },
 ];
 
-const OptimizerView: React.FC<Props> = ({ config, onChange, history, liftRecords }) => {
+const OptimizerView: React.FC<Props> = ({ config, onChange, history, liftRecords, formData, trainingContext }) => {
   const [localConfig, setLocalConfig] = useState<OptimizerConfig>({ ...config });
+
+  // Live-computed recommendations based on current config + history + context
+  const liveRecs = useMemo(() => {
+    if (!localConfig.enabled) return null;
+    return computeOptimizerRecommendations(localConfig, formData, history, trainingContext);
+  }, [localConfig, formData, history, trainingContext]);
 
   const weeklyVolume = useMemo(() => {
     const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
@@ -197,39 +206,100 @@ const OptimizerView: React.FC<Props> = ({ config, onChange, history, liftRecords
             </div>
           </div>
 
-          {/* Current Recommendations (placeholder) */}
+          {/* Current Recommendations (live from optimizer engine) */}
           <div className="bg-neutral-900 rounded-xl p-5 border border-neutral-800">
-            <h3 className="text-lg font-semibold text-white mb-2">Current Recommendations</h3>
-            {localConfig.recommendations ? (
+            <h3 className="text-lg font-semibold text-white mb-2">Live Session Recommendations</h3>
+            <p className="text-xs text-neutral-400 mb-4">
+              Computed from your settings, training history, readiness, and active block.
+              These values are sent directly to the AI when you generate a workout.
+            </p>
+            {liveRecs ? (
               <div className="space-y-3">
                 <div className="grid grid-cols-2 gap-3">
                   <div className="bg-neutral-800 p-3 rounded-lg">
-                    <div className="text-xs text-neutral-400">Session Volume</div>
-                    <div className="text-xl font-bold text-amber-400">{localConfig.recommendations.sessionVolume} sets</div>
+                    <div className="text-xs text-neutral-400">Working Sets</div>
+                    <div className="text-xl font-bold text-amber-400">{liveRecs.sessionVolume}</div>
                   </div>
                   <div className="bg-neutral-800 p-3 rounded-lg">
                     <div className="text-xs text-neutral-400">Rep Scheme</div>
-                    <div className="text-xl font-bold text-amber-400">{localConfig.recommendations.repScheme}</div>
+                    <div className="text-sm font-bold text-amber-400 leading-snug">{liveRecs.repScheme}</div>
                   </div>
                   <div className="bg-neutral-800 p-3 rounded-lg">
                     <div className="text-xs text-neutral-400">Intensity</div>
-                    <div className="text-xl font-bold text-amber-400">{localConfig.recommendations.intensityRange.min}–{localConfig.recommendations.intensityRange.max}%</div>
+                    <div className="text-xl font-bold text-amber-400">{liveRecs.intensityRange.min}–{liveRecs.intensityRange.max}%</div>
                   </div>
                   <div className="bg-neutral-800 p-3 rounded-lg">
                     <div className="text-xs text-neutral-400">Rest Periods</div>
-                    <div className="text-xl font-bold text-amber-400">{localConfig.recommendations.restRange.min}–{localConfig.recommendations.restRange.max}s</div>
+                    <div className="text-xl font-bold text-amber-400">{liveRecs.restRange.min}–{liveRecs.restRange.max}s</div>
                   </div>
+                  <div className="bg-neutral-800 p-3 rounded-lg">
+                    <div className="text-xs text-neutral-400">Exercises</div>
+                    <div className="text-xl font-bold text-amber-400">{liveRecs.exerciseCount.min}–{liveRecs.exerciseCount.max}</div>
+                  </div>
+                  {liveRecs.suggestedFocus && (
+                    <div className="bg-neutral-800 p-3 rounded-lg">
+                      <div className="text-xs text-neutral-400">Suggested Focus</div>
+                      <div className="text-sm font-bold text-amber-400">{liveRecs.suggestedFocus}</div>
+                    </div>
+                  )}
                 </div>
+
+                {/* Muscle group priorities */}
+                {liveRecs.muscleGroupPriorities && Object.keys(liveRecs.muscleGroupPriorities).length > 0 && (
+                  <div className="bg-neutral-800 p-3 rounded-lg">
+                    <div className="text-xs text-neutral-400 mb-2">Muscle Group Priorities</div>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(liveRecs.muscleGroupPriorities).map(([mg, priority]) => (
+                        <span
+                          key={mg}
+                          className={`text-xs px-2 py-1 rounded-full font-medium ${
+                            priority === 'increase'
+                              ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                              : priority === 'decrease'
+                              ? 'bg-red-500/20 text-red-400 border border-red-500/30'
+                              : 'bg-neutral-700 text-neutral-300 border border-neutral-600'
+                          }`}
+                        >
+                          {priority === 'increase' ? '↑' : priority === 'decrease' ? '↓' : '='} {mg}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Weekly volume status */}
+                {liveRecs.weeklyVolumeStatus && Object.keys(liveRecs.weeklyVolumeStatus).length > 0 && (
+                  <div className="bg-neutral-800 p-3 rounded-lg">
+                    <div className="text-xs text-neutral-400 mb-2">Weekly Volume vs. Targets</div>
+                    <div className="space-y-1.5">
+                      {Object.entries(liveRecs.weeklyVolumeStatus).map(([mg, vs]) => (
+                        <div key={mg} className="flex items-center gap-2">
+                          <span className="text-xs text-neutral-300 w-24 truncate">{mg}</span>
+                          <div className="flex-1 h-2 bg-neutral-700 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all ${
+                                vs.status === 'over' ? 'bg-green-500' :
+                                vs.status === 'on-track' ? 'bg-amber-500' :
+                                'bg-red-400'
+                              }`}
+                              style={{ width: `${Math.min(100, vs.target > 0 ? (vs.current / vs.target) * 100 : 0)}%` }}
+                            />
+                          </div>
+                          <span className="text-xs text-neutral-400 w-16 text-right">{vs.current}/{vs.target}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="bg-neutral-800 p-3 rounded-lg">
-                  <div className="text-xs text-neutral-400 mb-1">Rationale</div>
-                  <p className="text-sm text-neutral-300">{localConfig.recommendations.rationale}</p>
+                  <div className="text-xs text-neutral-400 mb-1">Engine Rationale</div>
+                  <p className="text-sm text-neutral-300">{liveRecs.rationale}</p>
                 </div>
               </div>
             ) : (
-              <div className="text-center py-6 text-neutral-500">
-                <div className="text-3xl mb-2">🔧</div>
-                <p className="text-sm">No recommendations computed yet.</p>
-                <p className="text-xs text-neutral-600 mt-1">Optimizer logic will be added in a future update. Configure your preferences above — they already feed into the AI prompt.</p>
+              <div className="text-center py-4 text-neutral-500">
+                <p className="text-sm">Enable the optimizer above to see live recommendations.</p>
               </div>
             )}
           </div>

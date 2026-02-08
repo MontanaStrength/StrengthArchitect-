@@ -179,6 +179,10 @@ export interface OptimizerRecommendations {
   muscleGroupPriorities?: Partial<Record<MuscleGroup, 'increase' | 'maintain' | 'decrease'>>;
   suggestedFocus?: TrainingGoalFocus;
   weeklyVolumeStatus?: Partial<Record<MuscleGroup, { current: number; target: number; status: 'under' | 'on-track' | 'over' }>>;
+  // Frederick metabolic stress — prescriptive for hypertrophy
+  metabolicLoadTarget?: { min: number; max: number }; // target session load range
+  metabolicLoadZone?: 'light' | 'moderate' | 'moderate-high' | 'high' | 'extreme';
+  metabolicLoadPerSet?: number; // estimated load per working set at recommended intensity/reps/RPE
 }
 
 export const DEFAULT_OPTIMIZER_CONFIG: OptimizerConfig = {

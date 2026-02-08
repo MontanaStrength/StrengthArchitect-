@@ -23,7 +23,12 @@ const localApiPlugin = () => {
           req.on('end', async () => {
             const body = raw ? JSON.parse(raw) : {};
             const { generateWorkoutServer } = await import('./server/generateWorkout');
-            const plan = await generateWorkoutServer(body?.data, Array.isArray(body?.history) ? body.history : []);
+            const plan = await generateWorkoutServer(
+              body?.data,
+              Array.isArray(body?.history) ? body.history : [],
+              body?.trainingContext || null,
+              body?.optimizerRecommendations || null,
+            );
 
             res.statusCode = 200;
             res.setHeader('Content-Type', 'application/json');
