@@ -1,6 +1,5 @@
 import React from 'react';
 import { StrengthWorkoutPlan, GymSetup } from '../types';
-import { formatPlateLoading } from '../utils';
 import { getArchetypeNameById } from '../services/strengthArchetypes';
 import { Dumbbell, Clock, BarChart3, Info, Lightbulb } from 'lucide-react';
 
@@ -9,9 +8,7 @@ interface Props {
   gymSetup?: GymSetup;
 }
 
-const WorkoutCard: React.FC<Props> = ({ plan, gymSetup }) => {
-  const barWeight = gymSetup?.barbellWeightLbs || 45;
-
+const WorkoutCard: React.FC<Props> = ({ plan }) => {
   return (
     <div className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
       {/* Header */}
@@ -57,17 +54,9 @@ const WorkoutCard: React.FC<Props> = ({ plan, gymSetup }) => {
                   {exercise.rpeTarget ? ` • RPE ${exercise.rpeTarget}` : ''}
                   {exercise.rirTarget !== undefined ? ` • ${exercise.rirTarget} RIR` : ''}
                 </p>
-                {exercise.weightLbs && exercise.weightLbs > barWeight && (
-                  <p className="text-gray-500 text-[10px] mt-0.5">
-                    🏋️ {formatPlateLoading(exercise.weightLbs, barWeight)}
-                  </p>
-                )}
                 {exercise.tempo && (
                   <p className="text-gray-500 text-[10px]">Tempo: {exercise.tempo}</p>
                 )}
-              </div>
-              <div className="text-right text-xs text-gray-500">
-                <p>Rest: {exercise.restSeconds}s</p>
               </div>
             </div>
             {exercise.coachingCue && (
