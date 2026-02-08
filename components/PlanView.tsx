@@ -394,8 +394,24 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
             </div>
           </div>
 
-          {/* Primary CTA */}
-          <div className="relative mt-2">
+          {/* Continue configuring */}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => setSubTab('schedule')}
+              className="flex items-center justify-center gap-2 bg-neutral-800 hover:bg-neutral-700 text-white py-3.5 rounded-xl text-sm font-medium transition-all border border-neutral-700"
+            >
+              <Calendar size={16} /> Schedule
+            </button>
+            <button
+              onClick={() => setSubTab('exercises')}
+              className="flex items-center justify-center gap-2 bg-neutral-800 hover:bg-neutral-700 text-white py-3.5 rounded-xl text-sm font-medium transition-all border border-neutral-700"
+            >
+              <Dumbbell size={16} /> Exercises
+            </button>
+          </div>
+
+          {/* Create / Update Block */}
+          <div className="relative">
             {isComplete && <div className="absolute -inset-1 bg-amber-500/20 rounded-2xl blur-lg pointer-events-none" style={{ animation: 'ctaPulse 2s ease-in-out infinite' }} />}
             <button
               onClick={handleSave}
@@ -413,14 +429,6 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
               <p className="text-center text-xs text-gray-600 mt-2">Enter a block name to get started</p>
             )}
           </div>
-
-          {/* Secondary: continue configuring */}
-          <button
-            onClick={() => setSubTab('schedule')}
-            className="w-full flex items-center justify-center gap-2 text-gray-500 hover:text-gray-300 py-2 text-xs font-medium transition-all"
-          >
-            or continue to Schedule &amp; Exercises <ChevronRight size={14} />
-          </button>
         </div>
       )}
 
@@ -450,8 +458,16 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
             </div>
           </div>
 
-          {/* Primary CTA */}
-          <div className="relative mt-2">
+          {/* Continue to Exercises */}
+          <button
+            onClick={() => setSubTab('exercises')}
+            className="w-full flex items-center justify-center gap-2 bg-neutral-800 hover:bg-neutral-700 text-white py-3.5 rounded-xl text-sm font-medium transition-all border border-neutral-700"
+          >
+            <Dumbbell size={16} /> Pick Your Exercises <ChevronRight size={14} />
+          </button>
+
+          {/* Create / Update Block */}
+          <div className="relative">
             {isComplete && <div className="absolute -inset-1 bg-amber-500/20 rounded-2xl blur-lg pointer-events-none" style={{ animation: 'ctaPulse 2s ease-in-out infinite' }} />}
             <button
               onClick={handleSave}
@@ -466,13 +482,6 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
               {block ? 'Update Block' : 'Create Block'}
             </button>
           </div>
-
-          <button
-            onClick={() => setSubTab('exercises')}
-            className="w-full flex items-center justify-center gap-2 text-gray-500 hover:text-gray-300 py-2 text-xs font-medium transition-all"
-          >
-            or pick your exercises first <ChevronRight size={14} />
-          </button>
         </div>
       )}
 
