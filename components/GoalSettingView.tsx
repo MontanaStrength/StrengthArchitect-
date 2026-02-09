@@ -10,6 +10,7 @@ interface Props {
 
 const GoalSettingView: React.FC<Props> = ({ goals, onSave, onDelete }) => {
   const [showAdd, setShowAdd] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [category, setCategory] = useState<GoalCategory>('strength-1rm');
   const [title, setTitle] = useState('');
   const [targetValue, setTargetValue] = useState(0);
@@ -119,8 +120,8 @@ const GoalSettingView: React.FC<Props> = ({ goals, onSave, onDelete }) => {
                         <p className="text-xs text-gray-500">{categoryLabels[g.category]} • {g.currentValue} / {g.targetValue} {g.unit}</p>
                       </div>
                       <div className="flex items-center gap-1">
-                        <button onClick={() => handleComplete(g)} className="p-1 text-gray-500 hover:text-green-400" title="Mark Complete"><Check size={16} /></button>
-                        <button onClick={() => { if (confirm('Delete?')) onDelete(g.id); }} className="p-1 text-gray-500 hover:text-amber-400"><Trash2 size={14} /></button>
+                        <button onClick={() => handleComplete(g)} className="p-1 text-gray-500 hover:text-green-400" title="Mark Complete" aria-label="Mark goal complete"><Check size={16} /></button>
+                        <button onClick={() => setDeleteConfirmId(g.id)} className="p-1 text-gray-500 hover:text-amber-400" aria-label="Delete goal"><Trash2 size={14} /></button>
                       </div>
                     </div>
                     <div className="h-2 bg-neutral-800 rounded-full overflow-hidden mb-2">
@@ -150,13 +151,33 @@ const GoalSettingView: React.FC<Props> = ({ goals, onSave, onDelete }) => {
                     <p className="text-sm text-gray-300 line-through">{g.title}</p>
                     <p className="text-xs text-gray-500">{g.targetValue} {g.unit} • Completed {g.completedDate ? new Date(g.completedDate).toLocaleDateString() : ''}</p>
                   </div>
-                  <button onClick={() => { if (confirm('Delete?')) onDelete(g.id); }} className="text-gray-600 hover:text-amber-400"><Trash2 size={14} /></button>
+                  <button onClick={() => setDeleteConfirmId(g.id)} className="text-gray-600 hover:text-amber-400" aria-label="Delete goal"><Trash2 size={14} /></button>
                 </div>
               ))}
             </div>
           )}
         </>
       )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmId && (() => {
+        const g = goals.find(gl => gl.id === deleteConfirmId);
+        return (
+          <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+            <div className="bg-neutral-900 border border-neutral-700 rounded-2xl p-6 max-w-sm w-full space-y-4 text-center">
+              <div className="text-3xl">🗑️</div>
+              <h3 className="text-lg font-bold text-white">Delete Goal?</h3>
+              <p className="text-sm text-gray-400">
+                {g ? `"${g.title}" — ${g.targetValue} ${g.unit}` : 'This goal'} will be permanently removed.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setDeleteConfirmId(null)} className="flex-1 py-3 bg-neutral-800 hover:bg-neutral-700 text-gray-300 font-medium rounded-xl transition-all">Cancel</button>
+                <button onClick={() => { onDelete(deleteConfirmId); setDeleteConfirmId(null); }} className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all">Delete</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

@@ -54,6 +54,7 @@ const TrackingView: React.FC<Props> = ({
 /* ── SLEEP TAB ──────────────────────────────────────── */
 const SleepTab: React.FC<{ entries: SleepEntry[]; onSave: (e: SleepEntry) => void; onDelete: (id: string) => void }> = ({ entries, onSave, onDelete }) => {
   const [showAdd, setShowAdd] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [hours, setHours] = useState(7.5);
   const [quality, setQuality] = useState<SleepQuality>('good');
   const [notes, setNotes] = useState('');
@@ -132,7 +133,7 @@ const SleepTab: React.FC<{ entries: SleepEntry[]; onSave: (e: SleepEntry) => voi
         return (
           <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4">
             <p className="text-xs text-gray-400 mb-2">Sleep Trend (last {pts.length} nights)</p>
-            <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-16">
+            <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-16" role="img" aria-label="Sleep trend chart">
               <line x1={pad} y1={avgY} x2={w - pad} y2={avgY} stroke="#f59e0b" strokeWidth="0.5" strokeDasharray="4 3" opacity="0.5" />
               <polyline fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" points={points} />
               {pts.map((p, i) => {
@@ -199,11 +200,31 @@ const SleepTab: React.FC<{ entries: SleepEntry[]; onSave: (e: SleepEntry) => voi
                 <p className="text-sm text-white font-medium">{e.hoursSlept}h — <span className={`px-1.5 py-0.5 rounded text-xs ${qualityColor[e.quality]}`}>{e.quality}</span></p>
                 <p className="text-xs text-gray-500">{e.date}{e.hrv ? ` • HRV ${e.hrv}ms` : ''}{e.restingHR ? ` • RHR ${e.restingHR}bpm` : ''}{e.notes ? ` — ${e.notes}` : ''}</p>
               </div>
-              <button onClick={() => { if (confirm('Delete?')) onDelete(e.id); }} className="text-gray-600 hover:text-amber-400"><Trash2 size={14} /></button>
+              <button onClick={() => setDeleteConfirmId(e.id)} className="text-gray-600 hover:text-amber-400" aria-label="Delete sleep entry"><Trash2 size={14} /></button>
             </div>
           ))}
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmId && (() => {
+        const entry = sorted.find(e => e.id === deleteConfirmId);
+        return (
+          <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+            <div className="bg-neutral-900 border border-neutral-700 rounded-2xl p-6 max-w-sm w-full space-y-4 text-center">
+              <div className="text-3xl">🗑️</div>
+              <h3 className="text-lg font-bold text-white">Delete Sleep Entry?</h3>
+              <p className="text-sm text-gray-400">
+                {entry ? `${entry.hoursSlept}h — ${entry.quality} (${entry.date})` : 'This entry'} will be permanently removed.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setDeleteConfirmId(null)} className="flex-1 py-3 bg-neutral-800 hover:bg-neutral-700 text-gray-300 font-medium rounded-xl transition-all">Cancel</button>
+                <button onClick={() => { onDelete(deleteConfirmId); setDeleteConfirmId(null); }} className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all">Delete</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
@@ -211,6 +232,7 @@ const SleepTab: React.FC<{ entries: SleepEntry[]; onSave: (e: SleepEntry) => voi
 /* ── BODY COMP TAB ──────────────────────────────────── */
 const BodyCompTab: React.FC<{ entries: BodyCompEntry[]; onSave: (e: BodyCompEntry) => void; onDelete: (id: string) => void }> = ({ entries, onSave, onDelete }) => {
   const [showAdd, setShowAdd] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [weightLbs, setWeightLbs] = useState(180);
   const [bodyFatPct, setBodyFatPct] = useState<number | undefined>();
   const [waistInches, setWaistInches] = useState<number | undefined>();
@@ -322,11 +344,31 @@ const BodyCompTab: React.FC<{ entries: BodyCompEntry[]; onSave: (e: BodyCompEntr
                 <p className="text-sm text-white font-medium">{e.weightLbs} lbs{e.bodyFatPct ? ` • ${e.bodyFatPct}% BF` : ''}{e.waistInches ? ` • ${e.waistInches}" waist` : ''}</p>
                 <p className="text-xs text-gray-500">{new Date(e.date).toLocaleDateString()}{e.notes ? ` — ${e.notes}` : ''}</p>
               </div>
-              <button onClick={() => { if (confirm('Delete?')) onDelete(e.id); }} className="text-gray-600 hover:text-amber-400"><Trash2 size={14} /></button>
+              <button onClick={() => setDeleteConfirmId(e.id)} className="text-gray-600 hover:text-amber-400" aria-label="Delete body comp entry"><Trash2 size={14} /></button>
             </div>
           ))}
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmId && (() => {
+        const entry = sorted.find(e => e.id === deleteConfirmId);
+        return (
+          <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+            <div className="bg-neutral-900 border border-neutral-700 rounded-2xl p-6 max-w-sm w-full space-y-4 text-center">
+              <div className="text-3xl">🗑️</div>
+              <h3 className="text-lg font-bold text-white">Delete Entry?</h3>
+              <p className="text-sm text-gray-400">
+                {entry ? `${entry.weightLbs} lbs${entry.bodyFatPct ? ` • ${entry.bodyFatPct}% BF` : ''} (${new Date(entry.date).toLocaleDateString()})` : 'This entry'} will be permanently removed.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setDeleteConfirmId(null)} className="flex-1 py-3 bg-neutral-800 hover:bg-neutral-700 text-gray-300 font-medium rounded-xl transition-all">Cancel</button>
+                <button onClick={() => { onDelete(deleteConfirmId); setDeleteConfirmId(null); }} className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all">Delete</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

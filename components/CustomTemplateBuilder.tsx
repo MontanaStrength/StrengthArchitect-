@@ -11,6 +11,7 @@ interface Props {
 
 const CustomTemplateBuilder: React.FC<Props> = ({ templates, onSave, onDelete }) => {
   const [showCreate, setShowCreate] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [focusArea, setFocusArea] = useState<TrainingGoalFocus>('strength');
@@ -150,13 +151,13 @@ const CustomTemplateBuilder: React.FC<Props> = ({ templates, onSave, onDelete })
             const isExpanded = expandedId === t.id;
             return (
               <div key={t.id} className="bg-neutral-900 border border-neutral-800 rounded-xl overflow-hidden">
-                <div className="p-3 cursor-pointer flex justify-between items-center" onClick={() => setExpandedId(isExpanded ? null : t.id)}>
+                <div className="p-3 cursor-pointer flex justify-between items-center" onClick={() => { if (deleteConfirmId) return; setExpandedId(isExpanded ? null : t.id); }}>
                   <div>
                     <p className="text-sm font-bold text-white">{t.name}</p>
                     <p className="text-xs text-gray-500">{t.exercises.length} exercises • {t.defaultDurationMin} min • {t.focusArea}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button onClick={e => { e.stopPropagation(); if (confirm('Delete?')) onDelete(t.id); }} className="text-gray-600 hover:text-amber-400"><Trash2 size={14} /></button>
+                    <button onClick={e => { e.stopPropagation(); setDeleteConfirmId(t.id); }} className="text-gray-600 hover:text-amber-400" aria-label="Delete template"><Trash2 size={14} /></button>
                     {isExpanded ? <ChevronUp size={16} className="text-gray-400" /> : <ChevronDown size={16} className="text-gray-400" />}
                   </div>
                 </div>
@@ -176,6 +177,26 @@ const CustomTemplateBuilder: React.FC<Props> = ({ templates, onSave, onDelete })
           })}
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmId && (() => {
+        const t = templates.find(tpl => tpl.id === deleteConfirmId);
+        return (
+          <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+            <div className="bg-neutral-900 border border-neutral-700 rounded-2xl p-6 max-w-sm w-full space-y-4 text-center">
+              <div className="text-3xl">🗑️</div>
+              <h3 className="text-lg font-bold text-white">Delete Template?</h3>
+              <p className="text-sm text-gray-400">
+                {t ? `"${t.name}" — ${t.exercises.length} exercises` : 'This template'} will be permanently removed.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setDeleteConfirmId(null)} className="flex-1 py-3 bg-neutral-800 hover:bg-neutral-700 text-gray-300 font-medium rounded-xl transition-all">Cancel</button>
+                <button onClick={() => { onDelete(deleteConfirmId); setDeleteConfirmId(null); setExpandedId(null); }} className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all">Delete</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

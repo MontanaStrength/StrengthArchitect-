@@ -11,6 +11,7 @@ interface Props {
 
 const LiftRecordsView: React.FC<Props> = ({ records, onSave, onDelete }) => {
   const [showAdd, setShowAdd] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [exerciseName, setExerciseName] = useState('');
   const [exerciseId, setExerciseId] = useState('');
   const [weight, setWeight] = useState(135);
@@ -161,7 +162,7 @@ const LiftRecordsView: React.FC<Props> = ({ records, onSave, onDelete }) => {
                       <span className="text-gray-400">{new Date(r.date).toLocaleDateString()} — {r.weight}×{r.reps}{r.rpe ? ` RPE ${r.rpe}` : ''}</span>
                       <div className="flex items-center gap-2">
                         <span className="text-gray-500">e1RM: {Math.round(r.estimated1RM)}</span>
-                        <button onClick={() => { if (confirm('Delete?')) onDelete(r.id); }} className="text-gray-600 hover:text-amber-400"><Trash2 size={12} /></button>
+                        <button onClick={() => setDeleteConfirmId(r.id)} className="text-gray-600 hover:text-amber-400" aria-label="Delete lift record"><Trash2 size={12} /></button>
                       </div>
                     </div>
                   ))}
@@ -171,6 +172,26 @@ const LiftRecordsView: React.FC<Props> = ({ records, onSave, onDelete }) => {
           ))}
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmId && (() => {
+        const r = records.find(rec => rec.id === deleteConfirmId);
+        return (
+          <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+            <div className="bg-neutral-900 border border-neutral-700 rounded-2xl p-6 max-w-sm w-full space-y-4 text-center">
+              <div className="text-3xl">🗑️</div>
+              <h3 className="text-lg font-bold text-white">Delete Lift Record?</h3>
+              <p className="text-sm text-gray-400">
+                {r ? `${r.exerciseName} — ${r.weight}×${r.reps}${r.rpe ? ` RPE ${r.rpe}` : ''} (e1RM: ${Math.round(r.estimated1RM)})` : 'This record'} will be permanently removed.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setDeleteConfirmId(null)} className="flex-1 py-3 bg-neutral-800 hover:bg-neutral-700 text-gray-300 font-medium rounded-xl transition-all">Cancel</button>
+                <button onClick={() => { onDelete(deleteConfirmId); setDeleteConfirmId(null); }} className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all">Delete</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

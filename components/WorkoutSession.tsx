@@ -222,6 +222,7 @@ const WorkoutSession: React.FC<Props> = ({ workout, gymSetup, audioMuted, onAudi
             <button
               onClick={() => onAudioMutedChange?.(!muted)}
               className="p-2 text-gray-400 hover:text-white"
+              aria-label={muted ? 'Unmute audio' : 'Mute audio'}
             >
               {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
             </button>
@@ -281,6 +282,7 @@ const WorkoutSession: React.FC<Props> = ({ workout, gymSetup, audioMuted, onAudi
                 <button
                   onClick={() => { const u = [...sets]; u[currentSetIndex].actualWeight = Math.max(0, u[currentSetIndex].actualWeight - 5); setSets(u); }}
                   className="w-8 h-9 rounded bg-neutral-700 hover:bg-neutral-600 text-gray-300 text-lg font-bold flex items-center justify-center transition-all"
+                  aria-label="Decrease weight"
                 >−</button>
                 <input
                   type="number"
@@ -291,10 +293,12 @@ const WorkoutSession: React.FC<Props> = ({ workout, gymSetup, audioMuted, onAudi
                     setSets(updated);
                   }}
                   className="flex-1 p-2 rounded bg-neutral-800 border border-neutral-700 text-white text-sm text-center min-w-0"
+                  aria-label="Weight in pounds"
                 />
                 <button
                   onClick={() => { const u = [...sets]; u[currentSetIndex].actualWeight += 5; setSets(u); }}
                   className="w-8 h-9 rounded bg-neutral-700 hover:bg-neutral-600 text-gray-300 text-lg font-bold flex items-center justify-center transition-all"
+                  aria-label="Increase weight"
                 >+</button>
               </div>
             </div>
@@ -304,6 +308,7 @@ const WorkoutSession: React.FC<Props> = ({ workout, gymSetup, audioMuted, onAudi
                 <button
                   onClick={() => { const u = [...sets]; u[currentSetIndex].actualReps = Math.max(0, u[currentSetIndex].actualReps - 1); setSets(u); }}
                   className="w-8 h-9 rounded bg-neutral-700 hover:bg-neutral-600 text-gray-300 text-lg font-bold flex items-center justify-center transition-all"
+                  aria-label="Decrease reps"
                 >−</button>
                 <input
                   type="number"
@@ -315,10 +320,12 @@ const WorkoutSession: React.FC<Props> = ({ workout, gymSetup, audioMuted, onAudi
                   }}
                   className="flex-1 p-2 rounded bg-neutral-800 border border-neutral-700 text-white text-sm text-center min-w-0"
                   placeholder={currentSet.targetReps}
+                  aria-label="Reps completed"
                 />
                 <button
                   onClick={() => { const u = [...sets]; u[currentSetIndex].actualReps += 1; setSets(u); }}
                   className="w-8 h-9 rounded bg-neutral-700 hover:bg-neutral-600 text-gray-300 text-lg font-bold flex items-center justify-center transition-all"
+                  aria-label="Increase reps"
                 >+</button>
               </div>
             </div>
@@ -328,6 +335,7 @@ const WorkoutSession: React.FC<Props> = ({ workout, gymSetup, audioMuted, onAudi
                 <button
                   onClick={() => { const u = [...sets]; u[currentSetIndex].rpe = Math.max(1, (u[currentSetIndex].rpe || 7) - 0.5); setSets(u); }}
                   className="w-8 h-9 rounded bg-neutral-700 hover:bg-neutral-600 text-gray-300 text-lg font-bold flex items-center justify-center transition-all"
+                  aria-label="Decrease RPE"
                 >−</button>
                 <input
                   type="number"
@@ -342,10 +350,12 @@ const WorkoutSession: React.FC<Props> = ({ workout, gymSetup, audioMuted, onAudi
                   }}
                   className="flex-1 p-2 rounded bg-neutral-800 border border-neutral-700 text-white text-sm text-center min-w-0"
                   placeholder="RPE"
+                  aria-label="Rate of perceived exertion"
                 />
                 <button
                   onClick={() => { const u = [...sets]; u[currentSetIndex].rpe = Math.min(10, (u[currentSetIndex].rpe || 7) + 0.5); setSets(u); }}
                   className="w-8 h-9 rounded bg-neutral-700 hover:bg-neutral-600 text-gray-300 text-lg font-bold flex items-center justify-center transition-all"
+                  aria-label="Increase RPE"
                 >+</button>
               </div>
             </div>
