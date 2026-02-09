@@ -24,8 +24,8 @@ const AVATAR_COLORS = ['#f59e0b', '#3b82f6', '#22c55e', '#ef4444', '#a855f7', '#
 const ClientFormModal: React.FC<Props> = ({ client, onSave, onClose, onDelete }) => {
   const [name, setName] = useState(client?.name || '');
   const [email, setEmail] = useState(client?.email || '');
-  const [weightLbs, setWeightLbs] = useState(client?.weightLbs || 180);
-  const [age, setAge] = useState(client?.age || 25);
+  const [weightLbs, setWeightLbs] = useState(String(client?.weightLbs || 180));
+  const [age, setAge] = useState(String(client?.age || 25));
   const [gender, setGender] = useState<'male' | 'female'>(client?.gender || 'male');
   const [experience, setExperience] = useState<TrainingExperience>(client?.experience || TrainingExperience.INTERMEDIATE);
   const [equipment, setEquipment] = useState<AvailableEquipment[]>(
@@ -44,8 +44,8 @@ const ClientFormModal: React.FC<Props> = ({ client, onSave, onClose, onDelete })
       id: client?.id || crypto.randomUUID(),
       name: name.trim(),
       email: email.trim() || undefined,
-      weightLbs,
-      age,
+      weightLbs: Number(weightLbs) || 0,
+      age: Number(age) || 0,
       gender,
       experience,
       equipment,
@@ -105,7 +105,7 @@ const ClientFormModal: React.FC<Props> = ({ client, onSave, onClose, onDelete })
               <input
                 type="number"
                 value={weightLbs}
-                onChange={e => setWeightLbs(Number(e.target.value))}
+                onChange={e => setWeightLbs(e.target.value.replace(/^0+(?=\d)/, ''))}
                 className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-sm focus:border-amber-500 outline-none"
               />
             </div>
@@ -114,7 +114,7 @@ const ClientFormModal: React.FC<Props> = ({ client, onSave, onClose, onDelete })
               <input
                 type="number"
                 value={age}
-                onChange={e => setAge(Number(e.target.value))}
+                onChange={e => setAge(e.target.value.replace(/^0+(?=\d)/, ''))}
                 className="w-full bg-neutral-800 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-sm focus:border-amber-500 outline-none"
               />
             </div>
