@@ -1,60 +1,100 @@
 // Utility: Logical exercise sorting by slot context
 function sortExercisesForSlot(category: string, tier: string, exercises: typeof EXERCISE_LIBRARY) {
-  // Define priority lists for each category and tier
+  // ── Primary = big bilateral compounds. Secondary = supplemental variations.
+  // ── Tertiary = unilateral, machine, and lighter accessory work.
   const PRIORITY: Record<string, Record<string, string[]>> = {
     squat: {
       primary: [
-        'back_squat', 'front_squat', 'high_bar_squat', 'low_bar_squat', 'safety_bar_squat', 'overhead_squat', 'box_squat', 'pause_squat', 'tempo_squat', 'leg_press', 'goblet_squat', 'bulgarian_split_squat'
+        'back_squat', 'high_bar_squat', 'low_bar_squat', 'front_squat',
+        'safety_bar_squat', 'box_squat', 'pause_squat', 'tempo_squat',
+        'pin_squat', 'anderson_squat', 'zercher_squat', 'overhead_squat',
       ],
       secondary: [
-        'front_squat', 'high_bar_squat', 'low_bar_squat', 'safety_bar_squat', 'box_squat', 'pause_squat', 'tempo_squat', 'leg_press', 'goblet_squat', 'bulgarian_split_squat', 'overhead_squat'
+        'front_squat', 'safety_bar_squat', 'box_squat', 'pause_squat',
+        'tempo_squat', 'leg_press', 'hack_squat', 'belt_squat',
+        'goblet_squat', 'zercher_squat', 'pin_squat',
+        'bulgarian_split_squat', 'rfess', 'walking_lunge', 'reverse_lunge',
       ],
       tertiary: [
-        'goblet_squat', 'bulgarian_split_squat', 'leg_press', 'box_squat', 'pause_squat', 'tempo_squat', 'overhead_squat', 'front_squat', 'high_bar_squat', 'low_bar_squat', 'safety_bar_squat'
-      ]
+        'bulgarian_split_squat', 'rfess', 'walking_lunge', 'reverse_lunge',
+        'split_squat', 'step_up', 'lateral_lunge', 'cossack_squat',
+        'pistol_squat', 'single_leg_leg_press',
+        'goblet_squat', 'leg_press', 'hack_squat', 'belt_squat',
+      ],
     },
     bench: {
       primary: [
-        'bench_press', 'pause_bench', 'incline_bench', 'dumbbell_bench', 'close_grip_bench'
+        'bench_press', 'pause_bench', 'close_grip_bench',
+        'incline_bench_press', 'tempo_bench', 'larsen_press',
+        'spoto_press', 'floor_press',
       ],
       secondary: [
-        'incline_bench', 'dumbbell_bench', 'pause_bench', 'close_grip_bench', 'bench_press'
+        'incline_bench_press', 'close_grip_bench', 'pause_bench',
+        'db_bench_press', 'incline_db_press', 'floor_press',
+        'tempo_bench', 'spoto_press', 'larsen_press', 'decline_bench',
+        'dip',
       ],
       tertiary: [
-        'dumbbell_bench', 'incline_bench', 'close_grip_bench', 'pause_bench', 'bench_press'
-      ]
+        'db_bench_press', 'incline_db_press', 'dip', 'pushup',
+        'cable_fly', 'decline_bench', 'floor_press',
+      ],
     },
     deadlift: {
       primary: [
-        'conventional_deadlift', 'sumo_deadlift', 'trap_bar_deadlift', 'romanian_deadlift', 'deficit_deadlift', 'snatch_grip_deadlift'
+        'conventional_deadlift', 'sumo_deadlift', 'trap_bar_deadlift',
+        'pause_deadlift', 'tempo_deadlift', 'deficit_deadlift',
+        'snatch_grip_deadlift', 'block_pull',
       ],
       secondary: [
-        'romanian_deadlift', 'trap_bar_deadlift', 'sumo_deadlift', 'deficit_deadlift', 'snatch_grip_deadlift', 'conventional_deadlift'
+        'romanian_deadlift', 'stiff_leg_deadlift', 'trap_bar_deadlift',
+        'deficit_deadlift', 'snatch_grip_deadlift', 'pause_deadlift',
+        'block_pull', 'good_morning', 'hip_thrust',
       ],
       tertiary: [
-        'good_morning', 'romanian_deadlift', 'deficit_deadlift', 'snatch_grip_deadlift', 'trap_bar_deadlift', 'sumo_deadlift', 'conventional_deadlift'
-      ]
+        'single_leg_rdl', 'good_morning', 'hip_thrust',
+        'kettlebell_swing', 'cable_pull_through', 'reverse_hyper',
+        'nordic_curl', 'romanian_deadlift', 'stiff_leg_deadlift',
+      ],
     },
     ohp: {
       primary: [
-        'overhead_press', 'push_press', 'seated_dumbbell_press'
+        'overhead_press', 'push_press', 'z_press',
+        'seated_dumbbell_press', 'db_overhead_press',
       ],
       secondary: [
-        'push_press', 'seated_dumbbell_press', 'overhead_press'
+        'push_press', 'seated_dumbbell_press', 'db_overhead_press',
+        'z_press', 'arnold_press', 'landmine_press',
       ],
       tertiary: [
-        'seated_dumbbell_press', 'push_press', 'overhead_press'
-      ]
+        'arnold_press', 'landmine_press', 'lateral_raise',
+        'db_overhead_press', 'seated_dumbbell_press',
+      ],
     },
-    // For core and accessory, just sort alphabetically
-    core: {},
+    // ── Core: sort by slot type (anti-flexion / anti-extension / anti-rotation)
+    core: {
+      'anti-extension': [
+        'plank', 'ab_wheel', 'dead_bug', 'dragon_flag',
+        'hanging_leg_raise', 'farmers_carry',
+      ],
+      'anti-flexion': [
+        'good_morning', 'farmers_carry', 'suitcase_carry', 'overhead_carry',
+        'turkish_getup', 'copenhagen_plank',
+      ],
+      'anti-rotation': [
+        'pallof_press', 'cable_woodchop', 'suitcase_carry',
+        'turkish_getup', 'dead_bug', 'copenhagen_plank',
+      ],
+    },
     accessory: {},
   };
 
-  if (category === 'core' || category === 'accessory') {
+  if (category === 'accessory') {
     return [...exercises].sort((a, b) => a.name.localeCompare(b.name));
   }
   const priority = PRIORITY[category]?.[tier] || [];
+  if (priority.length === 0) {
+    return [...exercises].sort((a, b) => a.name.localeCompare(b.name));
+  }
   return [
     // Priority exercises first, in order
     ...priority
