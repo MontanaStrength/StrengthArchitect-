@@ -20,13 +20,24 @@ export const generateWorkout = async (
   goalBias?: number | null,
   volumeTolerance?: number | null
 ): Promise<StrengthWorkoutPlan> => {
-  const response = await fetch('/api/generate-workout', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ data, history, trainingContext, optimizerRecommendations, exercisePreferences, goalBias, volumeTolerance }),
-  });
+  let response: Response;
+  try {
+    response = await fetch('/api/generate-workout', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ data, history, trainingContext, optimizerRecommendations, exercisePreferences, goalBias, volumeTolerance }),
+    });
+  } catch (err: any) {
+    const msg = err?.message || '';
+    if (msg === 'Failed to fetch' || msg.includes('fetch')) {
+      throw new Error(
+        "Could not reach the workout server. Make sure you're running the app with `npm run dev` and that GEMINI_API_KEY is set in your .env file."
+      );
+    }
+    throw err;
+  }
 
   if (!response.ok) {
     let message = 'Something went wrong generating the workout. Please try again.';

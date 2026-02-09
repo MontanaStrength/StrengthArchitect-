@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   TrainingBlock, ReadinessLevel, StrengthWorkoutPlan, SavedWorkout,
   GymSetup, FeedbackData,
@@ -6,7 +6,8 @@ import {
 import WorkoutCard from './WorkoutCard';
 import FeedbackSection from './FeedbackSection';
 import LoadingView from './LoadingView';
-import { Dumbbell, Zap, RefreshCw, Layers } from 'lucide-react';
+import { workoutToCsv, workoutToTsv, workoutExportFilename } from '../utils/workoutToSheets';
+import { Dumbbell, Zap, RefreshCw, Layers, FileSpreadsheet, Download, Copy, Check } from 'lucide-react';
 
 interface Props {
   activeBlock: TrainingBlock | null;
@@ -16,6 +17,10 @@ interface Props {
   readiness: ReadinessLevel;
   isGenerating: boolean;
   error: string;
+  /** When true, copy and buttons refer to the client (e.g. "Build Sarah's Workout") */
+  isCoachMode?: boolean;
+  /** Client's first name for coach-mode labels */
+  clientName?: string;
   onReadinessChange: (r: ReadinessLevel) => void;
   onGenerate: () => void;
   onStartSession: () => void;
@@ -35,9 +40,19 @@ const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Frid
 const LiftView: React.FC<Props> = ({
   activeBlock, currentPlan, currentWorkout, gymSetup,
   readiness, isGenerating, error,
+  isCoachMode, clientName,
   onReadinessChange, onGenerate, onStartSession,
   onNewWorkout, onSaveFeedback, onNavigatePlan,
 }) => {
+  const [copied, setCopied] = useState(false);
+
+  const displayName = (isCoachMode && clientName) ? clientName : null;
+  const readinessLabel = displayName ? `How is ${displayName} feeling?` : 'How are you feeling?';
+  const buildButtonLabel = displayName ? `Build ${displayName}'s Workout` : "Build Today's Workout";
+  const noBlockTitle = displayName ? `No Active Block for ${displayName}` : 'No Active Block';
+  const noBlockSubtitle = displayName
+    ? `Set up ${displayName}'s training plan in Plan first — block, schedule, and exercises.`
+    : 'Set up your training plan first — block name, schedule, and exercises.';
 
   // Compute block context — week number, rest day, next session
   const blockContext = useMemo(() => {
@@ -76,9 +91,9 @@ const LiftView: React.FC<Props> = ({
         <div className="w-16 h-16 rounded-card bg-sa-surface2 flex items-center justify-center mx-auto">
           <Layers size={32} className="text-gray-600" />
         </div>
-        <h2 className="text-lg font-bold text-white">No Active Block</h2>
+        <h2 className="text-lg font-bold text-white">{noBlockTitle}</h2>
         <p className="text-gray-400 text-sm max-w-xs mx-auto leading-relaxed">
-          Set up your training plan first — block name, schedule, and exercises.
+          {noBlockSubtitle}
         </p>
         <button
           onClick={onNavigatePlan}
@@ -125,6 +140,29 @@ const LiftView: React.FC<Props> = ({
   // STATE: Workout generated — show card + start
   // ──────────────────────────────────────────────────
   if (currentPlan) {
+    const handleDownloadCsv = () => {
+      const csv = workoutToCsv(currentPlan);
+      const filename = workoutExportFilename(currentPlan, displayName ?? undefined);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    };
+
+    const handleCopyForSheets = async () => {
+      const tsv = workoutToTsv(currentPlan);
+      try {
+        await navigator.clipboard.writeText(tsv);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch {
+        window.prompt('Copy this and paste into Google Sheets:', tsv);
+      }
+    };
+
     return (
       <div className="space-y-6">
         {blockContext && (
@@ -137,13 +175,51 @@ const LiftView: React.FC<Props> = ({
 
         <WorkoutCard plan={currentPlan} gymSetup={gymSetup} />
 
+        {isCoachMode && (
+          <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-blue-300 flex items-center gap-2">
+              <FileSpreadsheet size={18} /> Send to client (Google Sheets)
+            </h3>
+            <p className="text-xs text-gray-400">
+              Download a CSV to upload to Google Sheets and share with {displayName || 'your client'}, or copy the table to paste into a new sheet.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={handleDownloadCsv}
+                className="sa-btn sa-btn-primary py-2.5 px-4 flex items-center gap-2 text-sm"
+              >
+                <Download size={16} /> Download CSV for Sheets
+              </button>
+              <button
+                type="button"
+                onClick={handleCopyForSheets}
+                className="sa-btn sa-btn-secondary py-2.5 px-4 flex items-center gap-2 text-sm"
+              >
+                {copied ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
+                {copied ? 'Copied!' : 'Copy table (paste in Sheets)'}
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="flex gap-3">
-          <button
-            onClick={onStartSession}
-            className="sa-btn sa-btn-primary flex-1 py-3.5 text-base flex items-center justify-center gap-2"
-          >
-            <Dumbbell size={18} /> Start Session
-          </button>
+          {!isCoachMode && (
+            <button
+              onClick={onStartSession}
+              className="sa-btn sa-btn-primary flex-1 py-3.5 text-base flex items-center justify-center gap-2"
+            >
+              <Dumbbell size={18} /> Start Session
+            </button>
+          )}
+          {isCoachMode && (
+            <button
+              onClick={onStartSession}
+              className="sa-btn sa-btn-secondary flex-1 py-3.5 text-base flex items-center justify-center gap-2"
+            >
+              <Dumbbell size={18} /> Log session for client
+            </button>
+          )}
           <button
             onClick={onNewWorkout}
             className="sa-btn sa-btn-secondary px-5 py-3.5 flex items-center gap-2"
@@ -171,7 +247,9 @@ const LiftView: React.FC<Props> = ({
       {/* Header */}
       {blockContext && (
         <div className="text-center">
-          <h2 className="text-lg font-bold text-white tracking-tight">Today's Lift</h2>
+          <h2 className="text-lg font-bold text-white tracking-tight">
+            {displayName ? `${displayName}'s Lift` : "Today's Lift"}
+          </h2>
           <p className="text-sm text-gray-500 mt-1">
             Week {blockContext.weekNum}/{blockContext.totalWeeks} · {blockContext.blockName}
           </p>
@@ -180,7 +258,7 @@ const LiftView: React.FC<Props> = ({
 
       {/* Readiness */}
       <div className="space-y-3">
-        <label className="block text-sm font-semibold text-gray-300">How are you feeling?</label>
+        <label className="block text-sm font-semibold text-gray-300">{readinessLabel}</label>
         <div className="grid grid-cols-3 gap-3">
           {READINESS_OPTIONS.map(opt => {
             const active = readiness === opt.level;
@@ -210,7 +288,7 @@ const LiftView: React.FC<Props> = ({
         onClick={onGenerate}
         className="sa-btn sa-btn-primary w-full py-4 text-lg flex items-center justify-center gap-2"
       >
-        <Zap size={20} /> Build Today's Workout
+        <Zap size={20} /> {buildButtonLabel}
       </button>
     </div>
   );

@@ -210,7 +210,15 @@ const App: React.FC = () => {
     if (!user || appMode !== 'coach') return;
     setClientsLoading(true);
     fetchCoachClientsFromCloud(user.id)
-      .then(setCoachClients)
+      .then((clients) => {
+        setCoachClients(clients);
+        // Restore last-selected client after login so their workouts/data load
+        const storedId = localStorage.getItem('sa_active_client_id');
+        if (storedId && clients.some((c: CoachClient) => c.id === storedId)) {
+          const client = clients.find((c: CoachClient) => c.id === storedId)!;
+          setActiveClient((prev) => (prev?.id === storedId ? prev : client));
+        }
+      })
       .catch(console.error)
       .finally(() => setClientsLoading(false));
   }, [user, appMode]);
@@ -359,7 +367,8 @@ const App: React.FC = () => {
         syncWorkoutToCloud(saved, user.id, cid).catch(console.error);
       }
     } catch (err: any) {
-      setError(err?.message || 'Failed to generate workout.');
+      const message = err?.message || 'Failed to generate workout.';
+      setError(message);
     } finally {
       setIsGenerating(false);
     }
@@ -502,6 +511,7 @@ const App: React.FC = () => {
   }, [user, gymSetup, optimizerConfig, audioMuted]);
 
   const handleSelectClient = useCallback((client: CoachClient) => {
+    localStorage.setItem('sa_active_client_id', client.id);
     // Clear stale data before loading new client
     setHistory([]);
     setTrainingBlocks([]);
@@ -520,6 +530,7 @@ const App: React.FC = () => {
   }, []);
 
   const handleBackToRoster = useCallback(() => {
+    localStorage.removeItem('sa_active_client_id');
     setHistory([]);
     setTrainingBlocks([]);
     setLiftRecords([]);
@@ -872,6 +883,8 @@ const App: React.FC = () => {
               readiness={formData.readiness}
               isGenerating={isGenerating}
               error={error}
+              isCoachMode={appMode === 'coach'}
+              clientName={activeClient?.name}
               onReadinessChange={(r) => setFormData(prev => ({ ...prev, readiness: r }))}
               onGenerate={handleGenerate}
               onStartSession={() => setView('session')}
