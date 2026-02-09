@@ -84,16 +84,16 @@ const AuthView: React.FC = () => {
           </div>
           <div className="flex items-center gap-4">
             <button
-              onClick={() => { setShowForm(true); setIsSignUp(false); }}
+              onClick={() => { setShowForm(true); setIsSignUp(true); }}
               className="text-sm text-gray-300 hover:text-white transition-colors"
             >
-              Login
+              Sign Up
             </button>
             <button
-              onClick={() => { setShowForm(true); setIsSignUp(true); }}
+              onClick={() => { setShowForm(true); setIsSignUp(false); }}
               className="text-sm px-4 py-1.5 rounded-lg border border-amber-500 text-amber-500 hover:bg-amber-500 hover:text-black transition-all font-medium"
             >
-              Get Started
+              Sign In
             </button>
           </div>
         </header>
@@ -110,16 +110,16 @@ const AuthView: React.FC = () => {
           </p>
           <div className="flex gap-4 mt-8">
             <button
-              onClick={() => { setShowForm(true); setIsSignUp(true); }}
+              onClick={() => { setShowForm(true); setIsSignUp(false); }}
               className="flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-lg transition-all"
             >
-              Get Started <ArrowRight size={18} />
+              Sign In <ArrowRight size={18} />
             </button>
             <button
-              onClick={() => { setShowForm(true); setIsSignUp(false); }}
+              onClick={() => { setShowForm(true); setIsSignUp(true); }}
               className="px-6 py-3 border border-gray-600 hover:border-gray-400 text-white font-medium rounded-lg transition-all"
             >
-              Learn More
+              Create Account
             </button>
           </div>
         </div>
