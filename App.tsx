@@ -498,6 +498,7 @@ const App: React.FC = () => {
     setCoachClients([]);
     setActiveClient(null);
     localStorage.removeItem('sa_app_mode');
+    localStorage.removeItem('sa_active_client_id');
     setView('lift');
   };
 
