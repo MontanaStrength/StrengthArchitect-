@@ -386,7 +386,7 @@ const computeFatigueSignals = (history: SavedWorkout[]) => {
   let totalTonnage = 0;
 
   for (const w of recent) {
-    const exs = w.exercises || [];
+    const exs = (w.exercises || []).filter(e => !e.isWarmupSet);
     const sets = exs.reduce((s, e) => s + (e.sets || 0), 0);
     const tonnage = w.actualTonnage || exs.reduce((s, e) => {
       const avgReps = e.reps?.includes('-')

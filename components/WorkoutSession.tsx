@@ -57,6 +57,8 @@ const WorkoutSession: React.FC<Props> = ({ workout, gymSetup, audioMuted, onAudi
   const [sessionStartTime] = useState(Date.now());
   const [sessionRPE, setSessionRPE] = useState(7);
   const [showFinish, setShowFinish] = useState(false);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showFinishEarlyConfirm, setShowFinishEarlyConfirm] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const muted = audioMuted ?? false;
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -223,7 +225,7 @@ const WorkoutSession: React.FC<Props> = ({ workout, gymSetup, audioMuted, onAudi
             >
               {muted ? <VolumeX size={18} /> : <Volume2 size={18} />}
             </button>
-            <button onClick={onCancel} className="p-2 text-gray-400 hover:text-amber-400">
+            <button onClick={() => setShowCancelConfirm(true)} className="p-2 text-gray-400 hover:text-amber-400" aria-label="Cancel session">
               <X size={18} />
             </button>
           </div>
@@ -366,11 +368,69 @@ const WorkoutSession: React.FC<Props> = ({ workout, gymSetup, audioMuted, onAudi
 
       {/* Finish Early */}
       <button
-        onClick={() => setShowFinish(true)}
+        onClick={() => setShowFinishEarlyConfirm(true)}
         className="w-full py-2 bg-neutral-800 hover:bg-neutral-700 text-gray-400 text-sm rounded-xl transition-all"
       >
         Finish Early
       </button>
+
+      {/* ── Cancel Confirmation Modal ── */}
+      {showCancelConfirm && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+          <div className="bg-neutral-900 border border-neutral-700 rounded-2xl p-6 max-w-sm w-full space-y-4 text-center">
+            <div className="text-3xl">⚠️</div>
+            <h3 className="text-lg font-bold text-white">Abandon Session?</h3>
+            <p className="text-sm text-gray-400">
+              You've completed <span className="text-white font-semibold">{completedCount} of {sets.length}</span> sets
+              ({totalTonnage.toLocaleString()} lbs logged). This data will be lost.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCancelConfirm(false)}
+                className="flex-1 py-3 bg-neutral-800 hover:bg-neutral-700 text-gray-300 font-medium rounded-xl transition-all"
+              >
+                Keep Training
+              </button>
+              <button
+                onClick={onCancel}
+                className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all"
+              >
+                Abandon
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Finish Early Confirmation Modal ── */}
+      {showFinishEarlyConfirm && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+          <div className="bg-neutral-900 border border-neutral-700 rounded-2xl p-6 max-w-sm w-full space-y-4 text-center">
+            <div className="text-3xl">🏁</div>
+            <h3 className="text-lg font-bold text-white">Finish Early?</h3>
+            <p className="text-sm text-gray-400">
+              You've completed <span className="text-white font-semibold">{completedCount} of {sets.length}</span> sets
+              ({Math.round(completedCount / sets.length * 100)}% of session) with{' '}
+              <span className="text-amber-400 font-semibold">{totalTonnage.toLocaleString()} lbs</span> of tonnage.
+            </p>
+            <p className="text-xs text-gray-500">Your completed sets will be saved.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowFinishEarlyConfirm(false)}
+                className="flex-1 py-3 bg-neutral-800 hover:bg-neutral-700 text-gray-300 font-medium rounded-xl transition-all"
+              >
+                Keep Going
+              </button>
+              <button
+                onClick={() => { setShowFinishEarlyConfirm(false); setShowFinish(true); }}
+                className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-xl transition-all"
+              >
+                Finish & Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

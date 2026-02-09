@@ -35,7 +35,7 @@ const StrengthTestView: React.FC<Props> = ({ tests, weightLbs, onSave }) => {
   };
 
   const handleSave = () => {
-    const est = estimate1RM(weight, reps);
+    const est = estimate1RM(weight, reps, rpe);
     const result: StrengthTestResult = {
       id: crypto.randomUUID(),
       testType,
@@ -147,7 +147,7 @@ const StrengthTestView: React.FC<Props> = ({ tests, weightLbs, onSave }) => {
             </div>
           </div>
           {weight > 0 && reps > 0 && (
-            <p className="text-sm text-gray-400">Estimated 1RM: <span className="text-white font-bold">{Math.round(estimate1RM(weight, reps))} lbs</span></p>
+            <p className="text-sm text-gray-400">Estimated 1RM: <span className="text-white font-bold">{Math.round(estimate1RM(weight, reps, rpe))} lbs</span></p>
           )}
           <div className="flex gap-2">
             <button onClick={handleSave} className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black text-sm font-medium rounded-lg">Save Test</button>

@@ -108,7 +108,8 @@ const LiftView: React.FC<Props> = ({
   // ──────────────────────────────────────────────────
   // STATE: Rest day
   // ──────────────────────────────────────────────────
-  if (blockContext && !blockContext.isTrainingDay) {
+  const [overrideRestDay, setOverrideRestDay] = useState(false);
+  if (blockContext && !blockContext.isTrainingDay && !overrideRestDay) {
     return (
       <div className="text-center py-16 space-y-4">
         <div className="text-5xl">🛌</div>
@@ -121,6 +122,12 @@ const LiftView: React.FC<Props> = ({
             Next session: <span className="text-amber-400 font-semibold">{blockContext.nextTrainingDay}</span>
           </p>
         )}
+        <button
+          onClick={() => setOverrideRestDay(true)}
+          className="mt-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-gray-300 text-sm rounded-lg transition-colors"
+        >
+          💪 Train Anyway
+        </button>
       </div>
     );
   }

@@ -2,13 +2,18 @@
 import type { SavedWorkout, CompletedSet, MuscleGroup } from './types';
 
 /**
- * Estimates 1RM using the Epley formula: weight * (1 + reps / 30).
+ * Estimates 1RM using the Epley formula: weight × (1 + reps / 30).
+ * When RPE is provided (6-10), adjusts by adding estimated reps-in-reserve
+ * so sub-maximal sets produce a more accurate (higher) 1RM estimate.
  * Returns 0 for invalid inputs.
  */
-export const estimate1RM = (weight: number, reps: number): number => {
+export const estimate1RM = (weight: number, reps: number, rpe?: number): number => {
   if (!weight || weight <= 0 || !reps || reps <= 0) return 0;
-  if (reps === 1) return weight;
-  return Math.round(weight * (1 + reps / 30));
+  // Effective reps = actual reps + reps left in the tank
+  const rir = (rpe && rpe >= 6 && rpe <= 10) ? (10 - rpe) : 0;
+  const effectiveReps = reps + rir;
+  if (effectiveReps <= 1) return weight;
+  return Math.round(weight * (1 + effectiveReps / 30));
 };
 
 /**

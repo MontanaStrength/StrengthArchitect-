@@ -20,6 +20,9 @@ export const generateWorkout = async (
   goalBias?: number | null,
   volumeTolerance?: number | null
 ): Promise<StrengthWorkoutPlan> => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 45_000); // 45s timeout
+
   let response: Response;
   try {
     response = await fetch('/api/generate-workout', {
@@ -28,9 +31,16 @@ export const generateWorkout = async (
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ data, history, trainingContext, optimizerRecommendations, exercisePreferences, goalBias, volumeTolerance }),
+      signal: controller.signal,
     });
   } catch (err: any) {
+    clearTimeout(timeoutId);
     const msg = err?.message || '';
+    if (err?.name === 'AbortError') {
+      throw new Error(
+        "Workout generation timed out after 45 seconds. The AI server may be warming up — please try again."
+      );
+    }
     if (msg === 'Failed to fetch' || msg.includes('fetch')) {
       throw new Error(
         "Could not reach the workout server. Make sure you're running the app with `npm run dev` and that GEMINI_API_KEY is set in your .env file."
@@ -38,6 +48,8 @@ export const generateWorkout = async (
     }
     throw err;
   }
+
+  clearTimeout(timeoutId);
 
   if (!response.ok) {
     let message = 'Something went wrong generating the workout. Please try again.';

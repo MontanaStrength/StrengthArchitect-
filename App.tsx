@@ -399,7 +399,7 @@ const App: React.FC = () => {
     const newRecords: LiftRecord[] = [];
     for (const set of completedSets) {
       if (set.weightLbs > 0 && set.reps > 0) {
-        const est = estimate1RM(set.weightLbs, set.reps);
+        const est = estimate1RM(set.weightLbs, set.reps, set.rpe);
         const existingBest = liftRecords.find(r => r.exerciseId === set.exerciseId);
         if (!existingBest || est > existingBest.estimated1RM) {
           const record: LiftRecord = {

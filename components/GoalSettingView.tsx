@@ -17,7 +17,7 @@ const GoalSettingView: React.FC<Props> = ({ goals, onSave, onDelete }) => {
   const [unit, setUnit] = useState('lbs');
 
   const handleSave = () => {
-    if (!title) return;
+    if (!title || targetValue <= 0) return;
     const goal: TrainingGoal = {
       id: crypto.randomUUID(),
       category,
@@ -95,7 +95,7 @@ const GoalSettingView: React.FC<Props> = ({ goals, onSave, onDelete }) => {
             </div>
           </div>
           <div className="flex gap-2">
-            <button onClick={handleSave} disabled={!title} className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black text-sm font-medium rounded-lg disabled:opacity-50">Save</button>
+            <button onClick={handleSave} disabled={!title || targetValue <= 0} className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black text-sm font-medium rounded-lg disabled:opacity-50">Save</button>
             <button onClick={() => setShowAdd(false)} className="px-4 py-2 bg-neutral-800 text-gray-300 text-sm rounded-lg">Cancel</button>
           </div>
         </div>
@@ -110,7 +110,7 @@ const GoalSettingView: React.FC<Props> = ({ goals, onSave, onDelete }) => {
             <div className="space-y-2">
               <h3 className="text-sm font-semibold text-gray-400">Active ({active.length})</h3>
               {active.map(g => {
-                const pct = Math.min(100, Math.round((g.currentValue / g.targetValue) * 100));
+                const pct = g.targetValue > 0 ? Math.min(100, Math.round((g.currentValue / g.targetValue) * 100)) : 0;
                 return (
                   <div key={g.id} className="bg-neutral-900 border border-neutral-800 rounded-xl p-4">
                     <div className="flex justify-between items-start mb-2">

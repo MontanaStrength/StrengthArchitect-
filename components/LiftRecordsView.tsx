@@ -36,7 +36,7 @@ const LiftRecordsView: React.FC<Props> = ({ records, onSave, onDelete }) => {
 
   const handleAdd = () => {
     const id = exerciseId || exerciseName.toLowerCase().replace(/\s+/g, '_');
-    const est = estimate1RM(weight, reps);
+    const est = estimate1RM(weight, reps, rpe);
     const record: LiftRecord = {
       id: crypto.randomUUID(),
       exerciseId: id,
@@ -120,7 +120,7 @@ const LiftRecordsView: React.FC<Props> = ({ records, onSave, onDelete }) => {
             </div>
           </div>
           {weight > 0 && reps > 0 && (
-            <p className="text-sm text-gray-400">Estimated 1RM: <span className="text-white font-bold">{Math.round(estimate1RM(weight, reps))} lbs</span></p>
+            <p className="text-sm text-gray-400">Estimated 1RM: <span className="text-white font-bold">{Math.round(estimate1RM(weight, reps, rpe))} lbs</span></p>
           )}
           <div className="flex gap-2">
             <button onClick={handleAdd} disabled={!exerciseName} className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black text-sm font-medium rounded-lg transition-all disabled:opacity-50">Save</button>
