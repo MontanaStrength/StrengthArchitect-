@@ -6,6 +6,8 @@ interface Props {
   history: SavedWorkout[];
   onDelete: (id: string) => void;
   onSelect: (workout: SavedWorkout) => void;
+  /** When provided, empty state shows a CTA to go build a workout */
+  onGoToLift?: () => void;
 }
 
 const handleExport = (history: SavedWorkout[], format: 'json' | 'csv') => {
@@ -44,7 +46,7 @@ const handleExport = (history: SavedWorkout[], format: 'json' | 'csv') => {
   URL.revokeObjectURL(url);
 };
 
-const HistoryView: React.FC<Props> = ({ history, onDelete, onSelect }) => {
+const HistoryView: React.FC<Props> = ({ history, onDelete, onSelect, onGoToLift }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('all');
   const [showExport, setShowExport] = useState(false);
@@ -96,9 +98,22 @@ const HistoryView: React.FC<Props> = ({ history, onDelete, onSelect }) => {
       <p className="text-xs text-gray-500">{filtered.length} workout{filtered.length !== 1 ? 's' : ''}</p>
 
       {filtered.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
-          <History size={48} className="mx-auto mb-3 opacity-30" />
-          <p>No workouts yet. Generate your first session!</p>
+        <div className="sa-card text-center py-12 px-6 space-y-4">
+          <div className="w-16 h-16 rounded-2xl bg-sa-surface2 flex items-center justify-center mx-auto">
+            <History size={32} className="text-gray-500" />
+          </div>
+          <h3 className="text-lg font-bold text-white">No workouts yet</h3>
+          <p className="text-sm text-gray-400 max-w-xs mx-auto">
+            Generate your first session from the Lift tab and it will show up here.
+          </p>
+          {onGoToLift && (
+            <button
+              onClick={onGoToLift}
+              className="sa-btn sa-btn-primary"
+            >
+              Go to Lift
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-2">

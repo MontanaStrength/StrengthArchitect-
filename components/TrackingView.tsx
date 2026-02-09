@@ -191,7 +191,21 @@ const SleepTab: React.FC<{ entries: SleepEntry[]; onSave: (e: SleepEntry) => voi
       )}
 
       {sorted.length === 0 ? (
-        <div className="text-center py-12 text-gray-500"><Moon size={48} className="mx-auto mb-3 opacity-30" /><p>No sleep entries yet.</p></div>
+        <div className="sa-card text-center py-12 px-6 space-y-4">
+          <div className="w-16 h-16 rounded-2xl bg-sa-surface2 flex items-center justify-center mx-auto">
+            <Moon size={32} className="text-gray-500" />
+          </div>
+          <h3 className="text-lg font-bold text-white">No sleep entries yet</h3>
+          <p className="text-sm text-gray-400 max-w-xs mx-auto">
+            Log your sleep to see trends and improve recovery insights on your dashboard.
+          </p>
+          <button
+            onClick={() => setShowAdd(true)}
+            className="sa-btn sa-btn-primary"
+          >
+            Log your first night
+          </button>
+        </div>
       ) : (
         <div className="space-y-2">
           {sorted.map(e => (
@@ -332,9 +346,20 @@ const BodyCompTab: React.FC<{ entries: BodyCompEntry[]; onSave: (e: BodyCompEntr
       )}
 
       {sorted.length === 0 ? (
-        <div className="text-center py-12 text-gray-500">
-          <BarChart3 size={48} className="mx-auto mb-3 opacity-30" />
-          <p>No body comp entries yet.</p>
+        <div className="sa-card text-center py-12 px-6 space-y-4">
+          <div className="w-16 h-16 rounded-2xl bg-sa-surface2 flex items-center justify-center mx-auto">
+            <BarChart3 size={32} className="text-gray-500" />
+          </div>
+          <h3 className="text-lg font-bold text-white">No body comp entries yet</h3>
+          <p className="text-sm text-gray-400 max-w-xs mx-auto">
+            Track weight, body fat, and measurements to see progress over time.
+          </p>
+          <button
+            onClick={() => setShowAdd(true)}
+            className="sa-btn sa-btn-primary"
+          >
+            Log your first entry
+          </button>
         </div>
       ) : (
         <div className="space-y-2">

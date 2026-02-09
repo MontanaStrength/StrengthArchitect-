@@ -45,6 +45,7 @@ const LiftView: React.FC<Props> = ({
   onNewWorkout, onSaveFeedback, onNavigatePlan,
 }) => {
   const [copied, setCopied] = useState(false);
+  const [overrideRestDay, setOverrideRestDay] = useState(false);
 
   const displayName = (isCoachMode && clientName) ? clientName : null;
   const readinessLabel = displayName ? `How is ${displayName} feeling?` : 'How are you feeling?';
@@ -89,10 +90,10 @@ const LiftView: React.FC<Props> = ({
     return (
       <div className="text-center py-16 space-y-4">
         <div className="w-16 h-16 rounded-card bg-sa-surface2 flex items-center justify-center mx-auto">
-          <Layers size={32} className="text-gray-600" />
+          <Layers size={32} className="text-sa-textMuted" />
         </div>
-        <h2 className="text-lg font-bold text-white">{noBlockTitle}</h2>
-        <p className="text-gray-400 text-sm max-w-xs mx-auto leading-relaxed">
+        <h2 className="sa-view-title">{noBlockTitle}</h2>
+        <p className="text-sa-textTertiary text-sm max-w-xs mx-auto leading-relaxed">
           {noBlockSubtitle}
         </p>
         <button
@@ -108,23 +109,22 @@ const LiftView: React.FC<Props> = ({
   // ──────────────────────────────────────────────────
   // STATE: Rest day
   // ──────────────────────────────────────────────────
-  const [overrideRestDay, setOverrideRestDay] = useState(false);
   if (blockContext && !blockContext.isTrainingDay && !overrideRestDay) {
     return (
       <div className="text-center py-16 space-y-4">
         <div className="text-5xl">🛌</div>
-        <h2 className="text-lg font-bold text-white">Rest Day</h2>
-        <p className="text-gray-400 text-sm">
+        <h2 className="sa-view-title">Rest Day</h2>
+        <p className="text-sa-textTertiary text-sm">
           Week {blockContext.weekNum} of {blockContext.totalWeeks} · {blockContext.blockName}
         </p>
         {blockContext.nextTrainingDay && (
-          <p className="text-gray-500 text-sm">
-            Next session: <span className="text-amber-400 font-semibold">{blockContext.nextTrainingDay}</span>
+          <p className="text-sa-textMuted text-sm">
+            Next session: <span className="text-sa-accentText font-semibold">{blockContext.nextTrainingDay}</span>
           </p>
         )}
         <button
           onClick={() => setOverrideRestDay(true)}
-          className="mt-2 px-4 py-2 bg-neutral-800 hover:bg-neutral-700 text-gray-300 text-sm rounded-lg transition-colors"
+          className="sa-btn sa-btn-secondary mt-2"
         >
           💪 Train Anyway
         </button>
@@ -183,11 +183,11 @@ const LiftView: React.FC<Props> = ({
         <WorkoutCard plan={currentPlan} gymSetup={gymSetup} />
 
         {isCoachMode && (
-          <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 space-y-3">
-            <h3 className="text-sm font-semibold text-blue-300 flex items-center gap-2">
+          <div className="sa-card border-sa-info/30 bg-sa-info/10 rounded-card p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-sa-info flex items-center gap-2">
               <FileSpreadsheet size={18} /> Send to client (Google Sheets)
             </h3>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-sa-textTertiary">
               Download a CSV to upload to Google Sheets and share with {displayName || 'your client'}, or copy the table to paste into a new sheet.
             </p>
             <div className="flex flex-wrap gap-2">
@@ -203,7 +203,7 @@ const LiftView: React.FC<Props> = ({
                 onClick={handleCopyForSheets}
                 className="sa-btn sa-btn-secondary py-2.5 px-4 flex items-center gap-2 text-sm"
               >
-                {copied ? <Check size={16} className="text-green-400" /> : <Copy size={16} />}
+                {copied ? <Check size={16} className="text-sa-success" /> : <Copy size={16} />}
                 {copied ? 'Copied!' : 'Copy table (paste in Sheets)'}
               </button>
             </div>
@@ -254,10 +254,10 @@ const LiftView: React.FC<Props> = ({
       {/* Header */}
       {blockContext && (
         <div className="text-center">
-          <h2 className="text-lg font-bold text-white tracking-tight">
+          <h2 className="sa-view-title tracking-tight">
             {displayName ? `${displayName}'s Lift` : "Today's Lift"}
           </h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="sa-view-subtitle mt-1">
             Week {blockContext.weekNum}/{blockContext.totalWeeks} · {blockContext.blockName}
           </p>
         </div>
@@ -265,7 +265,7 @@ const LiftView: React.FC<Props> = ({
 
       {/* Readiness */}
       <div className="space-y-3">
-        <label className="block text-sm font-semibold text-gray-300">{readinessLabel}</label>
+        <label className="block text-sm font-semibold text-sa-textSecondary">{readinessLabel}</label>
         <div className="grid grid-cols-3 gap-3">
           {READINESS_OPTIONS.map(opt => {
             const active = readiness === opt.level;
@@ -273,8 +273,8 @@ const LiftView: React.FC<Props> = ({
               <button
                 key={opt.level}
                 onClick={() => onReadinessChange(opt.level)}
-                className={`py-5 rounded-card text-center transition-all border-2 ${
-                  active ? opt.activeClass : 'border-sa-surface2 bg-sa-surface1 text-gray-500 hover:border-sa-surface3'
+                className={`py-5 rounded-card text-center duration-sa ease-sa transition-colors border-2 ${
+                  active ? opt.activeClass : 'border-sa-surface2 bg-sa-surface1 text-sa-textMuted hover:border-sa-surface3'
                 }`}
               >
                 <div className="text-2xl mb-1">{opt.emoji}</div>

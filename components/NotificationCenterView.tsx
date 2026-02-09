@@ -9,6 +9,8 @@ interface Props {
   dismissedAlertIds: string[];
   onDismissAlert: (id: string) => void;
   onClearDismissed: () => void;
+  /** When provided, empty state shows a CTA to go to dashboard */
+  onGoToDashboard?: () => void;
 }
 
 interface Alert {
@@ -20,7 +22,7 @@ interface Alert {
   timestamp: number;
 }
 
-const NotificationCenterView: React.FC<Props> = ({ history, liftRecords, sleepEntries, goals, dismissedAlertIds, onDismissAlert, onClearDismissed }) => {
+const NotificationCenterView: React.FC<Props> = ({ history, liftRecords, sleepEntries, goals, dismissedAlertIds, onDismissAlert, onClearDismissed, onGoToDashboard }) => {
   const alerts = useMemo<Alert[]>(() => {
     const items: Alert[] = [];
     const now = Date.now();
@@ -172,9 +174,22 @@ const NotificationCenterView: React.FC<Props> = ({ history, liftRecords, sleepEn
       </h2>
 
       {activeAlerts.length === 0 && (
-        <div className="bg-neutral-900 rounded-xl p-8 border border-neutral-800 text-center">
-          <div className="text-4xl mb-2">✅</div>
-          <p className="text-neutral-400">All clear! No active notifications.</p>
+        <div className="sa-card text-center py-12 px-6 space-y-4">
+          <div className="w-16 h-16 rounded-2xl bg-green-500/10 flex items-center justify-center mx-auto">
+            <span className="text-4xl">✅</span>
+          </div>
+          <h3 className="text-lg font-bold text-white">All clear</h3>
+          <p className="text-sm text-gray-400 max-w-xs mx-auto">
+            No active notifications. We'll nudge you about recovery, PRs, and goals when it's useful.
+          </p>
+          {onGoToDashboard && (
+            <button
+              onClick={onGoToDashboard}
+              className="sa-btn sa-btn-secondary"
+            >
+              View Dashboard
+            </button>
+          )}
         </div>
       )}
 

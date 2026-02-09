@@ -21,7 +21,7 @@ export const generateWorkout = async (
   volumeTolerance?: number | null
 ): Promise<StrengthWorkoutPlan> => {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 45_000); // 45s timeout
+  const timeoutId = setTimeout(() => controller.abort(), 120_000); // 2 min timeout
 
   let response: Response;
   try {
@@ -38,7 +38,7 @@ export const generateWorkout = async (
     const msg = err?.message || '';
     if (err?.name === 'AbortError') {
       throw new Error(
-        "Workout generation timed out after 45 seconds. The AI server may be warming up — please try again."
+        "Workout generation timed out after 2 minutes. The AI server may be warming up — please try again."
       );
     }
     if (msg === 'Failed to fetch' || msg.includes('fetch')) {

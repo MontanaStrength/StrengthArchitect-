@@ -1050,11 +1050,20 @@ const App: React.FC = () => {
             history={history}
             onDelete={handleDeleteWorkout}
             onSelect={(workout) => { setCurrentPlan(workout); setView('result'); }}
+            onGoToLift={() => setView('lift')}
           />
         )}
 
         {view === 'dashboard' && (
-          <DashboardView history={history} liftRecords={liftRecords} goals={goals} sleepEntries={sleepEntries} dismissedAlertIds={dismissedAlertIds} onDismissAlert={handleDismissAlert} />
+          <DashboardView
+            history={history}
+            liftRecords={liftRecords}
+            goals={goals}
+            sleepEntries={sleepEntries}
+            dismissedAlertIds={dismissedAlertIds}
+            onDismissAlert={handleDismissAlert}
+            onNavigateToLift={() => setView('lift')}
+          />
         )}
 
         {view === 'training-blocks' && (
@@ -1198,6 +1207,7 @@ const App: React.FC = () => {
             dismissedAlertIds={dismissedAlertIds}
             onDismissAlert={handleDismissAlert}
             onClearDismissed={handleClearDismissed}
+            onGoToDashboard={() => setView('dashboard')}
           />
         )}
         </ErrorBoundary>

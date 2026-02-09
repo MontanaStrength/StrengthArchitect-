@@ -15,9 +15,11 @@ interface Props {
   sleepEntries: SleepEntry[];
   dismissedAlertIds: string[];
   onDismissAlert: (id: string) => void;
+  /** When provided, welcome empty state shows a CTA to build first workout */
+  onNavigateToLift?: () => void;
 }
 
-const DashboardView: React.FC<Props> = ({ history, liftRecords, goals, sleepEntries, dismissedAlertIds, onDismissAlert }) => {
+const DashboardView: React.FC<Props> = ({ history, liftRecords, goals, sleepEntries, dismissedAlertIds, onDismissAlert, onNavigateToLift }) => {
 
   // ── CORE STATS ──────────────────────────────────
   const stats = useMemo(() => {
@@ -256,7 +258,7 @@ const DashboardView: React.FC<Props> = ({ history, liftRecords, goals, sleepEntr
 
       {/* Welcome state for fresh users */}
       {history.length === 0 && liftRecords.length === 0 && (
-        <div className="bg-gradient-to-b from-amber-500/5 to-transparent border border-amber-500/20 rounded-2xl p-8 text-center space-y-4">
+        <div className="sa-card bg-gradient-to-b from-amber-500/5 to-transparent border border-amber-500/20 rounded-2xl p-8 text-center space-y-5">
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-amber-500/10">
             <Dumbbell size={32} className="text-amber-500" />
           </div>
@@ -278,6 +280,14 @@ const DashboardView: React.FC<Props> = ({ history, liftRecords, goals, sleepEntr
               <p className="text-lg font-bold text-gray-600">&mdash;</p>
             </div>
           </div>
+          {onNavigateToLift && (
+            <button
+              onClick={onNavigateToLift}
+              className="sa-btn sa-btn-primary"
+            >
+              Build your first workout
+            </button>
+          )}
         </div>
       )}
 
