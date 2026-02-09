@@ -254,6 +254,33 @@ const DashboardView: React.FC<Props> = ({ history, liftRecords, goals, sleepEntr
         <BarChart3 size={24} className="text-amber-500" /> Dashboard
       </h2>
 
+      {/* Welcome state for fresh users */}
+      {history.length === 0 && liftRecords.length === 0 && (
+        <div className="bg-gradient-to-b from-amber-500/5 to-transparent border border-amber-500/20 rounded-2xl p-8 text-center space-y-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-amber-500/10">
+            <Dumbbell size={32} className="text-amber-500" />
+          </div>
+          <h3 className="text-lg font-bold text-white">Welcome to Your Dashboard</h3>
+          <p className="text-sm text-gray-400 max-w-md mx-auto">
+            Your training metrics, recovery insights, and progress tracking will appear here once you complete your first workout.
+          </p>
+          <div className="grid grid-cols-3 gap-3 max-w-sm mx-auto pt-2">
+            <div className="bg-neutral-900/60 rounded-xl p-3 text-center">
+              <p className="text-xs text-gray-500">Sessions</p>
+              <p className="text-lg font-bold text-gray-600">&mdash;</p>
+            </div>
+            <div className="bg-neutral-900/60 rounded-xl p-3 text-center">
+              <p className="text-xs text-gray-500">Tonnage</p>
+              <p className="text-lg font-bold text-gray-600">&mdash;</p>
+            </div>
+            <div className="bg-neutral-900/60 rounded-xl p-3 text-center">
+              <p className="text-xs text-gray-500">PRs</p>
+              <p className="text-lg font-bold text-gray-600">&mdash;</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── SMART ALERTS ── */}
       {alerts.length > 0 && (
         <div className="space-y-2">

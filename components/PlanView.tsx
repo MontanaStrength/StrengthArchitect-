@@ -215,7 +215,15 @@ const getBiasKey = (v: number) =>
   v < 20 ? 'hypertrophy' : v < 40 ? 'hypertrophy-plus' : v < 60 ? 'balanced' : v < 80 ? 'strength-plus' : 'strength';
 
 const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChange, onNavigateToLift }) => {
-  const [subTab, setSubTab] = useState<SubTab>('block');
+  const [subTab, setSubTab] = useState<SubTab>(() => {
+    const saved = localStorage.getItem('sa-plan-subtab');
+    return (saved === 'block' || saved === 'schedule' || saved === 'exercises') ? saved : 'block';
+  });
+
+  const changeSubTab = (tab: SubTab) => {
+    setSubTab(tab);
+    localStorage.setItem('sa-plan-subtab', tab);
+  };
 
   // Local state — initialized from block or sensible defaults
   const [name, setName] = useState(block?.name || '');
@@ -398,7 +406,7 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
         {subTabs.map(tab => (
           <button
             key={tab.id}
-            onClick={() => setSubTab(tab.id)}
+            onClick={() => changeSubTab(tab.id)}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg text-sm font-medium transition-all ${
               subTab === tab.id
                 ? 'bg-amber-600 text-black'
@@ -571,13 +579,13 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
           {/* Continue configuring */}
           <div className="grid grid-cols-2 gap-3">
             <button
-              onClick={() => setSubTab('schedule')}
+              onClick={() => changeSubTab('schedule')}
               className="flex items-center justify-center gap-2 bg-neutral-800 hover:bg-neutral-700 text-white py-3.5 rounded-xl text-sm font-medium transition-all border border-neutral-700"
             >
               <Calendar size={16} /> Schedule
             </button>
             <button
-              onClick={() => setSubTab('exercises')}
+              onClick={() => changeSubTab('exercises')}
               className="flex items-center justify-center gap-2 bg-neutral-800 hover:bg-neutral-700 text-white py-3.5 rounded-xl text-sm font-medium transition-all border border-neutral-700"
             >
               <Dumbbell size={16} /> Exercises
@@ -634,7 +642,7 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
 
           {/* Continue to Exercises */}
           <button
-            onClick={() => setSubTab('exercises')}
+            onClick={() => changeSubTab('exercises')}
             className="w-full flex items-center justify-center gap-2 bg-neutral-800 hover:bg-neutral-700 text-white py-3.5 rounded-xl text-sm font-medium transition-all border border-neutral-700"
           >
             <Dumbbell size={16} /> Pick Your Exercises <ChevronRight size={14} />

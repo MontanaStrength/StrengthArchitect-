@@ -59,11 +59,12 @@ const SleepTab: React.FC<{ entries: SleepEntry[]; onSave: (e: SleepEntry) => voi
   const [notes, setNotes] = useState('');
   const [hrv, setHrv] = useState<number | undefined>();
   const [restingHR, setRestingHR] = useState<number | undefined>();
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 
   const handleSave = () => {
     const entry: SleepEntry = {
       id: crypto.randomUUID(),
-      date: new Date().toISOString().split('T')[0],
+      date,
       hoursSlept: hours,
       quality,
       notes: notes || undefined,
@@ -73,6 +74,7 @@ const SleepTab: React.FC<{ entries: SleepEntry[]; onSave: (e: SleepEntry) => voi
     onSave(entry);
     setShowAdd(false);
     setNotes('');
+    setDate(new Date().toISOString().split('T')[0]);
   };
 
   const qualityColor: Record<SleepQuality, string> = {
@@ -114,8 +116,46 @@ const SleepTab: React.FC<{ entries: SleepEntry[]; onSave: (e: SleepEntry) => voi
         </div>
       )}
 
+      {/* Sleep Trend Sparkline */}
+      {sorted.length >= 3 && (() => {
+        const pts = sorted.slice(0, 14).reverse();
+        const minH = Math.min(...pts.map(p => p.hoursSlept)) - 0.5;
+        const maxH = Math.max(...pts.map(p => p.hoursSlept)) + 0.5;
+        const range = maxH - minH || 1;
+        const w = 280, h = 60, pad = 4;
+        const points = pts.map((p, i) => {
+          const x = pad + (i / (pts.length - 1)) * (w - pad * 2);
+          const y = pad + (1 - (p.hoursSlept - minH) / range) * (h - pad * 2);
+          return `${x},${y}`;
+        }).join(' ');
+        const avgY = pad + (1 - (avgHours - minH) / range) * (h - pad * 2);
+        return (
+          <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4">
+            <p className="text-xs text-gray-400 mb-2">Sleep Trend (last {pts.length} nights)</p>
+            <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-16">
+              <line x1={pad} y1={avgY} x2={w - pad} y2={avgY} stroke="#f59e0b" strokeWidth="0.5" strokeDasharray="4 3" opacity="0.5" />
+              <polyline fill="none" stroke="#60a5fa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" points={points} />
+              {pts.map((p, i) => {
+                const x = pad + (i / (pts.length - 1)) * (w - pad * 2);
+                const y = pad + (1 - (p.hoursSlept - minH) / range) * (h - pad * 2);
+                return <circle key={i} cx={x} cy={y} r="2.5" fill={p.hoursSlept >= 7 ? '#34d399' : p.hoursSlept >= 6 ? '#fbbf24' : '#f87171'} />;
+              })}
+            </svg>
+            <div className="flex justify-between text-[10px] text-gray-600 mt-1">
+              <span>{pts[0].date}</span>
+              <span className="text-amber-500/60">avg {avgHours.toFixed(1)}h</span>
+              <span>{pts[pts.length - 1].date}</span>
+            </div>
+          </div>
+        );
+      })()}
+
       {showAdd && (
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 space-y-3">
+          <div>
+            <label className="text-xs text-gray-400">Date</label>
+            <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full mt-1 p-2 rounded bg-neutral-800 border border-neutral-700 text-white text-sm" />
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-400">Hours Slept</label>
@@ -175,11 +215,12 @@ const BodyCompTab: React.FC<{ entries: BodyCompEntry[]; onSave: (e: BodyCompEntr
   const [bodyFatPct, setBodyFatPct] = useState<number | undefined>();
   const [waistInches, setWaistInches] = useState<number | undefined>();
   const [notes, setNotes] = useState('');
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 
   const handleSave = () => {
     const entry: BodyCompEntry = {
       id: crypto.randomUUID(),
-      date: Date.now(),
+      date: new Date(date + 'T12:00:00').getTime(),
       weightLbs,
       bodyFatPct,
       waistInches,
@@ -189,6 +230,7 @@ const BodyCompTab: React.FC<{ entries: BodyCompEntry[]; onSave: (e: BodyCompEntr
     onSave(entry);
     setShowAdd(false);
     setNotes('');
+    setDate(new Date().toISOString().split('T')[0]);
   };
 
   const sorted = [...entries].sort((a, b) => b.date - a.date);
@@ -210,8 +252,8 @@ const BodyCompTab: React.FC<{ entries: BodyCompEntry[]; onSave: (e: BodyCompEntr
             <p className="text-xs text-gray-400">Weight</p>
             <p className="text-2xl font-bold text-white">{latest.weightLbs}</p>
             {weightDelta !== 0 && (
-              <p className={`text-xs ${weightDelta > 0 ? 'text-amber-400' : 'text-green-400'}`}>
-                {weightDelta > 0 ? '+' : ''}{weightDelta.toFixed(1)} lbs
+              <p className="text-xs text-gray-300">
+                {weightDelta > 0 ? '↑ +' : '↓ '}{weightDelta.toFixed(1)} lbs
               </p>
             )}
           </div>
@@ -238,6 +280,10 @@ const BodyCompTab: React.FC<{ entries: BodyCompEntry[]; onSave: (e: BodyCompEntr
 
       {showAdd && (
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 space-y-3">
+          <div>
+            <label className="text-xs text-gray-400">Date</label>
+            <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full mt-1 p-2 rounded bg-neutral-800 border border-neutral-700 text-white text-sm" />
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <div>
               <label className="text-xs text-gray-400">Weight (lbs)*</label>

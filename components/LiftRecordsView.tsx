@@ -16,6 +16,7 @@ const LiftRecordsView: React.FC<Props> = ({ records, onSave, onDelete }) => {
   const [weight, setWeight] = useState(135);
   const [reps, setReps] = useState(5);
   const [rpe, setRpe] = useState<number | undefined>();
+  const [recordDate, setRecordDate] = useState(new Date().toISOString().split('T')[0]);
 
   // Group records by exercise, get best per exercise
   const grouped = useMemo(() => {
@@ -44,13 +45,14 @@ const LiftRecordsView: React.FC<Props> = ({ records, onSave, onDelete }) => {
       weight,
       reps,
       estimated1RM: est,
-      date: Date.now(),
+      date: new Date(recordDate + 'T12:00:00').getTime(),
       rpe,
     };
     onSave(record);
     setShowAdd(false);
     setExerciseName('');
     setExerciseId('');
+    setRecordDate(new Date().toISOString().split('T')[0]);
   };
 
   const quickAddExercises = [
@@ -118,6 +120,10 @@ const LiftRecordsView: React.FC<Props> = ({ records, onSave, onDelete }) => {
               <label className="text-xs text-gray-400">RPE (optional)</label>
               <input type="number" value={rpe || ''} min={1} max={10} step={0.5} onChange={e => setRpe(Number(e.target.value) || undefined)} className="w-full mt-1 p-2 rounded bg-neutral-800 border border-neutral-700 text-white text-sm" />
             </div>
+          </div>
+          <div>
+            <label className="text-xs text-gray-400">Date</label>
+            <input type="date" value={recordDate} onChange={e => setRecordDate(e.target.value)} className="w-full mt-1 p-2 rounded bg-neutral-800 border border-neutral-700 text-white text-sm" />
           </div>
           {weight > 0 && reps > 0 && (
             <p className="text-sm text-gray-400">Estimated 1RM: <span className="text-white font-bold">{Math.round(estimate1RM(weight, reps, rpe))} lbs</span></p>

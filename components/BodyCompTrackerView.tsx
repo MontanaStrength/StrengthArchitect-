@@ -53,8 +53,8 @@ const BodyCompTrackerView: React.FC<Props> = ({ entries, onSave, onDelete }) => 
             <p className="text-xs text-gray-400">Weight</p>
             <p className="text-2xl font-bold text-white">{latest.weightLbs}</p>
             {weightDelta !== 0 && (
-              <p className={`text-xs ${weightDelta > 0 ? 'text-amber-400' : 'text-green-400'}`}>
-                {weightDelta > 0 ? '+' : ''}{weightDelta.toFixed(1)} lbs
+              <p className="text-xs text-gray-300">
+                {weightDelta > 0 ? '↑ +' : '↓ '}{weightDelta.toFixed(1)} lbs
               </p>
             )}
           </div>

@@ -277,47 +277,77 @@ const WorkoutSession: React.FC<Props> = ({ workout, gymSetup, audioMuted, onAudi
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="text-xs text-gray-400">Weight (lbs)</label>
-              <input
-                type="number"
-                value={currentSet.actualWeight || ''}
-                onChange={e => {
-                  const updated = [...sets];
-                  updated[currentSetIndex].actualWeight = Number(e.target.value);
-                  setSets(updated);
-                }}
-                className="w-full mt-1 p-2 rounded bg-neutral-800 border border-neutral-700 text-white text-sm text-center"
-              />
+              <div className="flex items-center gap-1 mt-1">
+                <button
+                  onClick={() => { const u = [...sets]; u[currentSetIndex].actualWeight = Math.max(0, u[currentSetIndex].actualWeight - 5); setSets(u); }}
+                  className="w-8 h-9 rounded bg-neutral-700 hover:bg-neutral-600 text-gray-300 text-lg font-bold flex items-center justify-center transition-all"
+                >−</button>
+                <input
+                  type="number"
+                  value={currentSet.actualWeight || ''}
+                  onChange={e => {
+                    const updated = [...sets];
+                    updated[currentSetIndex].actualWeight = Number(e.target.value);
+                    setSets(updated);
+                  }}
+                  className="flex-1 p-2 rounded bg-neutral-800 border border-neutral-700 text-white text-sm text-center min-w-0"
+                />
+                <button
+                  onClick={() => { const u = [...sets]; u[currentSetIndex].actualWeight += 5; setSets(u); }}
+                  className="w-8 h-9 rounded bg-neutral-700 hover:bg-neutral-600 text-gray-300 text-lg font-bold flex items-center justify-center transition-all"
+                >+</button>
+              </div>
             </div>
             <div>
               <label className="text-xs text-gray-400">Reps</label>
-              <input
-                type="number"
-                value={currentSet.actualReps || ''}
-                onChange={e => {
-                  const updated = [...sets];
-                  updated[currentSetIndex].actualReps = Number(e.target.value);
-                  setSets(updated);
-                }}
-                className="w-full mt-1 p-2 rounded bg-neutral-800 border border-neutral-700 text-white text-sm text-center"
-                placeholder={currentSet.targetReps}
-              />
+              <div className="flex items-center gap-1 mt-1">
+                <button
+                  onClick={() => { const u = [...sets]; u[currentSetIndex].actualReps = Math.max(0, u[currentSetIndex].actualReps - 1); setSets(u); }}
+                  className="w-8 h-9 rounded bg-neutral-700 hover:bg-neutral-600 text-gray-300 text-lg font-bold flex items-center justify-center transition-all"
+                >−</button>
+                <input
+                  type="number"
+                  value={currentSet.actualReps || ''}
+                  onChange={e => {
+                    const updated = [...sets];
+                    updated[currentSetIndex].actualReps = Number(e.target.value);
+                    setSets(updated);
+                  }}
+                  className="flex-1 p-2 rounded bg-neutral-800 border border-neutral-700 text-white text-sm text-center min-w-0"
+                  placeholder={currentSet.targetReps}
+                />
+                <button
+                  onClick={() => { const u = [...sets]; u[currentSetIndex].actualReps += 1; setSets(u); }}
+                  className="w-8 h-9 rounded bg-neutral-700 hover:bg-neutral-600 text-gray-300 text-lg font-bold flex items-center justify-center transition-all"
+                >+</button>
+              </div>
             </div>
             <div>
               <label className="text-xs text-gray-400">RPE</label>
-              <input
-                type="number"
-                min={1}
-                max={10}
-                step={0.5}
-                value={currentSet.rpe || ''}
-                onChange={e => {
-                  const updated = [...sets];
-                  updated[currentSetIndex].rpe = Number(e.target.value);
-                  setSets(updated);
-                }}
-                className="w-full mt-1 p-2 rounded bg-neutral-800 border border-neutral-700 text-white text-sm text-center"
-                placeholder="RPE"
-              />
+              <div className="flex items-center gap-1 mt-1">
+                <button
+                  onClick={() => { const u = [...sets]; u[currentSetIndex].rpe = Math.max(1, (u[currentSetIndex].rpe || 7) - 0.5); setSets(u); }}
+                  className="w-8 h-9 rounded bg-neutral-700 hover:bg-neutral-600 text-gray-300 text-lg font-bold flex items-center justify-center transition-all"
+                >−</button>
+                <input
+                  type="number"
+                  min={1}
+                  max={10}
+                  step={0.5}
+                  value={currentSet.rpe || ''}
+                  onChange={e => {
+                    const updated = [...sets];
+                    updated[currentSetIndex].rpe = Number(e.target.value);
+                    setSets(updated);
+                  }}
+                  className="flex-1 p-2 rounded bg-neutral-800 border border-neutral-700 text-white text-sm text-center min-w-0"
+                  placeholder="RPE"
+                />
+                <button
+                  onClick={() => { const u = [...sets]; u[currentSetIndex].rpe = Math.min(10, (u[currentSetIndex].rpe || 7) + 0.5); setSets(u); }}
+                  className="w-8 h-9 rounded bg-neutral-700 hover:bg-neutral-600 text-gray-300 text-lg font-bold flex items-center justify-center transition-all"
+                >+</button>
+              </div>
             </div>
           </div>
 

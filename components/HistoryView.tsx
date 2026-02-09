@@ -48,6 +48,7 @@ const HistoryView: React.FC<Props> = ({ history, onDelete, onSelect }) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('all');
   const [showExport, setShowExport] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const focusOptions = ['all', 'Strength', 'Hypertrophy', 'Power', 'Endurance', 'Deload'];
 
@@ -169,7 +170,7 @@ const HistoryView: React.FC<Props> = ({ history, onDelete, onSelect }) => {
                         View / Repeat
                       </button>
                       <button
-                        onClick={(e) => { e.stopPropagation(); if (confirm('Delete this workout?')) onDelete(w.id); }}
+                        onClick={(e) => { e.stopPropagation(); setDeleteConfirmId(w.id); }}
                         className="px-3 py-2 bg-neutral-800 hover:bg-amber-900/50 text-gray-400 hover:text-amber-400 rounded-lg transition-all"
                       >
                         <Trash2 size={14} />
@@ -182,6 +183,36 @@ const HistoryView: React.FC<Props> = ({ history, onDelete, onSelect }) => {
           })}
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmId && (() => {
+        const w = history.find(h => h.id === deleteConfirmId);
+        return (
+          <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+            <div className="bg-neutral-900 border border-neutral-700 rounded-2xl p-6 max-w-sm w-full space-y-4 text-center">
+              <div className="text-3xl">🗑️</div>
+              <h3 className="text-lg font-bold text-white">Delete Workout?</h3>
+              <p className="text-sm text-gray-400">
+                {w ? `"${w.title}" — ${w.exercises.length} exercises, ${(w.actualTonnage || w.estimatedTonnage || 0).toLocaleString()} lbs` : 'This workout'} will be permanently removed.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setDeleteConfirmId(null)}
+                  className="flex-1 py-3 bg-neutral-800 hover:bg-neutral-700 text-gray-300 font-medium rounded-xl transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => { onDelete(deleteConfirmId); setDeleteConfirmId(null); setExpandedId(null); }}
+                  className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl transition-all"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

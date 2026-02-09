@@ -62,5 +62,23 @@ export const generateWorkout = async (
     throw new Error(message);
   }
 
-  return (await response.json()) as StrengthWorkoutPlan;
+  const json = await response.json();
+
+  // Validate essential response shape
+  if (!json || typeof json !== 'object') {
+    throw new Error('AI returned an invalid response. Please try again.');
+  }
+  if (!json.title || !json.focus || !Array.isArray(json.exercises)) {
+    throw new Error('AI response is missing required fields (title, focus, or exercises). Please try again.');
+  }
+  if (json.exercises.length === 0) {
+    throw new Error('AI returned an empty workout. Please try again.');
+  }
+  for (const ex of json.exercises) {
+    if (!ex.exerciseName || !ex.sets || !ex.reps) {
+      throw new Error(`AI returned a malformed exercise ("${ex.exerciseName || 'unknown'}"). Please try again.`);
+    }
+  }
+
+  return json as StrengthWorkoutPlan;
 };

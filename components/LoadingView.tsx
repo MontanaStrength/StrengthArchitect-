@@ -37,7 +37,10 @@ const LoadingView: React.FC<Props> = ({ contextLabel }) => {
     return () => clearInterval(interval);
   }, []);
 
-  const progressPercent = Math.min(95, (elapsed / ESTIMATED_SECONDS) * 100);
+  const overTime = elapsed > ESTIMATED_SECONDS;
+  const progressPercent = overTime
+    ? Math.min(98, 95 + (elapsed - ESTIMATED_SECONDS) * 0.5)
+    : Math.min(95, (elapsed / ESTIMATED_SECONDS) * 100);
 
   return (
     <div className="py-8 space-y-8">
@@ -58,7 +61,11 @@ const LoadingView: React.FC<Props> = ({ contextLabel }) => {
       <div className="space-y-2">
         <div className="h-1.5 bg-sa-surface2 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full transition-all duration-1000 ease-out"
+            className={`h-full rounded-full transition-all duration-1000 ease-out ${
+              overTime
+                ? 'bg-gradient-to-r from-amber-500 to-yellow-400 animate-pulse'
+                : 'bg-gradient-to-r from-amber-500 to-amber-400'
+            }`}
             style={{ width: `${progressPercent}%` }}
           />
         </div>
@@ -67,7 +74,7 @@ const LoadingView: React.FC<Props> = ({ contextLabel }) => {
             {elapsed}s elapsed
           </p>
           <p className="text-xs text-gray-500">
-            ~{Math.max(0, ESTIMATED_SECONDS - elapsed)}s remaining
+            {overTime ? 'Almost there — AI is thinking…' : `~${ESTIMATED_SECONDS - elapsed}s remaining`}
           </p>
         </div>
       </div>

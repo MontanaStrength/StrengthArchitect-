@@ -188,12 +188,20 @@ const OnboardingView: React.FC<Props> = ({ onComplete, onSkip }) => {
           </div>
         </div>
 
-        <button
-          onClick={() => setStep(2)}
-          className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-all flex items-center justify-center gap-2"
-        >
-          Next <ChevronRight size={16} />
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setStep(0)}
+            className="py-3 px-5 bg-neutral-800 hover:bg-neutral-700 text-gray-300 font-medium rounded-xl transition-all"
+          >
+            Back
+          </button>
+          <button
+            onClick={() => setStep(2)}
+            className="flex-1 py-3 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+          >
+            Next <ChevronRight size={16} />
+          </button>
+        </div>
       </div>
     ),
 
@@ -248,12 +256,20 @@ const OnboardingView: React.FC<Props> = ({ onComplete, onSkip }) => {
           <p className="text-[10px] text-gray-500 mt-1">{trainingDays.length} days/week selected</p>
         </div>
 
-        <button
-          onClick={handleFinish}
-          className="w-full py-3.5 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-all flex items-center justify-center gap-2"
-        >
-          <Target size={16} /> Build My Program
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setStep(1)}
+            className="py-3.5 px-5 bg-neutral-800 hover:bg-neutral-700 text-gray-300 font-medium rounded-xl transition-all"
+          >
+            Back
+          </button>
+          <button
+            onClick={handleFinish}
+            className="flex-1 py-3.5 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+          >
+            <Target size={16} /> Build My Program
+          </button>
+        </div>
       </div>
     ),
   ];

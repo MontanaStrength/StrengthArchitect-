@@ -15,11 +15,12 @@ const SleepJournalView: React.FC<Props> = ({ entries, onSave, onDelete }) => {
   const [notes, setNotes] = useState('');
   const [hrv, setHrv] = useState<number | undefined>();
   const [restingHR, setRestingHR] = useState<number | undefined>();
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
 
   const handleSave = () => {
     const entry: SleepEntry = {
       id: crypto.randomUUID(),
-      date: new Date().toISOString().split('T')[0],
+      date,
       hoursSlept: hours,
       quality,
       notes: notes || undefined,
@@ -29,6 +30,7 @@ const SleepJournalView: React.FC<Props> = ({ entries, onSave, onDelete }) => {
     onSave(entry);
     setShowAdd(false);
     setNotes('');
+    setDate(new Date().toISOString().split('T')[0]);
   };
 
   const qualityColor: Record<SleepQuality, string> = {
@@ -73,6 +75,10 @@ const SleepJournalView: React.FC<Props> = ({ entries, onSave, onDelete }) => {
       {/* Add Form */}
       {showAdd && (
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 space-y-3">
+          <div>
+            <label className="text-xs text-gray-400">Date</label>
+            <input type="date" value={date} onChange={e => setDate(e.target.value)} className="w-full mt-1 p-2 rounded bg-neutral-800 border border-neutral-700 text-white text-sm" />
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-gray-400">Hours Slept</label>
