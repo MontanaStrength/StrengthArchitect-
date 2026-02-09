@@ -100,13 +100,15 @@ export function workoutToClipboardData(plan: StrengthWorkoutPlan, clientName?: s
   ];
   if (hasTempo)     cols.push({ key: 'tempo', label: 'Tempo', align: 'center', width: '70' });
   if (hasSupersets) cols.push({ key: 'group', label: 'Group', align: 'center', width: '50' });
-  cols.push({ key: 'notes', label: 'Coaching Notes', align: 'left', width: '260' });
 
-  // Logging columns for the athlete
+  // Logging columns for the athlete (visible on main screen)
   cols.push({ key: 'log_weight', label: 'Actual Weight', align: 'center', width: '90', isLog: true });
   cols.push({ key: 'log_reps',   label: 'Actual Reps',   align: 'center', width: '80', isLog: true });
   cols.push({ key: 'log_rpe',    label: 'Actual RPE',    align: 'center', width: '75', isLog: true });
   cols.push({ key: 'log_done',   label: '✓',             align: 'center', width: '35', isLog: true });
+
+  // Coaching notes last — off-screen by default, scroll right to read
+  cols.push({ key: 'notes', label: 'Coaching Notes', align: 'left', width: '320' });
 
   const colCount = cols.length;
 
@@ -302,11 +304,11 @@ function buildTsv(
   // Spacer
   rows.push('');
 
-  // Column headers
+  // Column headers — notes pushed to far right so the working area stays clean
   const hdr = ['#', 'EXERCISE', 'SETS × REPS', 'Rx WEIGHT', '%1RM', 'RPE', 'REST'];
   if (hasTempo) hdr.push('TEMPO');
   if (hasSupersets) hdr.push('GROUP');
-  hdr.push('COACHING NOTES', '', 'ACTUAL WEIGHT', 'ACTUAL REPS', 'ACTUAL RPE', 'DONE');
+  hdr.push('ACTUAL WEIGHT', 'ACTUAL REPS', 'ACTUAL RPE', 'DONE', '', 'COACHING NOTES');
   rows.push(hdr.join('\t'));
 
   // Warmups
@@ -343,11 +345,10 @@ function buildTsv(
     ];
     if (hasTempo) row.push(e.tempo || '');
     if (hasSupersets) row.push(e.supersetGroup || '');
-    row.push(notes);
-    // Blank spacer column between prescription and logging
-    row.push('');
-    // Logging columns (blank for athlete)
+    // Logging columns (blank for athlete to fill in)
     row.push('', '', '', '');
+    // Spacer + coaching notes pushed to far right
+    row.push('', notes);
     rows.push(row.join('\t'));
   }
 
@@ -381,8 +382,8 @@ export function workoutToCsv(plan: StrengthWorkoutPlan, clientName?: string): st
   if (clientName) rows.push([`Athlete: ${escapeCsv(clientName)}`].join(','));
   rows.push(''); // blank spacer
 
-  // Header — prescription columns + logging columns
-  const header = ['#', 'Exercise', 'Sets × Reps', 'Rx Weight (lbs)', '%1RM', 'RPE Target', 'Rest', 'Tempo', 'Group', 'Coaching Notes', '', 'Actual Weight', 'Actual Reps', 'Actual RPE', 'Done'];
+  // Header — prescription, logging columns, then notes at the far right
+  const header = ['#', 'Exercise', 'Sets × Reps', 'Rx Weight (lbs)', '%1RM', 'RPE Target', 'Rest', 'Tempo', 'Group', 'Actual Weight', 'Actual Reps', 'Actual RPE', 'Done', '', 'Coaching Notes'];
   rows.push(header.map(escapeCsv).join(','));
 
   for (let i = 0; i < working.length; i++) {
@@ -398,12 +399,12 @@ export function workoutToCsv(plan: StrengthWorkoutPlan, clientName?: string): st
       escapeCsv(restLabel(e.restSeconds)),
       e.tempo ? escapeCsv(e.tempo) : '',
       e.supersetGroup ? escapeCsv(e.supersetGroup) : '',
-      notes ? escapeCsv(notes) : '',
-      '', // spacer column
       '', // Actual Weight (blank for athlete)
       '', // Actual Reps
       '', // Actual RPE
       '', // Done
+      '', // spacer column
+      notes ? escapeCsv(notes) : '', // coaching notes far right
     ].join(','));
   }
 
