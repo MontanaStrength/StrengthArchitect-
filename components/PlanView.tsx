@@ -89,20 +89,19 @@ function sortExercisesForSlot(category: string, tier: string, exercises: typeof 
   };
 
   if (category === 'accessory') {
-    return [...exercises].sort((a, b) => a.name.localeCompare(b.name));
+    return { recommended: [], others: [...exercises].sort((a, b) => a.name.localeCompare(b.name)) };
   }
   const priority = PRIORITY[category]?.[tier] || [];
   if (priority.length === 0) {
-    return [...exercises].sort((a, b) => a.name.localeCompare(b.name));
+    return { recommended: [], others: [...exercises].sort((a, b) => a.name.localeCompare(b.name)) };
   }
-  return [
-    // Priority exercises first, in order
-    ...priority
-      .map(id => exercises.find(e => e.id === id))
-      .filter(Boolean),
-    // Then the rest, alphabetically
-    ...exercises.filter(e => !priority.includes(e.id)).sort((a, b) => a.name.localeCompare(b.name))
-  ];
+  const recommended = priority
+    .map(id => exercises.find(e => e.id === id))
+    .filter(Boolean) as typeof exercises;
+  const others = exercises
+    .filter(e => !priority.includes(e.id))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  return { recommended, others };
 }
 import React, { useState, useMemo } from 'react';
 import { TrainingBlock, ExerciseSlot, ExercisePreferences, MovementPattern } from '../types';
@@ -194,6 +193,15 @@ const CATEGORY_COLORS: Record<string, string> = {
   ohp: 'border-green-700/50',
   core: 'border-purple-700/50',
   accessory: 'border-neutral-700/50',
+};
+
+/** Readable group headers for <optgroup> inside exercise dropdowns */
+const OPTGROUP_LABELS: Record<string, Record<string, string>> = {
+  squat:    { primary: 'Primary Squat Movements', secondary: 'Supplemental Squat Variations', tertiary: 'Unilateral / Machine / Accessory' },
+  bench:    { primary: 'Primary Bench Movements', secondary: 'Supplemental Press Variations', tertiary: 'Dumbbell / Isolation / Accessory' },
+  deadlift: { primary: 'Primary Deadlift Movements', secondary: 'Supplemental Hinge Variations', tertiary: 'Unilateral / Machine / Accessory' },
+  ohp:      { primary: 'Primary Overhead Movements', secondary: 'Supplemental Overhead Variations', tertiary: 'Dumbbell / Isolation' },
+  core:     { 'anti-extension': 'Anti-Extension', 'anti-flexion': 'Anti-Flexion / Loaded Carry', 'anti-rotation': 'Anti-Rotation' },
 };
 
 const MAXES_CONFIG: { key: keyof EstimatedMaxes; label: string }[] = [
@@ -687,7 +695,8 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
                 </div>
                 <div className="divide-y divide-neutral-800/50">
                   {categorySlots.map(slot => {
-                    const sortedExercises = sortExercisesForSlot(category, slot.tier, exercises);
+                    const { recommended, others } = sortExercisesForSlot(category, slot.tier, exercises);
+                    const recLabel = OPTGROUP_LABELS[category]?.[slot.tier] || 'Recommended';
                     return (
                       <div key={slot.index} className="flex items-center gap-3 px-4 py-3">
                         <span className="text-xs text-gray-500 w-28 shrink-0 font-medium">{TIER_LABELS[slot.tier]}</span>
@@ -697,9 +706,20 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
                           className="flex-1 bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2 text-sm text-white focus:border-amber-500 outline-none transition-all appearance-none cursor-pointer"
                         >
                           <option value="">— AI chooses —</option>
-                          {sortedExercises.map(ex => (
-                            <option key={ex.id} value={ex.id}>{ex.name}</option>
-                          ))}
+                          {recommended.length > 0 && (
+                            <optgroup label={`★ ${recLabel}`}>
+                              {recommended.map(ex => (
+                                <option key={ex.id} value={ex.id}>{ex.name}</option>
+                              ))}
+                            </optgroup>
+                          )}
+                          {others.length > 0 && (
+                            <optgroup label={recommended.length > 0 ? 'Other Variations' : 'All Exercises'}>
+                              {others.map(ex => (
+                                <option key={ex.id} value={ex.id}>{ex.name}</option>
+                              ))}
+                            </optgroup>
+                          )}
                         </select>
                         {slot.exerciseId && (
                           <Check size={14} className="text-amber-400 shrink-0" />

@@ -19,6 +19,9 @@ const COLORS = {
   warmupText: '#065f46',
   footerBg: '#f0f0f5',
   footerText: '#374151',
+  logColumnBg: '#fffbeb',   // warm cream for "log these" columns
+  logColumnHeader: '#92400e', // amber-800
+  checkboxBg: '#f3f4f6',    // light gray for checkable cells
 };
 
 const FONT = "'Inter', 'Segoe UI', Arial, sans-serif";
@@ -39,6 +42,11 @@ const fmtDate = () => {
   return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 };
 
+const shortDate = () => {
+  const d = new Date();
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
 const setsXReps = (e: ExerciseBlock): string => {
   return `${e.sets} × ${e.reps}`;
 };
@@ -51,6 +59,11 @@ const rpeLabel = (rpe: number | undefined): string => {
   return `${rpe} 🟢`;
 };
 
+const rpeText = (rpe: number | undefined): string => {
+  if (rpe == null) return '';
+  return String(rpe);
+};
+
 const restLabel = (sec: number): string => {
   if (sec >= 120) return `${(sec / 60).toFixed(sec % 60 ? 1 : 0)} min`;
   return `${sec}s`;
@@ -61,28 +74,39 @@ const restLabel = (sec: number): string => {
 /**
  * Generates a beautifully-formatted HTML table + plain-text fallback
  * for pasting into Google Sheets via the Clipboard API.
+ *
+ * The design philosophy: produce a complete, usable training log —
+ * not just a data dump. Includes "Actual" columns for the athlete
+ * to fill in during their session.
  */
 export function workoutToClipboardData(plan: StrengthWorkoutPlan, clientName?: string): { html: string; text: string } {
   const warmups = plan.exercises.filter(e => e.isWarmupSet);
   const working = plan.exercises.filter(e => !e.isWarmupSet);
 
-  // Detect if there are supersets
+  // Detect optional columns
   const hasSupersets = working.some(e => e.supersetGroup);
   const hasTempo = working.some(e => e.tempo);
 
   // --- Determine columns ---
-  const cols: { key: string; label: string; align: string; width: string }[] = [
-    { key: 'order',    label: '#',              align: 'center', width: '36' },
-    { key: 'exercise', label: 'Exercise',       align: 'left',   width: '220' },
-    { key: 'scheme',   label: 'Sets × Reps',   align: 'center', width: '100' },
-    { key: 'weight',   label: 'Weight (lbs)',   align: 'center', width: '95' },
-    { key: 'pct',      label: '%1RM',           align: 'center', width: '65' },
-    { key: 'rpe',      label: 'RPE',            align: 'center', width: '70' },
-    { key: 'rest',     label: 'Rest',           align: 'center', width: '65' },
+  type Col = { key: string; label: string; align: string; width: string; isLog?: boolean };
+  const cols: Col[] = [
+    { key: 'order',    label: '#',            align: 'center', width: '30' },
+    { key: 'exercise', label: 'Exercise',     align: 'left',   width: '200' },
+    { key: 'scheme',   label: 'Sets × Reps',  align: 'center', width: '90' },
+    { key: 'weight',   label: 'Rx Weight',    align: 'center', width: '85' },
+    { key: 'pct',      label: '%1RM',         align: 'center', width: '55' },
+    { key: 'rpe',      label: 'RPE',          align: 'center', width: '50' },
+    { key: 'rest',     label: 'Rest',         align: 'center', width: '55' },
   ];
-  if (hasTempo)     cols.push({ key: 'tempo',   label: 'Tempo',   align: 'center', width: '80' });
-  if (hasSupersets) cols.push({ key: 'group',   label: 'Group',   align: 'center', width: '55' });
-  cols.push(        { key: 'notes',   label: 'Coaching Notes',    align: 'left',   width: '320' });
+  if (hasTempo)     cols.push({ key: 'tempo', label: 'Tempo', align: 'center', width: '70' });
+  if (hasSupersets) cols.push({ key: 'group', label: 'Group', align: 'center', width: '50' });
+  cols.push({ key: 'notes', label: 'Coaching Notes', align: 'left', width: '260' });
+
+  // Logging columns for the athlete
+  cols.push({ key: 'log_weight', label: 'Actual Weight', align: 'center', width: '90', isLog: true });
+  cols.push({ key: 'log_reps',   label: 'Actual Reps',   align: 'center', width: '80', isLog: true });
+  cols.push({ key: 'log_rpe',    label: 'Actual RPE',    align: 'center', width: '75', isLog: true });
+  cols.push({ key: 'log_done',   label: '✓',             align: 'center', width: '35', isLog: true });
 
   const colCount = cols.length;
 
@@ -93,16 +117,16 @@ export function workoutToClipboardData(plan: StrengthWorkoutPlan, clientName?: s
   html += `<tr><td colspan="${colCount}" style="background:${COLORS.titleBg};color:${COLORS.titleText};padding:14px 16px 6px;font-size:16px;font-weight:700;letter-spacing:0.3px;">`;
   html += `🏋️ ${esc(plan.title)}</td></tr>`;
 
-  // === Row 2: Focus / Difficulty / Date ===
+  // === Row 2: Focus / Difficulty / Date / Client ===
   html += `<tr><td colspan="${colCount}" style="background:${COLORS.titleBg};color:${COLORS.accentGold};padding:2px 16px 12px;font-size:11px;font-weight:500;">`;
   const metaParts = [plan.focus, plan.difficulty, `${plan.totalDurationMin} min`];
   if (plan.estimatedTonnage) metaParts.push(`~${plan.estimatedTonnage.toLocaleString()} lbs tonnage`);
-  if (clientName) metaParts.push(`Client: ${clientName}`);
+  if (clientName) metaParts.push(`Athlete: ${clientName}`);
   html += `${esc(metaParts.join('  ·  '))}`;
   html += `<span style="float:right;color:${COLORS.metaLabel};font-size:10px;">${esc(fmtDate())}</span>`;
   html += `</td></tr>`;
 
-  // === Row 3: Spacer ===
+  // === Row 3: Gold accent bar ===
   html += `<tr><td colspan="${colCount}" style="height:4px;background:${COLORS.accentGold};padding:0;"></td></tr>`;
 
   // === Warmup section (if any) ===
@@ -114,7 +138,6 @@ export function workoutToClipboardData(plan: StrengthWorkoutPlan, clientName?: s
       html += `<td style="background:${COLORS.warmupBg};padding:4px 8px;color:${COLORS.warmupText};font-size:10px;">${esc(e.exerciseName)}</td>`;
       html += `<td style="background:${COLORS.warmupBg};padding:4px 8px;text-align:center;color:${COLORS.warmupText};font-size:10px;">${esc(setsXReps(e))}</td>`;
       html += `<td style="background:${COLORS.warmupBg};padding:4px 8px;text-align:center;color:${COLORS.warmupText};font-size:10px;">${e.weightLbs != null ? esc(e.weightLbs) : ''}</td>`;
-      // Fill remaining cols
       for (let i = 4; i < colCount; i++) {
         html += `<td style="background:${COLORS.warmupBg};padding:4px 8px;font-size:10px;"></td>`;
       }
@@ -126,7 +149,10 @@ export function workoutToClipboardData(plan: StrengthWorkoutPlan, clientName?: s
   // === Column headers ===
   html += `<tr>`;
   for (const col of cols) {
-    html += `<td style="background:${COLORS.headerBg};color:${COLORS.headerText};padding:10px 8px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.8px;text-align:${col.align};border-bottom:2px solid ${COLORS.accentGold};width:${col.width}px;">${esc(col.label)}</td>`;
+    const bg = col.isLog ? COLORS.logColumnHeader : COLORS.headerBg;
+    const fg = COLORS.headerText;
+    const borderBottom = col.isLog ? `2px solid ${COLORS.accentGold}` : `2px solid ${COLORS.accentGold}`;
+    html += `<td style="background:${bg};color:${fg};padding:10px 8px;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:0.8px;text-align:${col.align};border-bottom:${borderBottom};width:${col.width}px;">${esc(col.label)}</td>`;
   }
   html += `</tr>`;
 
@@ -144,7 +170,6 @@ export function workoutToClipboardData(plan: StrengthWorkoutPlan, clientName?: s
     }
     prevSupersetGroup = e.supersetGroup;
 
-    // Superset left-border
     const supersetBorderStyle = e.supersetGroup
       ? `border-left:4px solid ${COLORS.supersetBorder};`
       : '';
@@ -156,6 +181,8 @@ export function workoutToClipboardData(plan: StrengthWorkoutPlan, clientName?: s
     for (const col of cols) {
       let val = '';
       let extraStyle = '';
+      const cellBg = col.isLog ? COLORS.logColumnBg : rowBg;
+
       switch (col.key) {
         case 'order':
           val = String(orderNum);
@@ -192,15 +219,24 @@ export function workoutToClipboardData(plan: StrengthWorkoutPlan, clientName?: s
           val = esc(notes);
           extraStyle = `color:${COLORS.notesText};font-size:10px;font-style:italic;`;
           break;
+        // Logging columns — intentionally empty for athlete to fill
+        case 'log_weight':
+        case 'log_reps':
+        case 'log_rpe':
+        case 'log_done':
+          val = '';
+          extraStyle = `color:#6b7280;`;
+          break;
       }
-      html += `<td style="background:${rowBg};padding:8px 8px;text-align:${col.align};font-size:11px;border-bottom:1px solid ${COLORS.divider};${extraStyle}">${val}</td>`;
+      html += `<td style="background:${cellBg};padding:8px 8px;text-align:${col.align};font-size:11px;border-bottom:1px solid ${COLORS.divider};${extraStyle}">${val}</td>`;
     }
     html += `</tr>`;
   }
 
-  // === Summary footer ===
+  // === Gold accent bar ===
   html += `<tr><td colspan="${colCount}" style="height:3px;background:${COLORS.accentGold};padding:0;"></td></tr>`;
 
+  // === Summary footer ===
   const summaryParts: string[] = [];
   if (plan.estimatedTonnage) summaryParts.push(`📊 Est. Tonnage: ${plan.estimatedTonnage.toLocaleString()} lbs`);
   summaryParts.push(`⏱ Duration: ${plan.totalDurationMin} min`);
@@ -211,7 +247,6 @@ export function workoutToClipboardData(plan: StrengthWorkoutPlan, clientName?: s
   html += summaryParts.join('&emsp;·&emsp;');
   html += `</td></tr>`;
 
-  // Summary / "why this workout"
   if (plan.summary) {
     html += `<tr><td colspan="${colCount}" style="background:${COLORS.footerBg};padding:4px 16px 10px;font-size:10px;color:${COLORS.notesText};font-style:italic;">`;
     html += `"${esc(plan.summary)}"`;
@@ -225,55 +260,129 @@ export function workoutToClipboardData(plan: StrengthWorkoutPlan, clientName?: s
 
   // ─── Plain-text TSV fallback ──────────────────────
 
-  const tsvHeader = ['#', 'Exercise', 'Sets × Reps', 'Weight (lbs)', '%1RM', 'RPE', 'Rest', ...(hasTempo ? ['Tempo'] : []), ...(hasSupersets ? ['Group'] : []), 'Notes'];
-  const tsvRows: string[] = [];
+  const text = buildTsv(plan, working, warmups, clientName, hasTempo, hasSupersets, summaryParts);
 
-  // Title line
-  tsvRows.push(`${plan.title}\t${plan.focus}\t${plan.difficulty}\t${plan.totalDurationMin} min\t${fmtDate()}`);
-  tsvRows.push('');
-  tsvRows.push(tsvHeader.join('\t'));
+  return { html, text };
+}
 
+/**
+ * Build a clean, well-structured TSV (tab-separated) that looks professional
+ * when pasted into Google Sheets even without HTML styling.
+ *
+ * Layout:
+ *   Row 1: Workout title
+ *   Row 2: Metadata (focus, difficulty, duration, tonnage, date)
+ *   Row 3: Blank spacer
+ *   Row 4: PRESCRIPTION headers ──── | ──── LOGGING headers
+ *   Row 5+: Exercise rows
+ *   Blank spacer
+ *   Summary row
+ */
+function buildTsv(
+  plan: StrengthWorkoutPlan,
+  working: ExerciseBlock[],
+  warmups: ExerciseBlock[],
+  clientName: string | undefined,
+  hasTempo: boolean,
+  hasSupersets: boolean,
+  summaryParts: string[],
+): string {
+  const rows: string[] = [];
+
+  // Title
+  rows.push(plan.title);
+
+  // Metadata
+  const meta = [plan.focus, plan.difficulty, `${plan.totalDurationMin} min`];
+  if (plan.estimatedTonnage) meta.push(`~${plan.estimatedTonnage.toLocaleString()} lbs tonnage`);
+  if (clientName) meta.push(`Athlete: ${clientName}`);
+  meta.push(shortDate());
+  rows.push(meta.join('  |  '));
+
+  // Spacer
+  rows.push('');
+
+  // Column headers
+  const hdr = ['#', 'EXERCISE', 'SETS × REPS', 'Rx WEIGHT', '%1RM', 'RPE', 'REST'];
+  if (hasTempo) hdr.push('TEMPO');
+  if (hasSupersets) hdr.push('GROUP');
+  hdr.push('COACHING NOTES', '', 'ACTUAL WEIGHT', 'ACTUAL REPS', 'ACTUAL RPE', 'DONE');
+  rows.push(hdr.join('\t'));
+
+  // Warmups
+  if (warmups.length > 0) {
+    const wCols = hdr.length;
+    const wPad = new Array(Math.max(0, wCols - 4)).fill('').join('\t');
+    rows.push(`\t🔥 WARM-UP\t\t${wPad}`);
+    for (const e of warmups) {
+      const row = [
+        '—',
+        e.exerciseName,
+        setsXReps(e),
+        e.weightLbs != null ? String(e.weightLbs) : '',
+      ];
+      // pad remaining columns
+      while (row.length < wCols) row.push('');
+      rows.push(row.join('\t'));
+    }
+    rows.push(''); // spacer after warmup
+  }
+
+  // Exercise rows
   for (let i = 0; i < working.length; i++) {
     const e = working[i];
     const notes = [e.notes, e.coachingCue].filter(Boolean).join('. ').trim();
-    const row = [
+    const row: string[] = [
       String(i + 1),
       e.exerciseName,
       setsXReps(e),
-      e.weightLbs != null ? String(e.weightLbs) : '',
+      e.weightLbs != null ? `${e.weightLbs} lbs` : '',
       e.percentOf1RM != null ? `${e.percentOf1RM}%` : '',
-      e.rpeTarget != null ? String(e.rpeTarget) : '',
+      rpeText(e.rpeTarget),
       restLabel(e.restSeconds),
-      ...(hasTempo ? [e.tempo || ''] : []),
-      ...(hasSupersets ? [e.supersetGroup || ''] : []),
-      notes,
     ];
-    tsvRows.push(row.join('\t'));
+    if (hasTempo) row.push(e.tempo || '');
+    if (hasSupersets) row.push(e.supersetGroup || '');
+    row.push(notes);
+    // Blank spacer column between prescription and logging
+    row.push('');
+    // Logging columns (blank for athlete)
+    row.push('', '', '', '');
+    rows.push(row.join('\t'));
   }
 
-  tsvRows.push('');
-  tsvRows.push(summaryParts.map(s => s.replace(/[📊⏱🎯💪]/g, '').trim()).join('  |  '));
+  // Spacer + Summary
+  rows.push('');
+  rows.push(summaryParts.map(s => s.replace(/[📊⏱🎯💪]/g, '').trim()).join('  |  '));
+  if (plan.summary) {
+    rows.push(`"${plan.summary}"`);
+  }
 
-  return { html, text: tsvRows.join('\n') };
+  // Branding
+  rows.push('');
+  rows.push(`Generated by Strength Architect · ${shortDate()}`);
+
+  return rows.join('\n');
 }
+
 
 // ─── CSV (file download) ───────────────────────────
 
 /**
  * Build CSV rows for a single workout, suitable for import into Google Sheets.
- * Now includes a title row and summary footer for a polished look.
+ * Includes athlete logging columns and a clean layout.
  */
 export function workoutToCsv(plan: StrengthWorkoutPlan, clientName?: string): string {
   const rows: string[] = [];
   const working = plan.exercises.filter(e => !e.isWarmupSet);
 
   // Title & metadata
-  rows.push([escapeCsv(plan.title), plan.focus, plan.difficulty, `${plan.totalDurationMin} min`, fmtDate()].join(','));
-  if (clientName) rows.push([`Client: ${escapeCsv(clientName)}`].join(','));
+  rows.push([escapeCsv(plan.title), plan.focus, plan.difficulty, `${plan.totalDurationMin} min`, shortDate()].join(','));
+  if (clientName) rows.push([`Athlete: ${escapeCsv(clientName)}`].join(','));
   rows.push(''); // blank spacer
 
-  // Header
-  const header = ['#', 'Exercise', 'Sets × Reps', 'Weight (lbs)', '%1RM', 'RPE', 'Rest', 'Tempo', 'Group', 'Coaching Notes'];
+  // Header — prescription columns + logging columns
+  const header = ['#', 'Exercise', 'Sets × Reps', 'Rx Weight (lbs)', '%1RM', 'RPE Target', 'Rest', 'Tempo', 'Group', 'Coaching Notes', '', 'Actual Weight', 'Actual Reps', 'Actual RPE', 'Done'];
   rows.push(header.map(escapeCsv).join(','));
 
   for (let i = 0; i < working.length; i++) {
@@ -290,6 +399,11 @@ export function workoutToCsv(plan: StrengthWorkoutPlan, clientName?: string): st
       e.tempo ? escapeCsv(e.tempo) : '',
       e.supersetGroup ? escapeCsv(e.supersetGroup) : '',
       notes ? escapeCsv(notes) : '',
+      '', // spacer column
+      '', // Actual Weight (blank for athlete)
+      '', // Actual Reps
+      '', // Actual RPE
+      '', // Done
     ].join(','));
   }
 
