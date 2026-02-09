@@ -6,7 +6,7 @@ import {
 import WorkoutCard from './WorkoutCard';
 import FeedbackSection from './FeedbackSection';
 import LoadingView from './LoadingView';
-import { workoutToCsv, workoutToTsv, workoutExportFilename } from '../utils/workoutToSheets';
+import { workoutToCsv, workoutToClipboardData, workoutExportFilename } from '../utils/workoutToSheets';
 import { Dumbbell, Zap, RefreshCw, Layers, FileSpreadsheet, Download, Copy, Check } from 'lucide-react';
 
 interface Props {
@@ -148,7 +148,7 @@ const LiftView: React.FC<Props> = ({
   // ──────────────────────────────────────────────────
   if (currentPlan) {
     const handleDownloadCsv = () => {
-      const csv = workoutToCsv(currentPlan);
+      const csv = workoutToCsv(currentPlan, displayName ?? undefined);
       const filename = workoutExportFilename(currentPlan, displayName ?? undefined);
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
@@ -160,13 +160,26 @@ const LiftView: React.FC<Props> = ({
     };
 
     const handleCopyForSheets = async () => {
-      const tsv = workoutToTsv(currentPlan);
+      const { html, text } = workoutToClipboardData(currentPlan, displayName ?? undefined);
       try {
-        await navigator.clipboard.writeText(tsv);
+        // Use the rich clipboard API so Google Sheets gets formatted HTML
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            'text/html': new Blob([html], { type: 'text/html' }),
+            'text/plain': new Blob([text], { type: 'text/plain' }),
+          }),
+        ]);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       } catch {
-        window.prompt('Copy this and paste into Google Sheets:', tsv);
+        // Fallback: try plain text, then prompt
+        try {
+          await navigator.clipboard.writeText(text);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        } catch {
+          window.prompt('Copy this and paste into Google Sheets:', text);
+        }
       }
     };
 
