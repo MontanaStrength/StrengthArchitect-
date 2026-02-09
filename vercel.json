@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/generate-workout.ts": {
+      "maxDuration": 120
+    }
+  }
+}
