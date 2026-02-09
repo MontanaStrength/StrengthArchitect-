@@ -270,9 +270,9 @@ const App: React.FC = () => {
           }));
         }
 
-        // Show onboarding for empty data scopes
+        // Show "About you" onboarding only for lifter mode when empty. In coach mode we already have client profile from Add Athlete.
         if (blocks.length === 0 && workouts.length === 0) {
-          setShowOnboarding(true);
+          setShowOnboarding(appMode !== 'coach');
         } else {
           setShowOnboarding(false);
         }
@@ -559,8 +559,13 @@ const App: React.FC = () => {
     }
     setShowClientForm(false);
     setEditingClient(null);
-    // Update active client if editing the current one
-    if (activeClient?.id === client.id) setActiveClient(client);
+    // Keep active client in sync: when editing, update; when adding new, select them so coach goes into their context
+    if (activeClient?.id === client.id) {
+      setActiveClient(client);
+    } else if (!exists) {
+      setActiveClient(client);
+      localStorage.setItem('sa_active_client_id', client.id);
+    }
   }, [coachClients, user, activeClient]);
 
   const handleDeleteClient = useCallback(async (id: string) => {
