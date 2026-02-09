@@ -414,15 +414,29 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
       {/* ===== BLOCK SUB-TAB ===== */}
       {subTab === 'block' && (
         <div className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Block Name</label>
+          <div className={`rounded-xl p-4 border-2 transition-all ${
+            name.trim()
+              ? 'border-amber-500/40 bg-amber-500/5'
+              : 'border-amber-500 bg-amber-500/10 ring-2 ring-amber-500/30 animate-[pulse_4s_ease-in-out_infinite]'
+          }`}>
+            <label className="block text-base font-bold text-amber-400 mb-2">
+              🏷️ Name Your Block {!name.trim() && <span className="text-amber-500 text-sm font-medium ml-1">(required)</span>}
+            </label>
             <input
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="e.g. Spring Strength Block"
-              className="w-full bg-neutral-900 border border-neutral-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-all"
+              autoFocus
+              className={`w-full bg-neutral-900 rounded-xl px-4 py-3.5 text-white text-lg font-semibold placeholder-gray-600 placeholder:font-normal placeholder:text-sm focus:outline-none transition-all border-2 ${
+                name.trim()
+                  ? 'border-neutral-700 focus:border-amber-500'
+                  : 'border-amber-500/60 focus:border-amber-500'
+              }`}
             />
+            {!name.trim() && (
+              <p className="text-xs text-amber-400/70 mt-2">Give your block a name so you can find it later!</p>
+            )}
           </div>
 
           <div>

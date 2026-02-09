@@ -120,7 +120,7 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
           ))}
 
           {/* ── Main barbell group — bench-press rep motion ── */}
-          <g style={{ animation: 'la-rep 3s cubic-bezier(0.33, 0, 0.2, 1) infinite' }}>
+          <g style={{ animation: 'la-rep 3s ease-in-out infinite' }}>
 
             {/* Plate glow halos (behind plates) */}
             <rect x="18" y="84" width="28" height="72" rx="10"
@@ -193,13 +193,11 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
       </div>
 
       <style>{`
-        /* ── Rep motion: slow eccentric → pause → explosive press → settle ── */
+        /* ── Rep motion: smooth continuous press cycle ── */
         @keyframes la-rep {
           0%, 100% { transform: translateY(0); }
-          32%      { transform: translateY(12px); }
-          42%      { transform: translateY(12px); }
-          62%      { transform: translateY(-5px); }
-          80%      { transform: translateY(0); }
+          35%      { transform: translateY(21px); }
+          65%      { transform: translateY(-9px); }
         }
 
         /* ── Energy pulse rings ── */
@@ -245,10 +243,8 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
         /* ── Dynamic ground shadow ── */
         @keyframes la-shadow {
           0%, 100% { transform: scaleX(1); opacity: 0.04; }
-          32%      { transform: scaleX(0.78); opacity: 0.09; }
-          42%      { transform: scaleX(0.78); opacity: 0.09; }
-          62%      { transform: scaleX(1.12); opacity: 0.025; }
-          80%      { transform: scaleX(1); opacity: 0.04; }
+          35%      { transform: scaleX(0.68); opacity: 0.12; }
+          65%      { transform: scaleX(1.18); opacity: 0.02; }
         }
 
         /* ── Left spark particles ── */

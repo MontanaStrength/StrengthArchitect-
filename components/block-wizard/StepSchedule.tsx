@@ -5,15 +5,29 @@ import { Calendar } from 'lucide-react';
 const StepSchedule: React.FC<BlockStepProps> = ({ state, onChange }) => {
   return (
     <div className="space-y-8">
-      {/* Block name */}
-      <div>
-        <label className="block text-sm font-semibold text-gray-300 mb-2">Block Name</label>
+      {/* Block name — prominent so it's hard to miss */}
+      <div className={`rounded-xl p-4 border-2 transition-all ${
+        state.name.trim()
+          ? 'border-amber-500/40 bg-amber-500/5'
+          : 'border-amber-500 bg-amber-500/10 ring-2 ring-amber-500/30 animate-[pulse_4s_ease-in-out_infinite]'
+      }`}>
+        <label className="block text-base font-bold text-amber-400 mb-2">
+          🏷️ Name Your Block {!state.name.trim() && <span className="text-amber-500 text-sm font-medium ml-1">(required)</span>}
+        </label>
         <input
           value={state.name}
           onChange={e => onChange({ name: e.target.value })}
           placeholder="e.g., Spring Strength Block"
-          className="w-full p-3 rounded-xl bg-neutral-800 border border-neutral-700 text-white text-sm focus:border-amber-500 focus:outline-none transition-colors"
+          className={`w-full p-3.5 rounded-xl bg-neutral-800 border-2 text-white text-lg font-semibold focus:outline-none transition-all placeholder:text-gray-600 placeholder:font-normal placeholder:text-sm ${
+            state.name.trim()
+              ? 'border-neutral-700 focus:border-amber-500'
+              : 'border-amber-500/60 focus:border-amber-500'
+          }`}
+          autoFocus
         />
+        {!state.name.trim() && (
+          <p className="text-xs text-amber-400/70 mt-2">Give your block a name so you can find it later!</p>
+        )}
       </div>
 
       {/* Start & goal dates */}

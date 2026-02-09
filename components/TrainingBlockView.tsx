@@ -82,25 +82,37 @@ const TrainingBlockView: React.FC<Props> = ({ blocks, onSave, onDelete }) => {
               ))}
             </select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-gray-400">Block Name (optional)</label>
+          <div className={`rounded-xl p-3 border-2 transition-all ${
+              name.trim()
+                ? 'border-amber-500/40 bg-amber-500/5'
+                : 'border-amber-500 bg-amber-500/10 ring-2 ring-amber-500/30 animate-[pulse_4s_ease-in-out_infinite]'
+            }`}>
+              <label className="block text-sm font-bold text-amber-400 mb-1">
+                🏷️ Block Name {!name.trim() && <span className="text-amber-500 text-xs font-medium ml-1">(required)</span>}
+              </label>
               <input
                 value={name}
                 onChange={e => setName(e.target.value)}
                 placeholder={PERIODIZATION_TEMPLATES[selectedTemplate]?.name}
-                className="w-full mt-1 p-2 rounded bg-neutral-800 border border-neutral-700 text-white text-sm"
+                autoFocus
+                className={`w-full p-2.5 rounded-lg bg-neutral-800 text-white text-base font-semibold placeholder-gray-600 placeholder:font-normal placeholder:text-sm focus:outline-none transition-all border-2 ${
+                  name.trim()
+                    ? 'border-neutral-700 focus:border-amber-500'
+                    : 'border-amber-500/60 focus:border-amber-500'
+                }`}
               />
-            </div>
-            <div>
-              <label className="text-xs text-gray-400">Goal Event (optional)</label>
+              {!name.trim() && (
+                <p className="text-[10px] text-amber-400/70 mt-1.5">Give your block a name so you can find it later!</p>
+              )}
+          </div>
+          <div>
+            <label className="text-xs text-gray-400">Goal Event (optional)</label>
               <input
                 value={goalEvent}
                 onChange={e => setGoalEvent(e.target.value)}
                 placeholder="e.g., Powerlifting Meet"
                 className="w-full mt-1 p-2 rounded bg-neutral-800 border border-neutral-700 text-white text-sm"
               />
-            </div>
           </div>
           {/* Template preview */}
           {PERIODIZATION_TEMPLATES[selectedTemplate] && (
