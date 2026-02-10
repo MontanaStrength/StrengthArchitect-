@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CoachClient } from '../types';
-import { Plus, Users, Dumbbell, ChevronRight, Search, Settings, LogOut } from 'lucide-react';
+import { Plus, Users, ChevronRight, Search, Settings, LogOut } from 'lucide-react';
+import BrandIcon from './BrandIcon';
 
 interface Props {
   clients: CoachClient[];
@@ -39,7 +40,7 @@ const ClientRosterView: React.FC<Props> = ({
       <header className="bg-neutral-900/80 backdrop-blur border-b border-neutral-800 sticky top-0 z-50">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Dumbbell size={22} className="text-amber-500" />
+            <BrandIcon size={22} className="text-amber-500" />
             <span className="text-lg font-bold">
               <span className="text-white">Strength </span>
               <span className="text-amber-500">Architect</span>

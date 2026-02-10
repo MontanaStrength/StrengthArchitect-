@@ -59,6 +59,7 @@ import ModeSelectionView from './components/ModeSelectionView';
 import ClientRosterView from './components/ClientRosterView';
 import ClientFormModal from './components/ClientFormModal';
 import { computeOptimizerRecommendations } from './services/optimizerEngine';
+import BrandIcon from './components/BrandIcon';
 
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -780,7 +781,7 @@ const App: React.FC = () => {
               </button>
             )}
             <h1 className="text-lg font-bold flex items-center gap-2 tracking-tight">
-              <Dumbbell size={20} className="text-amber-500" />
+              <BrandIcon size={22} className="text-amber-500" />
               <span className="text-white">Strength</span>
               <span className="text-amber-500">Architect</span>
             </h1>
