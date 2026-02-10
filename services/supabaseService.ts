@@ -573,9 +573,18 @@ export const fetchDismissedAlertsFromCloud = async (userId: string): Promise<str
 // ===== COACH CLIENTS =====
 
 export const syncCoachClientToCloud = async (client: CoachClient, userId: string) => {
-  // Pack sessionStructure into equipment JSONB to avoid schema migration
-  const equipmentPayload = client.sessionStructure
-    ? { __v: 2, items: client.equipment, sessionStructure: client.sessionStructure }
+  // Pack extra fields into equipment JSONB to avoid schema migration
+  const hasExtras = client.sessionStructure || client.squat1RM || client.benchPress1RM || client.deadlift1RM || client.overheadPress1RM;
+  const equipmentPayload = hasExtras
+    ? {
+        __v: 2,
+        items: client.equipment,
+        sessionStructure: client.sessionStructure,
+        squat1RM: client.squat1RM,
+        benchPress1RM: client.benchPress1RM,
+        deadlift1RM: client.deadlift1RM,
+        overheadPress1RM: client.overheadPress1RM,
+      }
     : client.equipment;
 
   const { error } = await supabase
@@ -626,6 +635,10 @@ export const fetchCoachClientsFromCloud = async (userId: string): Promise<CoachC
       avatarColor: row.avatar_color,
       createdAt: row.created_at,
       ...(sessionStructure && { sessionStructure }),
+      ...(isWrapped && rawEquip.squat1RM && { squat1RM: rawEquip.squat1RM }),
+      ...(isWrapped && rawEquip.benchPress1RM && { benchPress1RM: rawEquip.benchPress1RM }),
+      ...(isWrapped && rawEquip.deadlift1RM && { deadlift1RM: rawEquip.deadlift1RM }),
+      ...(isWrapped && rawEquip.overheadPress1RM && { overheadPress1RM: rawEquip.overheadPress1RM }),
     };
   });
 };

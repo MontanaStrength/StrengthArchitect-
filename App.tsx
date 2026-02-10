@@ -274,7 +274,7 @@ const App: React.FC = () => {
         setStrengthTests(tests);
         setCustomTemplates(templates);
 
-        // In coach mode, populate form data from client profile
+        // In coach mode, populate form data from client profile (including 1RMs)
         if (appMode === 'coach' && activeClient) {
           setFormData(prev => ({
             ...prev,
@@ -284,6 +284,10 @@ const App: React.FC = () => {
             trainingExperience: activeClient.experience,
             availableEquipment: activeClient.equipment,
             sessionStructure: activeClient.sessionStructure,
+            squat1RM: activeClient.squat1RM || prev.squat1RM,
+            benchPress1RM: activeClient.benchPress1RM || prev.benchPress1RM,
+            deadlift1RM: activeClient.deadlift1RM || prev.deadlift1RM,
+            overheadPress1RM: activeClient.overheadPress1RM || prev.overheadPress1RM,
           }));
         }
 
@@ -866,7 +870,13 @@ const App: React.FC = () => {
               }}
               onMaxesChange={(maxes) => {
                 setFormData(prev => ({ ...prev, ...maxes }));
-                if (user && appMode !== 'coach') {
+                if (user && appMode === 'coach' && activeClient) {
+                  // Persist 1RMs on the client profile
+                  const updatedClient = { ...activeClient, ...maxes };
+                  setActiveClient(updatedClient);
+                  setCoachClients(prev => prev.map(c => c.id === updatedClient.id ? updatedClient : c));
+                  syncCoachClientToCloud(updatedClient, user.id).catch(console.error);
+                } else if (user && appMode !== 'coach') {
                   supabase.auth.updateUser({ data: maxes }).catch(console.error);
                 }
               }}

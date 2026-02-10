@@ -671,4 +671,9 @@ export interface CoachClient {
   createdAt: number;
   /** Session structure preset: how many lifts per session */
   sessionStructure?: SessionStructure;
+  /** Estimated 1RMs for the big four */
+  squat1RM?: number;
+  benchPress1RM?: number;
+  deadlift1RM?: number;
+  overheadPress1RM?: number;
 }
