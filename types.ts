@@ -151,17 +151,28 @@ export const SESSION_STRUCTURE_PRESETS: SessionStructurePreset[] = [
     id: 'one-lift',
     label: 'One Lift a Day',
     shortLabel: '1 Lift',
-    exerciseRange: { min: 1, max: 1 },
-    description: 'Single main lift with deep volume. Perfect for high-frequency training (5-7 days/week).',
-    promptGuidance: `SESSION STRUCTURE: "One Lift a Day" — This athlete trains with HIGH FREQUENCY (5-7 days/week) using a single-lift-per-session approach.
-    RULES:
-    - Output EXACTLY 1 exercise entry in the exercises array. ONE entry, ONE exerciseId.
-    - Do NOT split the exercise into multiple "volume blocks" or "intensity blocks" — use ONE entry with a single set/rep prescription.
-    - Concentrate ALL working sets on that single exercise entry. Use the optimizer's prescribed set count.
-    - Include 2-3 progressive warmup sets (isWarmupSet: true) before the working sets.
-    - Vary the stimulus ACROSS SESSIONS (heavy day vs volume day), NOT within a single session.
-    - NO accessories, NO secondary exercises. The exercises array must contain exactly 1 working exercise.
-    - This is NOT a minimalist workout — it's a FOCUSED session on one movement pattern with all volume in one prescription.`,
+    exerciseRange: { min: 1, max: 4 },
+    description: 'One primary barbell lift (Squat, Bench, or Deadlift) with deep volume, plus 2-3 low-fatigue accessories. High-frequency friendly (5-7 days/week).',
+    promptGuidance: `SESSION STRUCTURE: "One Lift a Day" (OLAD) — This athlete trains with HIGH FREQUENCY (5-7 days/week). Each session is built around ONE primary barbell lift with optional low-fatigue accessory work.
+    PHILOSOPHY: OLAD means one HARD lift is the centerpiece — not that you literally do only one exercise. Think of it like 5/3/1 or Dan John's "one main lift" approach: the barbell movement gets all the focused intensity, and a handful of easy accessories round out the session without adding meaningful systemic fatigue.
+    PRIMARY LIFT SELECTION:
+    - The primary lift MUST be one of: Back Squat, Bench Press, Deadlift (conventional or sumo), or Overhead Press.
+    - Rotate the primary lift across sessions so each gets hit 1-2x/week at high frequency.
+    - The primary lift receives ALL heavy working sets (use the optimizer's prescribed set count). Include 2-3 progressive warmup sets (isWarmupSet: true) before working sets.
+    ACCESSORY RULES:
+    - After the primary lift, add 2-3 LOW-FATIGUE accessories (2-3 sets each, RPE 6-7 max, NO grinding).
+    - Accessories must be isolation or machine movements that do NOT generate significant systemic fatigue. Good examples:
+      • Upper-body days: curls, tricep pushdowns, face pulls, band pull-aparts, lateral raises, pushups
+      • Lower-body days: leg curls, back raises, ab wheel, hanging leg raises, calf raises, hip adductor/abductor
+    - Accessories should target weak points, prehab, or "beach muscles" — they are NOT secondary compounds.
+    - NEVER pair two heavy compounds together (e.g., no Squat + Deadlift, no Bench + OHP in the same OLAD session).
+    - Curls, face pulls, and ab work are always acceptable regardless of primary lift because their systemic fatigue cost is negligible.
+    EXERCISE COUNT: Output 1 primary barbell lift + 2-3 accessories = 3-4 total exercises in the array.
+    EXAMPLE SESSIONS:
+    • Squat OLAD: Back Squat 5x3 @85% → Leg Curls 3x12 → Ab Wheel 3x10 → Face Pulls 3x15
+    • Bench OLAD: Bench Press 6x4 @80% → Curls 3x12 → Tricep Pushdowns 3x15 → Band Pull-Aparts 3x20
+    • Deadlift OLAD: Deadlift 5x2 @88% → Back Raises 3x12 → Hanging Leg Raises 3x10 → Curls 3x12
+    STIMULUS VARIATION: Vary the PRIMARY LIFT stimulus across sessions (heavy day vs volume day), NOT within a single session. Accessories stay light and consistent.`,
   },
   {
     id: 'main-plus-accessory',
