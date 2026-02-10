@@ -110,6 +110,7 @@ export const syncTrainingBlockToCloud = async (block: TrainingBlock, userId: str
     volumeTolerance: block.volumeTolerance,
     lengthWeeks: block.lengthWeeks,
     trainingDays: block.trainingDays,
+    sessionStructure: block.sessionStructure,
   };
 
   const { data, error } = await supabase
@@ -163,6 +164,7 @@ export const fetchTrainingBlocksFromCloud = async (userId: string, clientId?: st
         volumeTolerance: rawPhases.volumeTolerance,
         lengthWeeks: rawPhases.lengthWeeks,
         trainingDays: rawPhases.trainingDays,
+        sessionStructure: rawPhases.sessionStructure,
       }),
     };
   });
@@ -571,6 +573,11 @@ export const fetchDismissedAlertsFromCloud = async (userId: string): Promise<str
 // ===== COACH CLIENTS =====
 
 export const syncCoachClientToCloud = async (client: CoachClient, userId: string) => {
+  // Pack sessionStructure into equipment JSONB to avoid schema migration
+  const equipmentPayload = client.sessionStructure
+    ? { __v: 2, items: client.equipment, sessionStructure: client.sessionStructure }
+    : client.equipment;
+
   const { error } = await supabase
     .from('coach_clients')
     .upsert({
@@ -582,7 +589,7 @@ export const syncCoachClientToCloud = async (client: CoachClient, userId: string
       age: client.age,
       gender: client.gender,
       experience: client.experience,
-      equipment: client.equipment,
+      equipment: equipmentPayload,
       notes: client.notes,
       avatar_color: client.avatarColor,
       created_at: client.createdAt,
@@ -599,19 +606,28 @@ export const fetchCoachClientsFromCloud = async (userId: string): Promise<CoachC
 
   if (error) throw error;
 
-  return (data || []).map(row => ({
-    id: row.id,
-    name: row.name,
-    email: row.email,
-    weightLbs: row.weight_lbs,
-    age: row.age,
-    gender: row.gender,
-    experience: row.experience,
-    equipment: row.equipment || [],
-    notes: row.notes,
-    avatarColor: row.avatar_color,
-    createdAt: row.created_at,
-  }));
+  return (data || []).map(row => {
+    // Handle both old format (plain array) and new format (wrapper with sessionStructure)
+    const rawEquip = row.equipment;
+    const isWrapped = rawEquip && !Array.isArray(rawEquip) && rawEquip.__v;
+    const equipment = isWrapped ? (rawEquip.items || []) : (rawEquip || []);
+    const sessionStructure = isWrapped ? rawEquip.sessionStructure : undefined;
+
+    return {
+      id: row.id,
+      name: row.name,
+      email: row.email,
+      weightLbs: row.weight_lbs,
+      age: row.age,
+      gender: row.gender,
+      experience: row.experience,
+      equipment,
+      notes: row.notes,
+      avatarColor: row.avatar_color,
+      createdAt: row.created_at,
+      ...(sessionStructure && { sessionStructure }),
+    };
+  });
 };
 
 export const deleteCoachClientFromCloud = async (id: string, userId: string) => {
