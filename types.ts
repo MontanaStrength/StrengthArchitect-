@@ -155,12 +155,13 @@ export const SESSION_STRUCTURE_PRESETS: SessionStructurePreset[] = [
     description: 'Single main lift with deep volume. Perfect for high-frequency training (5-7 days/week).',
     promptGuidance: `SESSION STRUCTURE: "One Lift a Day" — This athlete trains with HIGH FREQUENCY (5-7 days/week) using a single-lift-per-session approach.
     RULES:
-    - Prescribe EXACTLY 1 working exercise for this session.
-    - Concentrate ALL volume on that single lift (6-10+ working sets).
-    - Include 2-3 progressive warmup sets before working weight.
-    - Vary the stimulus across sessions via set/rep schemes (heavy singles one day, volume sets another).
-    - NO accessories, NO secondary exercises. Every set is devoted to the one lift.
-    - This is NOT a minimalist workout — it's a FOCUSED, high-volume session on one movement pattern.`,
+    - Output EXACTLY 1 exercise entry in the exercises array. ONE entry, ONE exerciseId.
+    - Do NOT split the exercise into multiple "volume blocks" or "intensity blocks" — use ONE entry with a single set/rep prescription.
+    - Concentrate ALL working sets on that single exercise entry. Use the optimizer's prescribed set count.
+    - Include 2-3 progressive warmup sets (isWarmupSet: true) before the working sets.
+    - Vary the stimulus ACROSS SESSIONS (heavy day vs volume day), NOT within a single session.
+    - NO accessories, NO secondary exercises. The exercises array must contain exactly 1 working exercise.
+    - This is NOT a minimalist workout — it's a FOCUSED session on one movement pattern with all volume in one prescription.`,
   },
   {
     id: 'main-plus-accessory',
