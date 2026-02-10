@@ -35,6 +35,9 @@ import HistoryView from './components/HistoryView';
 import FeedbackSection from './components/FeedbackSection';
 import TrainingBlockView from './components/TrainingBlockView';
 import LiftRecordsView from './components/LiftRecordsView';
+import StrengthProgressView from './components/StrengthProgressView';
+import VolumeDistributionView from './components/VolumeDistributionView';
+import RecoveryFatigueView from './components/RecoveryFatigueView';
 import TrainingCalendarView from './components/TrainingCalendarView';
 import GoalSettingView from './components/GoalSettingView';
 import StrengthTestView from './components/StrengthTestView';
@@ -57,7 +60,7 @@ import { computeOptimizerRecommendations } from './services/optimizerEngine';
 
 import ErrorBoundary from './components/ErrorBoundary';
 
-import { Dumbbell, BarChart3, Calendar, Target, Activity, Bell, ChevronLeft, LogOut, Wrench, Calculator, BookOpen, Layers, LayoutList, Plus, Users } from 'lucide-react';
+import { Dumbbell, BarChart3, Calendar, Target, Activity, Bell, ChevronLeft, LogOut, Wrench, Calculator, BookOpen, Layers, LayoutList, Plus, Users, TrendingUp, Heart } from 'lucide-react';
 
 type ViewState =
   | 'form'
@@ -69,6 +72,9 @@ type ViewState =
   | 'dashboard'
   | 'training-blocks'
   | 'lift-records'
+  | 'strength'
+  | 'volume'
+  | 'recovery'
   | 'calendar'
   | 'goals'
   | 'strength-test'
@@ -710,6 +716,7 @@ const App: React.FC = () => {
     'plate-calculator': 'lift', 'exercise-library': 'lift', 'strength-test': 'lift',
     // ANALYZE
     'dashboard': 'analyze', 'history': 'analyze', 'lift-records': 'analyze',
+    'strength': 'analyze', 'volume': 'analyze', 'recovery': 'analyze',
     'tracking': 'analyze', 'notifications': 'analyze',
     // Hubs
     'plan': 'plan', 'lift': 'lift', 'analyze': 'analyze',
@@ -733,6 +740,9 @@ const App: React.FC = () => {
 
   const analyzeSubItems: { label: string; view: ViewState; icon: React.ReactNode }[] = [
     { label: 'Dashboard',      view: 'dashboard',     icon: <BarChart3 size={16} /> },
+    { label: 'Strength',       view: 'strength',      icon: <TrendingUp size={16} /> },
+    { label: 'Volume',          view: 'volume',         icon: <BarChart3 size={16} /> },
+    { label: 'Recovery',        view: 'recovery',       icon: <Heart size={16} /> },
     { label: 'History',         view: 'history',        icon: <Activity size={16} /> },
     { label: 'Lift Records',    view: 'lift-records',   icon: <Dumbbell size={16} /> },
     { label: 'Tracking',        view: 'tracking',       icon: <Target size={16} /> },
@@ -1111,6 +1121,30 @@ const App: React.FC = () => {
               if (user) deleteLiftRecordFromCloud(id, user.id).catch(console.error);
             }}
           />
+        )}
+
+        {view === 'strength' && (
+          <StrengthProgressView
+            records={liftRecords}
+            history={history}
+            athleteWeightLbs={formData.weightLbs}
+            onSave={async (record) => {
+              setLiftRecords(prev => [record, ...prev]);
+              if (user) syncLiftRecordToCloud(record, user.id, cid).catch(console.error);
+            }}
+            onDelete={async (id) => {
+              setLiftRecords(prev => prev.filter(r => r.id !== id));
+              if (user) deleteLiftRecordFromCloud(id, user.id).catch(console.error);
+            }}
+          />
+        )}
+
+        {view === 'volume' && (
+          <VolumeDistributionView history={history} />
+        )}
+
+        {view === 'recovery' && (
+          <RecoveryFatigueView history={history} sleepEntries={sleepEntries} />
         )}
 
         {view === 'calendar' && (
