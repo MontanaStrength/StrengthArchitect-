@@ -1090,6 +1090,17 @@ export const EXERCISE_LIBRARY: Exercise[] = [
     cues: ['Neutral grip', 'Elbows pinned', 'Full range of motion'],
   },
   {
+    id: 'ez_bar_curl',
+    name: 'EZ Bar Curl',
+    primaryMuscles: [MuscleGroup.BICEPS],
+    secondaryMuscles: [MuscleGroup.FOREARMS],
+    movementPattern: MovementPattern.ISOLATION,
+    equipment: [AvailableEquipment.BARBELL],
+    difficulty: 'beginner',
+    isCompound: false,
+    cues: ['Angled grip reduces wrist strain', 'Elbows pinned at sides', 'Control the eccentric'],
+  },
+  {
     id: 'tricep_pushdown',
     name: 'Tricep Pushdown',
     primaryMuscles: [MuscleGroup.TRICEPS],
