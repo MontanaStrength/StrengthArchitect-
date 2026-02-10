@@ -45,7 +45,8 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
 
   // Generate 8 rep peaks with slight variation in height (force output)
   // Simulates fatigue: first few reps strong, later reps slightly lower
-  const peakHeights = [58, 62, 60, 56, 54, 50, 48, 52]; // Newtons (scaled)
+  // Scaled +50% to match increased ROM (more distance = more force production)
+  const peakHeights = [87, 93, 90, 84, 81, 75, 72, 78]; // Newtons (scaled)
   const peakWidths =  [22, 20, 21, 22, 23, 22, 21, 20];
 
   // Build the full force curve path
@@ -59,8 +60,8 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
   // Total animation duration for the chart to fully draw
   const chartDuration = 18; // seconds — slow, appreciable reveal
 
-  // Axis tick Y positions (force levels)
-  const tickForces = [20, 40, 60];
+  // Axis tick Y positions (force levels) — scaled for higher peaks
+  const tickForces = [30, 60, 90];
 
   // ── Build synced barbell + shadow keyframes: 8 reps in first 85% of chart cycle ──
   const repPct = 85 / repCount; // ~10.625% per rep
@@ -72,13 +73,13 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
     const md = (i * repPct + repPct * 0.58).toFixed(2); // mid-drive (concentric)
     const ov = (i * repPct + repPct * 0.72).toFixed(2); // lockout overshoot
     barbellKF += `${s}% { transform: translateY(0); }\n          `;
-    barbellKF += `${b}% { transform: translateY(21px); }\n          `;
-    barbellKF += `${md}% { transform: translateY(2px); }\n          `;
-    barbellKF += `${ov}% { transform: translateY(-9px); }\n          `;
+    barbellKF += `${b}% { transform: translateY(32px); }\n          `;
+    barbellKF += `${md}% { transform: translateY(3px); }\n          `;
+    barbellKF += `${ov}% { transform: translateY(-14px); }\n          `;
     shadowKF += `${s}% { transform: scaleX(1); opacity: 0.04; }\n          `;
-    shadowKF += `${b}% { transform: scaleX(0.68); opacity: 0.12; }\n          `;
-    shadowKF += `${md}% { transform: scaleX(0.85); opacity: 0.07; }\n          `;
-    shadowKF += `${ov}% { transform: scaleX(1.18); opacity: 0.02; }\n          `;
+    shadowKF += `${b}% { transform: scaleX(0.62); opacity: 0.15; }\n          `;
+    shadowKF += `${md}% { transform: scaleX(0.82); opacity: 0.08; }\n          `;
+    shadowKF += `${ov}% { transform: scaleX(1.22); opacity: 0.02; }\n          `;
   }
   barbellKF += '85% { transform: translateY(0); }\n          100% { transform: translateY(0); }';
   shadowKF  += '85% { transform: scaleX(1); opacity: 0.04; }\n          100% { transform: scaleX(1); opacity: 0.04; }';
@@ -182,17 +183,17 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
             />
 
             {/* Y-axis */}
-            <line x1={chartLeft} y1={chartBaseline} x2={chartLeft} y2={chartBaseline - 70}
+            <line x1={chartLeft} y1={chartBaseline} x2={chartLeft} y2={chartBaseline - 100}
               stroke="#f59e0b" strokeWidth="0.5" opacity="0.1"
             />
 
             {/* Tiny axis labels */}
-            <text x={chartLeft - 2} y={chartBaseline - 18} textAnchor="end"
-              fill="#f59e0b" opacity="0.12" fontSize="5" fontFamily="monospace">500N</text>
-            <text x={chartLeft - 2} y={chartBaseline - 38} textAnchor="end"
-              fill="#f59e0b" opacity="0.12" fontSize="5" fontFamily="monospace">1kN</text>
+            <text x={chartLeft - 2} y={chartBaseline - 28} textAnchor="end"
+              fill="#f59e0b" opacity="0.12" fontSize="5" fontFamily="monospace">750N</text>
             <text x={chartLeft - 2} y={chartBaseline - 58} textAnchor="end"
               fill="#f59e0b" opacity="0.12" fontSize="5" fontFamily="monospace">1.5kN</text>
+            <text x={chartLeft - 2} y={chartBaseline - 88} textAnchor="end"
+              fill="#f59e0b" opacity="0.12" fontSize="5" fontFamily="monospace">2.25kN</text>
 
             {/* Rep number labels along baseline */}
             {Array.from({ length: repCount }, (_, i) => (
@@ -288,11 +289,11 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
           <g style={{ animation: `la-rep ${chartDuration}s linear infinite` }}>
 
             {/* Plate glow halos (behind plates) */}
-            <rect x="18" y="84" width="28" height="72" rx="10"
+            <rect x="14" y="84" width="28" height="72" rx="10"
               fill="#f59e0b" filter="url(#la-glow)"
               style={{ animation: 'la-pglow 4.5s ease-in-out infinite' }}
             />
-            <rect x="194" y="84" width="28" height="72" rx="10"
+            <rect x="198" y="84" width="28" height="72" rx="10"
               fill="#f59e0b" filter="url(#la-glow)"
               style={{ animation: 'la-pglow 4.5s ease-in-out infinite' }}
             />
@@ -311,21 +312,27 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
               fill="none" stroke="#b0b5bf" strokeWidth="0.9" opacity="0.25"
             />
 
-            {/* Left side */}
+            {/* Left side — 3 plates */}
             <rect x="40" y="112" width="7" height="16" rx="3" fill="url(#la-collar)" />
             <rect x="24" y="90" width="16" height="60" rx="5" fill="url(#la-plate)" />
             <rect x="24" y="90" width="3.5" height="60" rx="1.5" fill="white" opacity="0.09" />
             <rect x="36.5" y="90" width="2" height="60" rx="1" fill="black" opacity="0.06" />
             <rect x="10" y="98" width="14" height="44" rx="4" fill="url(#la-plate-d)" />
             <rect x="10" y="98" width="3" height="44" rx="1" fill="white" opacity="0.06" />
+            {/* Third smallest plate */}
+            <rect x="0" y="105" width="10" height="30" rx="3" fill="url(#la-plate-d)" />
+            <rect x="0" y="105" width="2.5" height="30" rx="1" fill="white" opacity="0.05" />
 
-            {/* Right side */}
+            {/* Right side — 3 plates */}
             <rect x="193" y="112" width="7" height="16" rx="3" fill="url(#la-collar)" />
             <rect x="200" y="90" width="16" height="60" rx="5" fill="url(#la-plate)" />
             <rect x="212.5" y="90" width="3.5" height="60" rx="1.5" fill="white" opacity="0.09" />
             <rect x="200" y="90" width="2" height="60" rx="1" fill="black" opacity="0.06" />
             <rect x="216" y="98" width="14" height="44" rx="4" fill="url(#la-plate-d)" />
             <rect x="227" y="98" width="3" height="44" rx="1" fill="white" opacity="0.06" />
+            {/* Third smallest plate */}
+            <rect x="230" y="105" width="10" height="30" rx="3" fill="url(#la-plate-d)" />
+            <rect x="237.5" y="105" width="2.5" height="30" rx="1" fill="white" opacity="0.05" />
 
             {/* Diagonal chrome light sweep */}
             <rect x="0" y="86" width="240" height="68" rx="6"
