@@ -63,6 +63,43 @@ const computeGuardrails = (experience: string) => {
   return { maxSetsPerSession: 35, maxExercises: 10, maxPercentOf1RM: 100, maxHardSessionsPer7d: 4, forceCompounds: false };
 };
 
+// Session structure presets (standalone copy for Vercel)
+const SESSION_STRUCTURE_PROMPT: Record<string, { maxExercises: number; guidance: string }> = {
+  'one-lift': {
+    maxExercises: 1,
+    guidance: `SESSION STRUCTURE: "One Lift a Day" — This athlete trains with HIGH FREQUENCY (5-7 days/week) using a single-lift-per-session approach.
+    RULES:
+    - Prescribe EXACTLY 1 working exercise for this session.
+    - Concentrate ALL volume on that single lift (6-10+ working sets).
+    - Include 2-3 progressive warmup sets before working weight.
+    - Vary the stimulus across sessions via set/rep schemes (heavy singles one day, volume sets another).
+    - NO accessories, NO secondary exercises. Every set is devoted to the one lift.
+    - This is NOT a minimalist workout — it's a FOCUSED, high-volume session on one movement pattern.`,
+  },
+  'main-plus-accessory': {
+    maxExercises: 2,
+    guidance: `SESSION STRUCTURE: "Main Lift + Accessory" — This athlete prefers focused 2-exercise sessions.
+    RULES:
+    - Prescribe EXACTLY 2 working exercises: 1 main compound lift and 1 accessory.
+    - The main lift gets the majority of volume (4-6+ working sets).
+    - The accessory targets a supporting muscle group or addresses a weakness (2-4 sets).
+    - Include warmup sets for the main compound lift.
+    - The accessory should complement the main lift (e.g., main: squat, accessory: RDL or leg curl).
+    - Do NOT add extra exercises. Keep it to exactly 2.`,
+  },
+  'standard': { maxExercises: 0, guidance: '' }, // 0 = use default guardrails
+  'high-variety': {
+    maxExercises: 10,
+    guidance: `SESSION STRUCTURE: "High Variety" — This athlete prefers sessions with more exercises and distributed volume.
+    RULES:
+    - Prescribe 6-10 exercises to cover multiple movement patterns and muscle groups.
+    - Distribute volume across exercises (2-4 sets each) rather than concentrating on fewer lifts.
+    - Include a mix of compounds and isolation work.
+    - Supersets are encouraged to manage session duration.
+    - Ensure broad coverage of movement patterns (push, pull, hinge, squat, core).`,
+  },
+};
+
 const computeDisallowedArchetypes = (data: any) => {
   const readiness = String(data.readiness).toLowerCase();
   const bucket = getExperienceBucket(data.trainingExperience);
@@ -112,6 +149,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const safetyExposure = computeRecentLoadExposure(history);
     const guardrails = computeGuardrails(data.trainingExperience);
     const disallowedArchetypes = computeDisallowedArchetypes(data);
+
+    // Session structure override
+    const ssPreset = data.sessionStructure ? SESSION_STRUCTURE_PROMPT[data.sessionStructure] : null;
+    if (ssPreset && ssPreset.maxExercises > 0) {
+      guardrails.maxExercises = ssPreset.maxExercises;
+    }
 
     let historyContext = '';
     if (recentWorkouts.length > 0) {
@@ -163,12 +206,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       goalBiasContext = `BLOCK BIAS: ${biasLabel} (${goalBias}/100). ${goalBias < 50 ? 'Lean toward 8-12 reps, 60-75% 1RM, 60-120s rest, more volume.' : goalBias > 50 ? 'Lean toward 3-5 reps, 80-92% 1RM, 3-5 min rest, fewer heavier sets.' : 'Mix heavy compounds (5-6 reps) with hypertrophy assistance (8-10 reps).'}`;
     }
 
+    let sessionStructureContext = '';
+    if (ssPreset && ssPreset.guidance) {
+      sessionStructureContext = `\n### ${ssPreset.guidance}\nBINDING: The session structure OVERRIDES the exercise count from both the optimizer and the NSCA defaults.`;
+    }
+
     const prompt = `You are an expert strength coach. Design a session for: ${data.trainingExperience}, ${data.readiness} readiness, ${data.duration}min, Focus: ${data.trainingGoalFocus}, Equipment: ${data.availableEquipment.join(', ')}, Athlete: ${data.age}yo ${data.gender} ${data.weightLbs}lbs. ${liftPRs ? `1RMs: ${liftPRs}` : 'No 1RM data — use RPE-based loading.'}
 ${historyContext}
 ${blockContext}
 ${optimizerContext}
 ${goalBiasContext}
 ${volumeToleranceContext}
+${sessionStructureContext}
 GUARDRAILS: Max ${guardrails.maxSetsPerSession} working sets, ${guardrails.maxExercises} exercises, ${guardrails.maxPercentOf1RM}% max 1RM. Weekly load: ${safetyExposure.last7Count} sessions, ${safetyExposure.hardSessions} hard. Disallowed archetypes: ${disallowedArchetypes.join(', ') || 'None'}. ${guardrails.forceCompounds ? 'BEGINNER: compounds only + 1-2 accessories.' : ''}
 FALLBACK DEFAULTS (NSCA/ACSM) — use ONLY where the OPTIMIZER does not specify. Optimizer's sets/reps/intensity are BINDING and always override these:
 - Exercise order: power → multi-joint compounds → single-joint isolation → core last.

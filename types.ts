@@ -133,6 +133,76 @@ export interface SavedWorkout extends StrengthWorkoutPlan {
   sessionRPE?: number; // overall session RPE 1-10
 }
 
+// ===== SESSION STRUCTURE =====
+
+export type SessionStructure = 'one-lift' | 'main-plus-accessory' | 'standard' | 'high-variety';
+
+export interface SessionStructurePreset {
+  id: SessionStructure;
+  label: string;
+  shortLabel: string;
+  exerciseRange: { min: number; max: number };
+  description: string;
+  promptGuidance: string;
+}
+
+export const SESSION_STRUCTURE_PRESETS: SessionStructurePreset[] = [
+  {
+    id: 'one-lift',
+    label: 'One Lift a Day',
+    shortLabel: '1 Lift',
+    exerciseRange: { min: 1, max: 1 },
+    description: 'Single main lift with deep volume. Perfect for high-frequency training (5-7 days/week).',
+    promptGuidance: `SESSION STRUCTURE: "One Lift a Day" — This athlete trains with HIGH FREQUENCY (5-7 days/week) using a single-lift-per-session approach.
+    RULES:
+    - Prescribe EXACTLY 1 working exercise for this session.
+    - Concentrate ALL volume on that single lift (6-10+ working sets).
+    - Include 2-3 progressive warmup sets before working weight.
+    - Vary the stimulus across sessions via set/rep schemes (heavy singles one day, volume sets another).
+    - NO accessories, NO secondary exercises. Every set is devoted to the one lift.
+    - This is NOT a minimalist workout — it's a FOCUSED, high-volume session on one movement pattern.`,
+  },
+  {
+    id: 'main-plus-accessory',
+    label: 'Main + Accessory',
+    shortLabel: '1+1',
+    exerciseRange: { min: 2, max: 2 },
+    description: 'One main compound lift plus one targeted accessory. Great for focused sessions.',
+    promptGuidance: `SESSION STRUCTURE: "Main Lift + Accessory" — This athlete prefers focused 2-exercise sessions.
+    RULES:
+    - Prescribe EXACTLY 2 working exercises: 1 main compound lift and 1 accessory.
+    - The main lift gets the majority of volume (4-6+ working sets).
+    - The accessory targets a supporting muscle group or addresses a weakness (2-4 sets).
+    - Include warmup sets for the main compound lift.
+    - The accessory should complement the main lift (e.g., main: squat, accessory: RDL or leg curl).
+    - Do NOT add extra exercises. Keep it to exactly 2.`,
+  },
+  {
+    id: 'standard',
+    label: 'Standard Session',
+    shortLabel: 'Standard',
+    exerciseRange: { min: 4, max: 7 },
+    description: 'Traditional 4-7 exercise session with compounds and accessories. The classic approach.',
+    promptGuidance: '', // Empty = use existing NSCA defaults, no override needed
+  },
+  {
+    id: 'high-variety',
+    label: 'High Variety',
+    shortLabel: 'High Vol',
+    exerciseRange: { min: 6, max: 10 },
+    description: 'More exercises with distributed volume. Covers many muscle groups per session.',
+    promptGuidance: `SESSION STRUCTURE: "High Variety" — This athlete prefers sessions with more exercises and distributed volume.
+    RULES:
+    - Prescribe 6-10 exercises to cover multiple movement patterns and muscle groups.
+    - Distribute volume across exercises (2-4 sets each) rather than concentrating on fewer lifts.
+    - Include a mix of compounds and isolation work.
+    - Supersets are encouraged to manage session duration.
+    - Ensure broad coverage of movement patterns (push, pull, hinge, squat, core).`,
+  },
+];
+
+export const DEFAULT_SESSION_STRUCTURE: SessionStructure = 'standard';
+
 // ===== USER FORM =====
 
 export interface FormData {
@@ -149,6 +219,8 @@ export interface FormData {
   squat1RM?: number;
   deadlift1RM?: number;
   overheadPress1RM?: number;
+  // Session structure preference
+  sessionStructure?: SessionStructure;
 }
 
 export type TrainingGoalFocus = 'strength' | 'hypertrophy' | 'power' | 'endurance' | 'general';
@@ -264,6 +336,8 @@ export interface TrainingBlock {
   goalBias?: number;
   /** 1 = conservative, 3 = moderate (default), 5 = high capacity */
   volumeTolerance?: number;
+  /** Session structure preset: how many lifts per session */
+  sessionStructure?: SessionStructure;
 }
 
 // ===== EXERCISE PREFERENCES (18-slot selection) =====
@@ -580,4 +654,6 @@ export interface CoachClient {
   notes?: string;
   avatarColor: string;
   createdAt: number;
+  /** Session structure preset: how many lifts per session */
+  sessionStructure?: SessionStructure;
 }

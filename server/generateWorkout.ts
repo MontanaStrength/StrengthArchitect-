@@ -1,5 +1,6 @@
 import { GoogleGenAI, Type } from '@google/genai';
-import type { FormData, SavedWorkout, StrengthWorkoutPlan, OptimizerRecommendations, ExercisePreferences } from '../types';
+import type { FormData, SavedWorkout, StrengthWorkoutPlan, OptimizerRecommendations, ExercisePreferences, SessionStructure } from '../types';
+import { SESSION_STRUCTURE_PRESETS } from '../types';
 import { STRENGTH_ARCHETYPES } from '../services/strengthArchetypes';
 import { getExerciseListForPrompt, getExerciseById } from '../services/exerciseLibrary';
 import { parseRepsToAverage } from '../utils';
@@ -166,6 +167,14 @@ export const generateWorkoutServer = async (
   const guardrails = computeGuardrails(data.trainingExperience);
   const disallowedArchetypes = computeDisallowedArchetypes(data);
 
+  // Override guardrail maxExercises if session structure is set
+  const structurePreset = data.sessionStructure
+    ? SESSION_STRUCTURE_PRESETS.find(p => p.id === data.sessionStructure)
+    : null;
+  if (structurePreset) {
+    guardrails.maxExercises = structurePreset.exerciseRange.max;
+  }
+
   // Build history context
   let historyContext = '';
   if (recentWorkouts.length > 0) {
@@ -312,6 +321,15 @@ export const generateWorkoutServer = async (
     `;
   }
 
+  // ===== SESSION STRUCTURE INTEGRATION =====
+  let sessionStructureContext = '';
+  if (structurePreset && structurePreset.promptGuidance) {
+    sessionStructureContext = `
+    ### ${structurePreset.promptGuidance}
+    BINDING: The session structure OVERRIDES the exercise count from both the optimizer and the NSCA defaults.
+    `;
+  }
+
   // Build 1RM context
   const liftPRs = [
     data.squat1RM ? `Squat 1RM: ${data.squat1RM} lbs` : null,
@@ -337,6 +355,7 @@ export const generateWorkoutServer = async (
     ${exercisePrefsContext}
     ${goalBiasContext}
     ${volumeToleranceContext}
+    ${sessionStructureContext}
 
     ### EXERCISE LIBRARY (Select exercises ONLY from this list, use the exact exerciseId)
     ${getExerciseListForPrompt()}

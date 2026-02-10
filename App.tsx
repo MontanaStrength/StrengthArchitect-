@@ -208,18 +208,23 @@ const App: React.FC = () => {
   // ===== PHASE 2: LOAD COACH CLIENTS (coach mode only) =====
   useEffect(() => {
     if (!user || appMode !== 'coach') return;
+    console.log('[Coach] Phase 2: loading clients for user', user.id, 'appMode=', appMode);
     setClientsLoading(true);
     fetchCoachClientsFromCloud(user.id)
       .then((clients) => {
+        console.log('[Coach] Fetched clients:', clients.length, clients);
         setCoachClients(clients);
         // Restore last-selected client after login so their workouts/data load
         const storedId = localStorage.getItem('sa_active_client_id');
         if (storedId && clients.some((c: CoachClient) => c.id === storedId)) {
           const client = clients.find((c: CoachClient) => c.id === storedId)!;
+          console.log('[Coach] Auto-restoring active client:', client.name);
           setActiveClient((prev) => (prev?.id === storedId ? prev : client));
         }
       })
-      .catch(console.error)
+      .catch((err) => {
+        console.error('[Coach] Error fetching clients:', err);
+      })
       .finally(() => setClientsLoading(false));
   }, [user, appMode]);
 
@@ -267,6 +272,7 @@ const App: React.FC = () => {
             gender: activeClient.gender,
             trainingExperience: activeClient.experience,
             availableEquipment: activeClient.equipment,
+            sessionStructure: activeClient.sessionStructure,
           }));
         }
 
@@ -339,7 +345,9 @@ const App: React.FC = () => {
       const biasGoal: typeof formData.trainingGoalFocus =
         bias < 30 ? 'hypertrophy' :
         bias > 70 ? 'strength' : 'general';
-      const biasedFormData = { ...formData, trainingGoalFocus: biasGoal };
+      // Resolve session structure: block setting > client/form setting > default
+      const resolvedSessionStructure = activeBlock?.sessionStructure || formData.sessionStructure || undefined;
+      const biasedFormData = { ...formData, trainingGoalFocus: biasGoal, sessionStructure: resolvedSessionStructure };
 
       // Optimizer always active — computes volume, intensity, fatigue, metabolic stress
       const volTol = activeBlock?.volumeTolerance ?? 3;

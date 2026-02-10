@@ -104,7 +104,7 @@ function sortExercisesForSlot(category: string, tier: string, exercises: typeof 
   return { recommended, others };
 }
 import React, { useState, useMemo } from 'react';
-import { TrainingBlock, ExerciseSlot, ExercisePreferences, MovementPattern } from '../types';
+import { TrainingBlock, ExerciseSlot, ExercisePreferences, MovementPattern, SessionStructure, SESSION_STRUCTURE_PRESETS, DEFAULT_SESSION_STRUCTURE } from '../types';
 import { EXERCISE_LIBRARY } from '../services/exerciseLibrary';
 import { Layers, Calendar, Dumbbell, ChevronRight, Check, CheckCircle2, ArrowRight, Rocket } from 'lucide-react';
 
@@ -239,6 +239,7 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
   const [goalBias, setGoalBias] = useState(block?.goalBias ?? 50);
   const [volumeTolerance, setVolumeTolerance] = useState(block?.volumeTolerance ?? 3);
   const [trainingDays, setTrainingDays] = useState<number[]>(block?.trainingDays || []);
+  const [sessionStructure, setSessionStructure] = useState<SessionStructure>(block?.sessionStructure || DEFAULT_SESSION_STRUCTURE);
   const [slots, setSlots] = useState<ExerciseSlot[]>(
     block?.exercisePreferences?.slots || [...DEFAULT_SLOTS]
   );
@@ -282,6 +283,7 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
       goalBias,
       volumeTolerance,
       trainingDays,
+      sessionStructure,
       exercisePreferences: { slots },
     };
     onSave(updated);
@@ -355,6 +357,12 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-500">Schedule</span>
                 <span className="text-gray-300 font-medium">{dayNames.join(' · ') || 'Not set'}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-500">Session Style</span>
+                <span className="text-gray-300 font-medium">
+                  {SESSION_STRUCTURE_PRESETS.find(p => p.id === (savedBlock.sessionStructure || DEFAULT_SESSION_STRUCTURE))?.label || 'Standard'}
+                </span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-500">Focus</span>
@@ -642,6 +650,40 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
                     }`}
                   >
                     {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Session Structure */}
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Session Structure</label>
+            <p className="text-xs text-gray-500 mb-3">How many lifts per session? This controls the AI's exercise count.</p>
+            <div className="grid grid-cols-2 gap-2">
+              {SESSION_STRUCTURE_PRESETS.map(preset => {
+                const active = sessionStructure === preset.id;
+                return (
+                  <button
+                    key={preset.id}
+                    onClick={() => setSessionStructure(preset.id)}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      active
+                        ? 'border-amber-500 bg-amber-500/10 ring-1 ring-amber-500/30'
+                        : 'border-neutral-800 bg-neutral-900 hover:border-neutral-700'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className={`text-sm font-bold ${active ? 'text-amber-400' : 'text-gray-300'}`}>
+                        {preset.label}
+                      </span>
+                      <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${active ? 'bg-amber-500/20 text-amber-400' : 'bg-neutral-800 text-gray-500'}`}>
+                        {preset.exerciseRange.min === preset.exerciseRange.max
+                          ? `${preset.exerciseRange.min} lift${preset.exerciseRange.min > 1 ? 's' : ''}`
+                          : `${preset.exerciseRange.min}-${preset.exerciseRange.max} lifts`}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-gray-500 leading-snug">{preset.description}</p>
                   </button>
                 );
               })}

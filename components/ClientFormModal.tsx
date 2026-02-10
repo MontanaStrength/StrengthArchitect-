@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CoachClient, TrainingExperience, AvailableEquipment } from '../types';
+import { CoachClient, TrainingExperience, AvailableEquipment, SessionStructure, SESSION_STRUCTURE_PRESETS, DEFAULT_SESSION_STRUCTURE } from '../types';
 import { X, UserPlus, Save } from 'lucide-react';
 
 interface Props {
@@ -32,6 +32,7 @@ const ClientFormModal: React.FC<Props> = ({ client, onSave, onClose, onDelete })
     client?.equipment || [AvailableEquipment.BARBELL, AvailableEquipment.DUMBBELL]
   );
   const [notes, setNotes] = useState(client?.notes || '');
+  const [sessionStructure, setSessionStructure] = useState<SessionStructure>(client?.sessionStructure || DEFAULT_SESSION_STRUCTURE);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const toggleEquipment = (eq: AvailableEquipment) => {
@@ -49,6 +50,7 @@ const ClientFormModal: React.FC<Props> = ({ client, onSave, onClose, onDelete })
       gender,
       experience,
       equipment,
+      sessionStructure,
       notes: notes.trim() || undefined,
       avatarColor: client?.avatarColor || AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)],
       createdAt: client?.createdAt || Date.now(),
@@ -166,6 +168,29 @@ const ClientFormModal: React.FC<Props> = ({ client, onSave, onClose, onDelete })
                   }`}
                 >
                   {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Session Structure */}
+          <div>
+            <label className="block text-xs text-gray-400 mb-2">Session Structure</label>
+            <div className="grid grid-cols-2 gap-2">
+              {SESSION_STRUCTURE_PRESETS.map(preset => (
+                <button
+                  key={preset.id}
+                  onClick={() => setSessionStructure(preset.id)}
+                  className={`p-2.5 rounded-lg border text-left transition-all ${
+                    sessionStructure === preset.id
+                      ? 'border-amber-500 bg-amber-500/10'
+                      : 'border-neutral-700 hover:border-neutral-600'
+                  }`}
+                >
+                  <div className={`text-xs font-semibold ${sessionStructure === preset.id ? 'text-amber-400' : 'text-gray-400'}`}>
+                    {preset.label}
+                  </div>
+                  <div className="text-[10px] text-gray-500 mt-0.5 leading-tight">{preset.description}</div>
                 </button>
               ))}
             </div>

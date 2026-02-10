@@ -21,6 +21,7 @@ import {
   SavedWorkout,
   TrainingGoalFocus,
   ReadinessLevel,
+  SESSION_STRUCTURE_PRESETS,
 } from '../types';
 
 // Re-use the same TrainingContext shape from gemini service
@@ -484,6 +485,15 @@ export function computeOptimizerRecommendations(
   let exerciseCountMin = Math.max(3, Math.floor(sessionVolume / scaledSetsMax));
   let exerciseCountMax = Math.min(10, Math.ceil(sessionVolume / scaledSetsMin));
   if (exerciseCountMin > exerciseCountMax) exerciseCountMax = exerciseCountMin;
+
+  // Override exercise count if session structure is set
+  const structurePreset = formData.sessionStructure
+    ? SESSION_STRUCTURE_PRESETS.find(p => p.id === formData.sessionStructure)
+    : null;
+  if (structurePreset) {
+    exerciseCountMin = structurePreset.exerciseRange.min;
+    exerciseCountMax = structurePreset.exerciseRange.max;
+  }
 
   // ── 4. Rep scheme (scaled by volume tolerance) ──────────
   let repScheme = `${scaledSetsMin}-${scaledSetsMax} sets × ${profile.repScheme.split('×')[1]?.trim() || profile.repScheme}`;
