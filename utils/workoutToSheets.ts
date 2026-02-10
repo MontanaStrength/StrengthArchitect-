@@ -26,9 +26,6 @@ const COLORS = {
 
 const FONT = "'Inter', 'Segoe UI', Arial, sans-serif";
 
-/** Max characters shown in the Coaching Notes column; full text is in the "Full coaching notes" section below. */
-const COACHING_NOTE_PREVIEW_LEN = 72;
-
 // ─── Helpers ─────────────────────────────────────────────────
 
 const esc = (v: string | number | undefined | null): string =>
@@ -72,14 +69,6 @@ const restLabel = (sec: number): string => {
   return `${sec}s`;
 };
 
-/** One-line preview for the table; full note goes in the expandable section below. */
-const coachingNotePreview = (full: string): string => {
-  const t = full.trim();
-  if (!t) return '';
-  if (t.length <= COACHING_NOTE_PREVIEW_LEN) return t;
-  return t.slice(0, COACHING_NOTE_PREVIEW_LEN).trim() + '…';
-};
-
 // ─── Rich HTML table (paste into Google Sheets) ─────────────
 
 /**
@@ -117,9 +106,6 @@ export function workoutToClipboardData(plan: StrengthWorkoutPlan, clientName?: s
   cols.push({ key: 'log_reps',   label: 'Actual Reps',   align: 'center', width: '80', isLog: true });
   cols.push({ key: 'log_rpe',    label: 'Actual RPE',    align: 'center', width: '75', isLog: true });
   cols.push({ key: 'log_done',   label: '✓',             align: 'center', width: '35', isLog: true });
-
-  // Coaching notes last — off-screen by default, scroll right to read
-  cols.push({ key: 'notes', label: 'Coaching Notes', align: 'left', width: '320' });
 
   const colCount = cols.length;
 
@@ -187,7 +173,6 @@ export function workoutToClipboardData(plan: StrengthWorkoutPlan, clientName?: s
       ? `border-left:4px solid ${COLORS.supersetBorder};`
       : '';
 
-    const notes = [e.notes, e.coachingCue].filter(Boolean).join('. ').trim();
     const orderNum = i + 1;
 
     html += `<tr>`;
@@ -228,10 +213,6 @@ export function workoutToClipboardData(plan: StrengthWorkoutPlan, clientName?: s
         case 'group':
           val = e.supersetGroup ? `<span style="background:${COLORS.supersetBorder};color:#fff;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700;">${esc(e.supersetGroup)}</span>` : '';
           break;
-        case 'notes':
-          val = notes ? esc(coachingNotePreview(notes)) : '';
-          extraStyle = `color:${COLORS.notesText};font-size:10px;font-style:italic;max-width:${cols.find(c => c.key === 'notes')?.width ?? 320}px;`;
-          break;
         // Logging columns — intentionally empty for athlete to fill
         case 'log_weight':
         case 'log_reps':
@@ -266,21 +247,20 @@ export function workoutToClipboardData(plan: StrengthWorkoutPlan, clientName?: s
     html += `</td></tr>`;
   }
 
-  // Full coaching notes (expandable reference — keeps main table rows compact)
+  // Full coaching notes — collapsible; content hidden until user expands each row
   const exercisesWithNotes = working.filter(e => {
     const n = [e.notes, e.coachingCue].filter(Boolean).join('. ').trim();
-    return n.length > COACHING_NOTE_PREVIEW_LEN || n.length > 0;
+    return n.length > 0;
   });
   if (exercisesWithNotes.length > 0) {
-    html += `<tr><td colspan="${colCount}" style="background:${COLORS.checkboxBg};padding:8px 16px 8px;font-size:10px;font-weight:700;color:${COLORS.metaValue};border-top:1px solid ${COLORS.divider};">📋 Full coaching notes</td></tr>`;
-    for (let idx = 0; idx < exercisesWithNotes.length; idx++) {
-      const e = exercisesWithNotes[idx];
+    html += `<tr><td colspan="${colCount}" style="background:${COLORS.checkboxBg};padding:8px 16px 8px;font-size:10px;font-weight:700;color:${COLORS.metaValue};border-top:1px solid ${COLORS.divider};">📋 Full coaching notes (click to expand)</td></tr>`;
+    for (const e of exercisesWithNotes) {
       const fullNote = [e.notes, e.coachingCue].filter(Boolean).join('. ').trim();
       if (!fullNote) continue;
       const num = working.indexOf(e) + 1;
-      html += `<tr><td colspan="${colCount}" style="background:${COLORS.checkboxBg};padding:4px 16px 10px;font-size:10px;color:${COLORS.notesText};border-bottom:1px solid ${COLORS.divider};vertical-align:top;">`;
-      html += `<strong style="color:${COLORS.metaValue};">${num}. ${esc(e.exerciseName)}</strong><br/>`;
-      html += esc(fullNote);
+      html += `<tr><td colspan="${colCount}" style="background:${COLORS.checkboxBg};padding:0 16px 2px;font-size:10px;border-bottom:1px solid ${COLORS.divider};vertical-align:top;">`;
+      html += `<details style="margin:6px 0;"><summary style="cursor:pointer;color:${COLORS.metaValue};font-weight:600;">${num}. ${esc(e.exerciseName)}</summary>`;
+      html += `<div style="padding:6px 0 8px;color:${COLORS.notesText};font-style:italic;">${esc(fullNote)}</div></details>`;
       html += `</td></tr>`;
     }
   }
@@ -334,11 +314,11 @@ function buildTsv(
   // Spacer
   rows.push('');
 
-  // Column headers — notes pushed to far right so the working area stays clean
+  // Column headers
   const hdr = ['#', 'EXERCISE', 'SETS × REPS', 'Rx WEIGHT', '%1RM', 'RPE', 'REST'];
   if (hasTempo) hdr.push('TEMPO');
   if (hasSupersets) hdr.push('GROUP');
-  hdr.push('ACTUAL WEIGHT', 'ACTUAL REPS', 'ACTUAL RPE', 'DONE', '', 'COACHING NOTES');
+  hdr.push('ACTUAL WEIGHT', 'ACTUAL REPS', 'ACTUAL RPE', 'DONE');
   rows.push(hdr.join('\t'));
 
   // Warmups
@@ -360,10 +340,9 @@ function buildTsv(
     rows.push(''); // spacer after warmup
   }
 
-  // Exercise rows (coaching notes column = preview only; full notes below)
+  // Exercise rows
   for (let i = 0; i < working.length; i++) {
     const e = working[i];
-    const notes = [e.notes, e.coachingCue].filter(Boolean).join('. ').trim();
     const row: string[] = [
       String(i + 1),
       e.exerciseName,
@@ -377,8 +356,6 @@ function buildTsv(
     if (hasSupersets) row.push(e.supersetGroup || '');
     // Logging columns (blank for athlete to fill in)
     row.push('', '', '', '');
-    // Spacer + coaching notes preview (full notes in section below)
-    row.push('', coachingNotePreview(notes));
     rows.push(row.join('\t'));
   }
 
@@ -426,13 +403,12 @@ export function workoutToCsv(plan: StrengthWorkoutPlan, clientName?: string): st
   if (clientName) rows.push([`Athlete: ${escapeCsv(clientName)}`].join(','));
   rows.push(''); // blank spacer
 
-  // Header — prescription, logging columns, then notes at the far right
-  const header = ['#', 'Exercise', 'Sets × Reps', 'Rx Weight (lbs)', '%1RM', 'RPE Target', 'Rest', 'Tempo', 'Group', 'Actual Weight', 'Actual Reps', 'Actual RPE', 'Done', '', 'Coaching Notes'];
+  // Header — prescription + logging columns
+  const header = ['#', 'Exercise', 'Sets × Reps', 'Rx Weight (lbs)', '%1RM', 'RPE Target', 'Rest', 'Tempo', 'Group', 'Actual Weight', 'Actual Reps', 'Actual RPE', 'Done'];
   rows.push(header.map(escapeCsv).join(','));
 
   for (let i = 0; i < working.length; i++) {
     const e = working[i];
-    const notes = [e.notes, e.coachingCue].filter(Boolean).join('. ').trim();
     rows.push([
       escapeCsv(i + 1),
       escapeCsv(e.exerciseName),
@@ -447,8 +423,6 @@ export function workoutToCsv(plan: StrengthWorkoutPlan, clientName?: string): st
       '', // Actual Reps
       '', // Actual RPE
       '', // Done
-      '', // spacer column
-      notes ? escapeCsv(coachingNotePreview(notes)) : '', // preview only; full notes below
     ].join(','));
   }
 
