@@ -7,6 +7,7 @@ import {
   BarChart3, TrendingUp, Trophy, Target, Moon, Dumbbell,
   Heart, Activity, Award,
 } from 'lucide-react';
+import MuscleRecoveryMap from './MuscleRecoveryMap';
 
 interface Props {
   history: SavedWorkout[];
@@ -427,6 +428,9 @@ const DashboardView: React.FC<Props> = ({ history, liftRecords, goals, sleepEntr
           <p className="text-sm text-gray-500 text-center py-4">Complete some sessions to see trends</p>
         )}
       </div>
+
+      {/* ── MUSCLE RECOVERY MAP ── */}
+      <MuscleRecoveryMap history={history} />
 
       {/* ── REPORT CARD GRADES ── */}
       <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4">

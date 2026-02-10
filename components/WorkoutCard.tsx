@@ -1,15 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { StrengthWorkoutPlan, GymSetup, ExerciseBlock } from '../types';
 import { getArchetypeNameById } from '../services/strengthArchetypes';
-import { Dumbbell, Clock, BarChart3, Weight, Info, Lightbulb, ChevronDown, ChevronUp, Flame } from 'lucide-react';
+import { getExerciseById, EXERCISE_LIBRARY } from '../services/exerciseLibrary';
+import { Dumbbell, Clock, BarChart3, Weight, Info, Lightbulb, ChevronDown, ChevronUp, Flame, Repeat2 } from 'lucide-react';
 
 interface Props {
   plan: StrengthWorkoutPlan;
   gymSetup?: GymSetup;
+  onSwapExercise?: (oldExerciseId: string, newExerciseId: string, newExerciseName: string) => void;
 }
 
-const WorkoutCard: React.FC<Props> = ({ plan }) => {
+const WorkoutCard: React.FC<Props> = ({ plan, onSwapExercise }) => {
   const [tipsExpanded, setTipsExpanded] = useState(false);
+  const [swapOpenId, setSwapOpenId] = useState<string | null>(null);
 
   const warmupExercises = plan.exercises.filter(e => e.isWarmupSet);
   const workingExercises = plan.exercises.filter(e => !e.isWarmupSet);
@@ -108,7 +111,14 @@ const WorkoutCard: React.FC<Props> = ({ plan }) => {
                 </div>
                 <div className="divide-y divide-neutral-800/50">
                   {group.exercises.map(({ exercise, index }) => (
-                    <ExerciseRow key={index} exercise={exercise} index={index} />
+                    <ExerciseRow
+                      key={index}
+                      exercise={exercise}
+                      index={index}
+                      swapOpen={swapOpenId === exercise.exerciseId}
+                      onToggleSwap={() => setSwapOpenId(swapOpenId === exercise.exerciseId ? null : exercise.exerciseId)}
+                      onSwap={onSwapExercise ? (newId, newName) => onSwapExercise(exercise.exerciseId, newId, newName) : undefined}
+                    />
                   ))}
                 </div>
               </div>
@@ -119,7 +129,13 @@ const WorkoutCard: React.FC<Props> = ({ plan }) => {
           const { exercise, index } = group.exercises[0];
           return (
             <div key={gi} className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden">
-              <ExerciseRow exercise={exercise} index={index} />
+              <ExerciseRow
+                exercise={exercise}
+                index={index}
+                swapOpen={swapOpenId === exercise.exerciseId}
+                onToggleSwap={() => setSwapOpenId(swapOpenId === exercise.exerciseId ? null : exercise.exerciseId)}
+                onSwap={onSwapExercise ? (newId, newName) => onSwapExercise(exercise.exerciseId, newId, newName) : undefined}
+              />
             </div>
           );
         })}
@@ -180,7 +196,25 @@ const WorkoutCard: React.FC<Props> = ({ plan }) => {
 };
 
 /* ── Individual Exercise Row ── */
-const ExerciseRow: React.FC<{ exercise: ExerciseBlock; index: number }> = ({ exercise, index }) => {
+const ExerciseRow: React.FC<{
+  exercise: ExerciseBlock;
+  index: number;
+  swapOpen: boolean;
+  onToggleSwap: () => void;
+  onSwap?: (newId: string, newName: string) => void;
+}> = ({ exercise, index, swapOpen, onToggleSwap, onSwap }) => {
+  // Find alternatives from same movement pattern
+  const alternatives = useMemo(() => {
+    const def = getExerciseById(exercise.exerciseId);
+    if (!def) return [];
+    return EXERCISE_LIBRARY
+      .filter(e =>
+        e.id !== exercise.exerciseId &&
+        e.movementPattern === def.movementPattern &&
+        e.difficulty !== 'advanced' || def.difficulty === 'advanced'
+      )
+      .slice(0, 6);
+  }, [exercise.exerciseId]);
   // Build the prescription string
   const prescription: string[] = [];
   prescription.push(`${exercise.sets} \u00D7 ${exercise.reps}`);
@@ -201,7 +235,35 @@ const ExerciseRow: React.FC<{ exercise: ExerciseBlock; index: number }> = ({ exe
           {index}
         </span>
         <div className="flex-1 min-w-0">
-          <h4 className="text-base font-bold text-white leading-snug">{exercise.exerciseName}</h4>
+          <div className="flex items-center gap-2">
+            <h4 className="text-base font-bold text-white leading-snug">{exercise.exerciseName}</h4>
+            {alternatives.length > 0 && onSwap && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onToggleSwap(); }}
+                className={`p-1 rounded transition-colors ${swapOpen ? 'text-amber-400 bg-amber-500/10' : 'text-gray-600 hover:text-gray-400'}`}
+                title="Swap exercise"
+              >
+                <Repeat2 size={13} />
+              </button>
+            )}
+          </div>
+
+          {/* Swap dropdown */}
+          {swapOpen && alternatives.length > 0 && onSwap && (
+            <div className="mt-2 mb-1 bg-neutral-800 border border-neutral-700 rounded-lg p-2 space-y-0.5">
+              <p className="text-[10px] text-gray-500 mb-1.5">Swap with a similar movement:</p>
+              {alternatives.map(alt => (
+                <button
+                  key={alt.id}
+                  onClick={() => { onSwap(alt.id, alt.name); onToggleSwap(); }}
+                  className="w-full text-left px-2 py-1.5 rounded text-xs text-gray-300 hover:bg-neutral-700 hover:text-white transition-colors flex items-center justify-between"
+                >
+                  <span>{alt.name}</span>
+                  <span className="text-[9px] text-gray-600">{alt.movementPattern}</span>
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Prescription chips */}
           <div className="flex flex-wrap items-center gap-2 mt-2">

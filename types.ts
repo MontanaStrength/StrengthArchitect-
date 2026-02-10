@@ -205,6 +205,18 @@ export const DEFAULT_SESSION_STRUCTURE: SessionStructure = 'standard';
 
 // ===== USER FORM =====
 
+// ===== PRE-WORKOUT CHECK-IN =====
+
+export type MoodLevel = 'poor' | 'okay' | 'good' | 'great';
+export type SorenessLevel = 'none' | 'mild' | 'moderate' | 'severe';
+export type NutritionQuality = 'poor' | 'fair' | 'good' | 'dialed';
+
+export interface PreWorkoutCheckIn {
+  mood?: MoodLevel;
+  soreness?: SorenessLevel;
+  nutrition?: NutritionQuality;
+}
+
 export interface FormData {
   duration: number; // session length in minutes
   readiness: ReadinessLevel;
@@ -221,6 +233,8 @@ export interface FormData {
   overheadPress1RM?: number;
   // Session structure preference
   sessionStructure?: SessionStructure;
+  // Pre-workout check-in
+  preWorkoutCheckIn?: PreWorkoutCheckIn;
 }
 
 export type TrainingGoalFocus = 'strength' | 'hypertrophy' | 'power' | 'endurance' | 'general';

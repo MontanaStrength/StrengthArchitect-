@@ -211,6 +211,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       sessionStructureContext = `\n### ${ssPreset.guidance}\nBINDING: The session structure OVERRIDES the exercise count from both the optimizer and the NSCA defaults.`;
     }
 
+    let checkInContext = '';
+    if (data.preWorkoutCheckIn) {
+      const { mood, soreness, nutrition } = data.preWorkoutCheckIn;
+      const parts: string[] = [];
+      if (mood) parts.push(`Mood: ${mood}`);
+      if (soreness) parts.push(`Soreness: ${soreness}`);
+      if (nutrition) parts.push(`Nutrition: ${nutrition}`);
+      if (parts.length > 0) {
+        const adj: string[] = [];
+        if (soreness === 'severe') adj.push('Avoid heavy loading on sore muscles. Reduce volume 30-40%.');
+        else if (soreness === 'moderate') adj.push('Reduce intensity on sore areas by 5-10%.');
+        if (mood === 'poor') adj.push('Keep session simple. Compounds only.');
+        if (nutrition === 'poor') adj.push('Reduce volume 15-20%. Avoid high-rep sets above RPE 8.');
+        checkInContext = `\nCHECK-IN: ${parts.join(' · ')}. ${adj.length > 0 ? adj.join(' ') : 'Good condition — proceed as prescribed.'}`;
+      }
+    }
+
     const prompt = `You are an expert strength coach. Design a session for: ${data.trainingExperience}, ${data.readiness} readiness, ${data.duration}min, Focus: ${data.trainingGoalFocus}, Equipment: ${data.availableEquipment.join(', ')}, Athlete: ${data.age}yo ${data.gender} ${data.weightLbs}lbs. ${liftPRs ? `1RMs: ${liftPRs}` : 'No 1RM data — use RPE-based loading.'}
 ${historyContext}
 ${blockContext}
@@ -218,6 +235,7 @@ ${optimizerContext}
 ${goalBiasContext}
 ${volumeToleranceContext}
 ${sessionStructureContext}
+${checkInContext}
 GUARDRAILS: Max ${guardrails.maxSetsPerSession} working sets, ${guardrails.maxExercises} exercises, ${guardrails.maxPercentOf1RM}% max 1RM. Weekly load: ${safetyExposure.last7Count} sessions, ${safetyExposure.hardSessions} hard. Disallowed archetypes: ${disallowedArchetypes.join(', ') || 'None'}. ${guardrails.forceCompounds ? 'BEGINNER: compounds only + 1-2 accessories.' : ''}
 FALLBACK DEFAULTS (NSCA/ACSM) — use ONLY where the OPTIMIZER does not specify. Optimizer's sets/reps/intensity are BINDING and always override these:
 - Exercise order: power → multi-joint compounds → single-joint isolation → core last.

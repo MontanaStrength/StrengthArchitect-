@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import {
   TrainingBlock, ReadinessLevel, StrengthWorkoutPlan, SavedWorkout,
-  GymSetup, FeedbackData,
+  GymSetup, FeedbackData, PreWorkoutCheckIn, MoodLevel, SorenessLevel, NutritionQuality,
 } from '../types';
 import WorkoutCard from './WorkoutCard';
 import FeedbackSection from './FeedbackSection';
@@ -21,12 +21,15 @@ interface Props {
   isCoachMode?: boolean;
   /** Client's first name for coach-mode labels */
   clientName?: string;
+  preWorkoutCheckIn?: PreWorkoutCheckIn;
   onReadinessChange: (r: ReadinessLevel) => void;
+  onCheckInChange: (checkIn: PreWorkoutCheckIn) => void;
   onGenerate: () => void;
   onStartSession: () => void;
   onNewWorkout: () => void;
   onSaveFeedback: (workoutId: string, feedback: FeedbackData) => void;
   onNavigatePlan: () => void;
+  onSwapExercise?: (oldExerciseId: string, newExerciseId: string, newExerciseName: string) => void;
 }
 
 const READINESS_OPTIONS: { level: ReadinessLevel; label: string; emoji: string; activeClass: string }[] = [
@@ -35,14 +38,36 @@ const READINESS_OPTIONS: { level: ReadinessLevel; label: string; emoji: string; 
   { level: ReadinessLevel.HIGH,   label: 'Great', emoji: '🔥', activeClass: 'border-green-500 bg-green-500/10 text-green-400' },
 ];
 
+const MOOD_OPTIONS: { value: MoodLevel; label: string; emoji: string }[] = [
+  { value: 'poor',  label: 'Poor',  emoji: '😞' },
+  { value: 'okay',  label: 'Okay',  emoji: '😐' },
+  { value: 'good',  label: 'Good',  emoji: '🙂' },
+  { value: 'great', label: 'Great', emoji: '😁' },
+];
+
+const SORENESS_OPTIONS: { value: SorenessLevel; label: string; emoji: string }[] = [
+  { value: 'none',     label: 'None',   emoji: '✅' },
+  { value: 'mild',     label: 'Mild',   emoji: '🟡' },
+  { value: 'moderate', label: 'Sore',   emoji: '🟠' },
+  { value: 'severe',   label: 'Wrecked', emoji: '🔴' },
+];
+
+const NUTRITION_OPTIONS: { value: NutritionQuality; label: string; emoji: string }[] = [
+  { value: 'poor',   label: 'Poor',   emoji: '🍕' },
+  { value: 'fair',   label: 'Fair',   emoji: '🥪' },
+  { value: 'good',   label: 'Good',   emoji: '🥗' },
+  { value: 'dialed', label: 'Dialed', emoji: '💯' },
+];
+
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
 const LiftView: React.FC<Props> = ({
   activeBlock, currentPlan, currentWorkout, gymSetup,
   readiness, isGenerating, error,
   isCoachMode, clientName,
-  onReadinessChange, onGenerate, onStartSession,
-  onNewWorkout, onSaveFeedback, onNavigatePlan,
+  preWorkoutCheckIn,
+  onReadinessChange, onCheckInChange, onGenerate, onStartSession,
+  onNewWorkout, onSaveFeedback, onNavigatePlan, onSwapExercise,
 }) => {
   const [copied, setCopied] = useState(false);
   const [overrideRestDay, setOverrideRestDay] = useState(false);
@@ -193,7 +218,7 @@ const LiftView: React.FC<Props> = ({
           </div>
         )}
 
-        <WorkoutCard plan={currentPlan} gymSetup={gymSetup} />
+        <WorkoutCard plan={currentPlan} gymSetup={gymSetup} onSwapExercise={onSwapExercise} />
 
         {isCoachMode && (
           <div className="sa-card border-sa-info/30 bg-sa-info/10 rounded-card p-4 space-y-3">
@@ -295,6 +320,81 @@ const LiftView: React.FC<Props> = ({
               </button>
             );
           })}
+        </div>
+      </div>
+
+      {/* Pre-Workout Check-In (collapsed row) */}
+      <div className="space-y-3">
+        <label className="block text-sm font-semibold text-sa-textSecondary">Quick Check-in</label>
+        <div className="grid grid-cols-3 gap-3">
+          {/* Mood */}
+          <div>
+            <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5 text-center">Mood</div>
+            <div className="grid grid-cols-2 gap-1">
+              {MOOD_OPTIONS.map(opt => {
+                const active = preWorkoutCheckIn?.mood === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    onClick={() => onCheckInChange({ ...preWorkoutCheckIn, mood: opt.value })}
+                    className={`py-1.5 rounded-lg text-center transition-all text-[10px] font-medium border ${
+                      active
+                        ? 'border-amber-500 bg-amber-500/10 text-amber-400'
+                        : 'border-neutral-800 bg-neutral-900 text-gray-500 hover:border-neutral-700'
+                    }`}
+                  >
+                    <div className="text-sm">{opt.emoji}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Soreness */}
+          <div>
+            <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5 text-center">Soreness</div>
+            <div className="grid grid-cols-2 gap-1">
+              {SORENESS_OPTIONS.map(opt => {
+                const active = preWorkoutCheckIn?.soreness === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    onClick={() => onCheckInChange({ ...preWorkoutCheckIn, soreness: opt.value })}
+                    className={`py-1.5 rounded-lg text-center transition-all text-[10px] font-medium border ${
+                      active
+                        ? 'border-amber-500 bg-amber-500/10 text-amber-400'
+                        : 'border-neutral-800 bg-neutral-900 text-gray-500 hover:border-neutral-700'
+                    }`}
+                  >
+                    <div className="text-sm">{opt.emoji}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Nutrition */}
+          <div>
+            <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5 text-center">Nutrition</div>
+            <div className="grid grid-cols-2 gap-1">
+              {NUTRITION_OPTIONS.map(opt => {
+                const active = preWorkoutCheckIn?.nutrition === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    onClick={() => onCheckInChange({ ...preWorkoutCheckIn, nutrition: opt.value })}
+                    className={`py-1.5 rounded-lg text-center transition-all text-[10px] font-medium border ${
+                      active
+                        ? 'border-amber-500 bg-amber-500/10 text-amber-400'
+                        : 'border-neutral-800 bg-neutral-900 text-gray-500 hover:border-neutral-700'
+                    }`}
+                  >
+                    <div className="text-sm">{opt.emoji}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
 

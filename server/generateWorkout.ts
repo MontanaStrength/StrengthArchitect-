@@ -330,6 +330,29 @@ export const generateWorkoutServer = async (
     `;
   }
 
+  // ===== PRE-WORKOUT CHECK-IN INTEGRATION =====
+  let checkInContext = '';
+  if (data.preWorkoutCheckIn) {
+    const { mood, soreness, nutrition } = data.preWorkoutCheckIn;
+    const parts: string[] = [];
+    if (mood) parts.push(`Mood: ${mood}`);
+    if (soreness) parts.push(`Soreness: ${soreness}`);
+    if (nutrition) parts.push(`Nutrition: ${nutrition}`);
+    if (parts.length > 0) {
+      const adjustments: string[] = [];
+      if (soreness === 'severe') adjustments.push('Avoid heavy loading on sore muscle groups. Reduce volume 30-40%. Consider movement quality focus.');
+      else if (soreness === 'moderate') adjustments.push('Reduce intensity on sore areas by 5-10%. Prioritize non-sore movement patterns.');
+      if (mood === 'poor') adjustments.push('Keep session simple and achievable. Avoid complex techniques. Focus on compounds only.');
+      if (nutrition === 'poor') adjustments.push('Reduce session volume 15-20%. Glycogen may be depleted — avoid high-rep sets above RPE 8.');
+
+      checkInContext = `
+    ### PRE-WORKOUT CHECK-IN
+    ${parts.join(' · ')}
+    ${adjustments.length > 0 ? `ADJUSTMENTS: ${adjustments.join(' ')}` : 'Athlete is in good condition — proceed as prescribed.'}
+    `;
+    }
+  }
+
   // Build 1RM context
   const liftPRs = [
     data.squat1RM ? `Squat 1RM: ${data.squat1RM} lbs` : null,
@@ -356,6 +379,7 @@ export const generateWorkoutServer = async (
     ${goalBiasContext}
     ${volumeToleranceContext}
     ${sessionStructureContext}
+    ${checkInContext}
 
     ### EXERCISE LIBRARY (Select exercises ONLY from this list, use the exact exerciseId)
     ${getExerciseListForPrompt()}

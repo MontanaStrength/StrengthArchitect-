@@ -912,16 +912,27 @@ const App: React.FC = () => {
               currentWorkout={currentSavedWorkout}
               gymSetup={gymSetup}
               readiness={formData.readiness}
+              preWorkoutCheckIn={formData.preWorkoutCheckIn}
               isGenerating={isGenerating}
               error={error}
               isCoachMode={appMode === 'coach'}
               clientName={activeClient?.name}
               onReadinessChange={(r) => setFormData(prev => ({ ...prev, readiness: r }))}
+              onCheckInChange={(checkIn) => setFormData(prev => ({ ...prev, preWorkoutCheckIn: checkIn }))}
               onGenerate={handleGenerate}
               onStartSession={() => setView('session')}
               onNewWorkout={() => setCurrentPlan(null)}
               onSaveFeedback={handleSaveFeedback}
               onNavigatePlan={() => setView('plan')}
+              onSwapExercise={(oldId, newId, newName) => {
+                if (!currentPlan) return;
+                setCurrentPlan({
+                  ...currentPlan,
+                  exercises: currentPlan.exercises.map(ex =>
+                    ex.exerciseId === oldId ? { ...ex, exerciseId: newId, exerciseName: newName } : ex
+                  ),
+                });
+              }}
             />
           </div>
         )}
