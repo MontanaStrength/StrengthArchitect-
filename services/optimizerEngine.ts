@@ -495,6 +495,9 @@ export function computeOptimizerRecommendations(
     exerciseCountMax = structurePreset.exerciseRange.max;
   }
 
+  let hanleyCapApplied = false;
+  const maxExercises = Math.max(exerciseCountMin, exerciseCountMax);
+
   // ── 4. Rep scheme (scaled by volume tolerance) ──────────
   let repScheme = `${scaledSetsMin}-${scaledSetsMax} sets × ${profile.repScheme.split('×')[1]?.trim() || profile.repScheme}`;
   if (config.repRangePreference && config.repRangePreference !== 'auto') {
@@ -656,6 +659,36 @@ export function computeOptimizerRecommendations(
     // Determine projected zone
     const projectedScore = calculateSetFatigueScore(targetRepsPerExercise, midIntensity);
     fatigueScoreZone = getFatigueZone(projectedScore).zone;
+
+    // ── 11b. Hanley fatigue cap for concentrated sessions ────
+    //   When exercise count is low (1-2), the NSCA session volume
+    //   would all concentrate on one movement, blowing past the
+    //   per-exercise fatigue ceiling. Cap sessionVolume so that
+    //   total sets × avg reps/set ≈ targetRepsPerExercise × exerciseCount.
+    //
+    //   Uses the Hanley-prescribed reps as the ceiling — the science
+    //   dictates the volume, not a generic session guideline.
+    if (maxExercises <= 2 && targetRepsPerExercise) {
+      // Estimate reps per set from the rep scheme or intensity
+      const epleyMax = Math.max(1, Math.round(30 * (100 / midIntensity - 1)));
+      const repsPerSet = Math.max(1, Math.min(
+        (scaledSetsMin + scaledSetsMax) > 0
+          ? Math.round(targetRepsPerExercise / ((scaledSetsMin + scaledSetsMax) / 2))
+          : 5,
+        Math.round(epleyMax * 0.65) // don't go past ~65% of max reps
+      ));
+
+      // Max sets = Hanley target reps / reps per set, per exercise
+      const maxSetsPerExercise = Math.max(4, Math.ceil(targetRepsPerExercise / Math.max(1, repsPerSet)));
+      const hanleyCappedVolume = maxSetsPerExercise * maxExercises;
+
+      if (sessionVolume > hanleyCappedVolume) {
+        hanleyCapApplied = true;
+        sessionVolume = hanleyCappedVolume;
+        // Update rep scheme to reflect the capped volume
+        repScheme = `${maxSetsPerExercise} sets × ${repsPerSet} reps (Hanley fatigue-capped)`;
+      }
+    }
   }
 
   // ── 12. Peak Force Drop-Off — strength/power set division ──
@@ -687,6 +720,9 @@ export function computeOptimizerRecommendations(
   const parts: string[] = [];
   parts.push(`Goal profile: ${goal}.`);
   parts.push(`Base max sets: ${userMaxSets}, adjusted to ${sessionVolume} working sets.`);
+  if (hanleyCapApplied) {
+    parts.push(`Hanley fatigue cap applied: concentrated session (${maxExercises} exercise${maxExercises > 1 ? 's' : ''}) — volume capped to stay within per-exercise fatigue ceiling.`);
+  }
   if (fatigue.hardSessions > 0) {
     parts.push(`Fatigue: ${fatigue.hardSessions} hard session(s) and ${fatigue.sessionsLast7d} total in last 7 days.`);
   }
