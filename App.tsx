@@ -38,6 +38,8 @@ import LiftRecordsView from './components/LiftRecordsView';
 import StrengthProgressView from './components/StrengthProgressView';
 import VolumeDistributionView from './components/VolumeDistributionView';
 import RecoveryFatigueView from './components/RecoveryFatigueView';
+import AnalyticsCalendarView from './components/AnalyticsCalendarView';
+import BlockReviewView from './components/BlockReviewView';
 import TrainingCalendarView from './components/TrainingCalendarView';
 import GoalSettingView from './components/GoalSettingView';
 import StrengthTestView from './components/StrengthTestView';
@@ -75,6 +77,8 @@ type ViewState =
   | 'strength'
   | 'volume'
   | 'recovery'
+  | 'analytics-calendar'
+  | 'block-review'
   | 'calendar'
   | 'goals'
   | 'strength-test'
@@ -717,6 +721,7 @@ const App: React.FC = () => {
     // ANALYZE
     'dashboard': 'analyze', 'history': 'analyze', 'lift-records': 'analyze',
     'strength': 'analyze', 'volume': 'analyze', 'recovery': 'analyze',
+    'analytics-calendar': 'analyze', 'block-review': 'analyze',
     'tracking': 'analyze', 'notifications': 'analyze',
     // Hubs
     'plan': 'plan', 'lift': 'lift', 'analyze': 'analyze',
@@ -743,6 +748,8 @@ const App: React.FC = () => {
     { label: 'Strength',       view: 'strength',      icon: <TrendingUp size={16} /> },
     { label: 'Volume',          view: 'volume',         icon: <BarChart3 size={16} /> },
     { label: 'Recovery',        view: 'recovery',       icon: <Heart size={16} /> },
+    { label: 'Calendar',        view: 'analytics-calendar', icon: <Calendar size={16} /> },
+    { label: 'Blocks',          view: 'block-review',   icon: <Layers size={16} /> },
     { label: 'History',         view: 'history',        icon: <Activity size={16} /> },
     { label: 'Lift Records',    view: 'lift-records',   icon: <Dumbbell size={16} /> },
     { label: 'Tracking',        view: 'tracking',       icon: <Target size={16} /> },
@@ -1145,6 +1152,14 @@ const App: React.FC = () => {
 
         {view === 'recovery' && (
           <RecoveryFatigueView history={history} sleepEntries={sleepEntries} />
+        )}
+
+        {view === 'analytics-calendar' && (
+          <AnalyticsCalendarView history={history} />
+        )}
+
+        {view === 'block-review' && (
+          <BlockReviewView blocks={trainingBlocks} history={history} liftRecords={liftRecords} />
         )}
 
         {view === 'calendar' && (
