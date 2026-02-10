@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { SavedWorkout, SleepEntry } from '../types';
+import { SavedWorkout, SleepEntry, ExerciseBlock } from '../types';
 import {
   calculateSetFatigueScore,
   calculateSetMetabolicLoad,
@@ -9,8 +9,8 @@ import {
 import { parseRepsToAverage } from '../utils';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
-  ReferenceLine, ReferenceArea, LineChart, Line, ScatterChart, Scatter, ZAxis,
-  ComposedChart, Bar,
+  ReferenceLine, ReferenceArea, LineChart, Line,
+  ComposedChart, Bar, Legend,
 } from 'recharts';
 import { Heart, Zap, Moon, Activity, TrendingDown, ShieldCheck } from 'lucide-react';
 
@@ -19,25 +19,57 @@ interface Props {
   sleepEntries: SleepEntry[];
 }
 
+// ===== LIFT CLASSIFICATION =====
+
+type LiftCategory = 'squat' | 'bench' | 'deadlift';
+
+const LIFT_PATTERNS: Record<LiftCategory, RegExp> = {
+  squat: /squat|leg_press|hack_squat|belt_squat/i,
+  bench: /bench|floor_press|spoto_press/i,
+  deadlift: /deadlift|block_pull|deficit_pull/i,
+};
+
+const LIFT_LABELS: Record<LiftCategory, string> = {
+  squat: 'Squat',
+  bench: 'Bench',
+  deadlift: 'Deadlift',
+};
+
+const LIFT_COLORS: Record<LiftCategory, string> = {
+  squat: '#f59e0b',   // amber
+  bench: '#3b82f6',   // blue
+  deadlift: '#22c55e', // green
+};
+
+/** Classify an exercise into squat/bench/deadlift or null (accessory) */
+const classifyExercise = (exerciseId: string): LiftCategory | null => {
+  for (const [cat, pattern] of Object.entries(LIFT_PATTERNS)) {
+    if (pattern.test(exerciseId)) return cat as LiftCategory;
+  }
+  return null;
+};
+
 // ===== HELPERS =====
 
-/** Compute per-session fatigue score using the Hanley formula */
-const computeSessionFatigue = (workout: SavedWorkout): number => {
+/** Compute fatigue score for exercises matching a lift category */
+const computeLiftFatigue = (exercises: ExerciseBlock[], category: LiftCategory): number => {
   let total = 0;
-  for (const ex of workout.exercises) {
+  for (const ex of exercises) {
     if (ex.isWarmupSet) continue;
-    const intensity = ex.percentOf1RM || 70; // default 70% if unknown
+    if (classifyExercise(ex.exerciseId) !== category) continue;
+    const intensity = ex.percentOf1RM || 70;
     const reps = parseRepsToAverage(ex.reps);
     total += calculateSetFatigueScore(reps * ex.sets, intensity);
   }
   return total;
 };
 
-/** Compute per-session metabolic stress using the Frederick formula */
-const computeSessionMetabolicStress = (workout: SavedWorkout): number => {
+/** Compute metabolic stress for exercises matching a lift category */
+const computeLiftMetabolicStress = (exercises: ExerciseBlock[], category: LiftCategory): number => {
   let total = 0;
-  for (const ex of workout.exercises) {
+  for (const ex of exercises) {
     if (ex.isWarmupSet) continue;
+    if (classifyExercise(ex.exerciseId) !== category) continue;
     const intensity = ex.percentOf1RM || 70;
     const reps = parseRepsToAverage(ex.reps);
     const rpe = ex.rpeTarget || 7;
@@ -60,26 +92,36 @@ const ZONE_COLORS: Record<string, string> = {
 
 const RecoveryFatigueView: React.FC<Props> = ({ history, sleepEntries }) => {
 
-  // Per-session fatigue + metabolic data (last 30 sessions)
+  // Per-session fatigue + metabolic data broken down by Squat/Bench/Deadlift (last 30 sessions)
   const sessionData = useMemo(() => {
     const recent = [...history].sort((a, b) => a.timestamp - b.timestamp).slice(-30);
     return recent.map(w => {
-      const fatigue = computeSessionFatigue(w);
-      const metabolic = computeSessionMetabolicStress(w);
-      const tonnage = w.actualTonnage || w.estimatedTonnage || 0;
-      const intensity = w.exercises.reduce((s, e) => s + (e.percentOf1RM || 0), 0) / (w.exercises.length || 1);
+      const squatFatigue = computeLiftFatigue(w.exercises, 'squat');
+      const benchFatigue = computeLiftFatigue(w.exercises, 'bench');
+      const deadliftFatigue = computeLiftFatigue(w.exercises, 'deadlift');
+      const squatMetabolic = computeLiftMetabolicStress(w.exercises, 'squat');
+      const benchMetabolic = computeLiftMetabolicStress(w.exercises, 'bench');
+      const deadliftMetabolic = computeLiftMetabolicStress(w.exercises, 'deadlift');
       return {
         date: w.timestamp,
         dateLabel: new Date(w.timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        fatigue: Math.round(fatigue),
-        metabolic: Math.round(metabolic),
-        tonnage: Math.round(tonnage),
-        rpe: w.sessionRPE || 0,
-        intensity: Math.round(intensity),
+        // Only include values > 0 so the chart skips sessions where a lift wasn't trained
+        squatFatigue: squatFatigue > 0 ? Math.round(squatFatigue) : undefined,
+        benchFatigue: benchFatigue > 0 ? Math.round(benchFatigue) : undefined,
+        deadliftFatigue: deadliftFatigue > 0 ? Math.round(deadliftFatigue) : undefined,
+        squatMetabolic: squatMetabolic > 0 ? Math.round(squatMetabolic) : undefined,
+        benchMetabolic: benchMetabolic > 0 ? Math.round(benchMetabolic) : undefined,
+        deadliftMetabolic: deadliftMetabolic > 0 ? Math.round(deadliftMetabolic) : undefined,
         title: w.title,
       };
     });
   }, [history]);
+
+  // Check if we have data for each lift
+  const hasSquatData = sessionData.some(d => d.squatFatigue !== undefined);
+  const hasBenchData = sessionData.some(d => d.benchFatigue !== undefined);
+  const hasDeadliftData = sessionData.some(d => d.deadliftFatigue !== undefined);
+  const hasAnyLiftData = hasSquatData || hasBenchData || hasDeadliftData;
 
   // ACWR (Acute:Chronic Workload Ratio) time series
   const acwrData = useMemo(() => {
@@ -224,51 +266,68 @@ const RecoveryFatigueView: React.FC<Props> = ({ history, sleepEntries }) => {
         </div>
       </div>
 
-      {/* Fatigue Score Chart — Hanley Metric */}
-      {sessionData.length >= 2 && (
+      {/* Fatigue Score Chart — Hanley Metric — Per Lift */}
+      {hasAnyLiftData && (
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <Zap size={14} className="text-amber-500" /> Session Fatigue Score
+                <Zap size={14} className="text-amber-500" /> Fatigue by Lift
               </h3>
-              <p className="text-[10px] text-gray-500">Hanley Fatigue Metric — higher = more neuromuscular stress</p>
+              <p className="text-[10px] text-gray-500">Hanley Fatigue Metric — neuromuscular stress per main lift</p>
             </div>
           </div>
 
-          <div className="h-48">
+          <div className="h-52">
             <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={sessionData} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
-                <defs>
-                  <linearGradient id="fatigueGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
+              <LineChart data={sessionData} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
                 {/* Zone bands */}
-                <ReferenceArea y1={0} y2={400} fill="#22c55e" fillOpacity={0.04} />
-                <ReferenceArea y1={400} y2={600} fill="#3b82f6" fillOpacity={0.04} />
-                <ReferenceArea y1={600} y2={800} fill="#f59e0b" fillOpacity={0.06} />
-                <ReferenceArea y1={800} y2={10000} fill="#ef4444" fillOpacity={0.06} />
+                <ReferenceArea y1={0} y2={400} fill="#22c55e" fillOpacity={0.03} />
+                <ReferenceArea y1={400} y2={600} fill="#3b82f6" fillOpacity={0.03} />
+                <ReferenceArea y1={600} y2={800} fill="#f59e0b" fillOpacity={0.04} />
+                <ReferenceArea y1={800} y2={10000} fill="#ef4444" fillOpacity={0.04} />
                 <XAxis dataKey="dateLabel" tick={{ fill: '#6b7280', fontSize: 9 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} />
                 <Tooltip
                   contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '8px', fontSize: '12px', color: '#fff' }}
-                  formatter={(value: number, name: string) => {
-                    if (name === 'fatigue') return [`${value}`, 'Fatigue Score'];
-                    return [`${value}`, name];
+                  formatter={(value: number | undefined, name: string) => {
+                    if (value === undefined) return [null, null];
+                    const label = name === 'squatFatigue' ? 'Squat' : name === 'benchFatigue' ? 'Bench' : 'Deadlift';
+                    return [`${value}`, label];
                   }}
                   labelFormatter={(label: string, payload: any) => {
                     const item = payload?.[0]?.payload;
                     return item ? `${label} — "${item.title}"` : label;
                   }}
+                  itemSorter={(item: any) => -(item.value || 0)}
                 />
-                <Area type="monotone" dataKey="fatigue" stroke="#ef4444" strokeWidth={2} fill="url(#fatigueGrad)"
-                  dot={{ fill: '#ef4444', r: 3, strokeWidth: 0 }}
-                  activeDot={{ fill: '#f87171', r: 5, strokeWidth: 2, stroke: '#1a1a1a' }}
+                <Legend
+                  formatter={(value: string) => value === 'squatFatigue' ? 'Squat' : value === 'benchFatigue' ? 'Bench' : 'Deadlift'}
+                  wrapperStyle={{ fontSize: '11px', color: '#9ca3af' }}
                 />
-              </ComposedChart>
+                {hasSquatData && (
+                  <Line type="monotone" dataKey="squatFatigue" stroke={LIFT_COLORS.squat} strokeWidth={2.5}
+                    dot={{ fill: LIFT_COLORS.squat, r: 3, strokeWidth: 0 }}
+                    activeDot={{ fill: LIFT_COLORS.squat, r: 5, strokeWidth: 2, stroke: '#1a1a1a' }}
+                    connectNulls={false}
+                  />
+                )}
+                {hasBenchData && (
+                  <Line type="monotone" dataKey="benchFatigue" stroke={LIFT_COLORS.bench} strokeWidth={2.5}
+                    dot={{ fill: LIFT_COLORS.bench, r: 3, strokeWidth: 0 }}
+                    activeDot={{ fill: LIFT_COLORS.bench, r: 5, strokeWidth: 2, stroke: '#1a1a1a' }}
+                    connectNulls={false}
+                  />
+                )}
+                {hasDeadliftData && (
+                  <Line type="monotone" dataKey="deadliftFatigue" stroke={LIFT_COLORS.deadlift} strokeWidth={2.5}
+                    dot={{ fill: LIFT_COLORS.deadlift, r: 3, strokeWidth: 0 }}
+                    activeDot={{ fill: LIFT_COLORS.deadlift, r: 5, strokeWidth: 2, stroke: '#1a1a1a' }}
+                    connectNulls={false}
+                  />
+                )}
+              </LineChart>
             </ResponsiveContainer>
           </div>
 
@@ -363,43 +422,63 @@ const RecoveryFatigueView: React.FC<Props> = ({ history, sleepEntries }) => {
         </div>
       )}
 
-      {/* Metabolic Stress Chart — Frederick Formula */}
-      {sessionData.length >= 2 && (
+      {/* Metabolic Stress Chart — Frederick Formula — Per Lift */}
+      {hasAnyLiftData && (
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                <TrendingDown size={14} className="text-purple-400" /> Metabolic Stress
+                <TrendingDown size={14} className="text-purple-400" /> Metabolic Stress by Lift
               </h3>
-              <p className="text-[10px] text-gray-500">Frederick Formula — higher = more hypertrophic stimulus per session</p>
+              <p className="text-[10px] text-gray-500">Frederick Formula — hypertrophic stimulus per main lift</p>
             </div>
           </div>
 
-          <div className="h-44">
+          <div className="h-52">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={sessionData} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
-                <defs>
-                  <linearGradient id="metabolicGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#a855f7" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#a855f7" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
+              <LineChart data={sessionData} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#262626" />
                 <XAxis dataKey="dateLabel" tick={{ fill: '#6b7280', fontSize: 9 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: '#6b7280', fontSize: 10 }} axisLine={false} tickLine={false} />
                 <Tooltip
                   contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '8px', fontSize: '12px', color: '#fff' }}
-                  formatter={(value: number) => [`${value}`, 'Metabolic Load']}
+                  formatter={(value: number | undefined, name: string) => {
+                    if (value === undefined) return [null, null];
+                    const label = name === 'squatMetabolic' ? 'Squat' : name === 'benchMetabolic' ? 'Bench' : 'Deadlift';
+                    return [`${value}`, label];
+                  }}
                   labelFormatter={(label: string, payload: any) => {
                     const item = payload?.[0]?.payload;
                     return item ? `${label} — "${item.title}"` : label;
                   }}
+                  itemSorter={(item: any) => -(item.value || 0)}
                 />
-                <Area type="monotone" dataKey="metabolic" stroke="#a855f7" strokeWidth={2} fill="url(#metabolicGrad)"
-                  dot={{ fill: '#a855f7', r: 3, strokeWidth: 0 }}
-                  activeDot={{ fill: '#c084fc', r: 5, strokeWidth: 2, stroke: '#1a1a1a' }}
+                <Legend
+                  formatter={(value: string) => value === 'squatMetabolic' ? 'Squat' : value === 'benchMetabolic' ? 'Bench' : 'Deadlift'}
+                  wrapperStyle={{ fontSize: '11px', color: '#9ca3af' }}
                 />
-              </AreaChart>
+                {hasSquatData && (
+                  <Line type="monotone" dataKey="squatMetabolic" stroke={LIFT_COLORS.squat} strokeWidth={2.5}
+                    dot={{ fill: LIFT_COLORS.squat, r: 3, strokeWidth: 0 }}
+                    activeDot={{ fill: LIFT_COLORS.squat, r: 5, strokeWidth: 2, stroke: '#1a1a1a' }}
+                    connectNulls={false} strokeDasharray="6 3"
+                  />
+                )}
+                {hasBenchData && (
+                  <Line type="monotone" dataKey="benchMetabolic" stroke={LIFT_COLORS.bench} strokeWidth={2.5}
+                    dot={{ fill: LIFT_COLORS.bench, r: 3, strokeWidth: 0 }}
+                    activeDot={{ fill: LIFT_COLORS.bench, r: 5, strokeWidth: 2, stroke: '#1a1a1a' }}
+                    connectNulls={false} strokeDasharray="6 3"
+                  />
+                )}
+                {hasDeadliftData && (
+                  <Line type="monotone" dataKey="deadliftMetabolic" stroke={LIFT_COLORS.deadlift} strokeWidth={2.5}
+                    dot={{ fill: LIFT_COLORS.deadlift, r: 3, strokeWidth: 0 }}
+                    activeDot={{ fill: LIFT_COLORS.deadlift, r: 5, strokeWidth: 2, stroke: '#1a1a1a' }}
+                    connectNulls={false} strokeDasharray="6 3"
+                  />
+                )}
+              </LineChart>
             </ResponsiveContainer>
           </div>
 
@@ -416,7 +495,7 @@ const RecoveryFatigueView: React.FC<Props> = ({ history, sleepEntries }) => {
       )}
 
       {/* Empty State */}
-      {sessionData.length < 2 && sleepTrend.length < 3 && (
+      {!hasAnyLiftData && sleepTrend.length < 3 && (
         <div className="text-center py-12 text-gray-500">
           <ShieldCheck size={48} className="mx-auto mb-3 opacity-20" />
           <p className="text-sm">Not enough data yet.</p>
