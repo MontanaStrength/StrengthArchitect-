@@ -26,6 +26,9 @@ const COLORS = {
 
 const FONT = "'Inter', 'Segoe UI', Arial, sans-serif";
 
+/** Max characters shown in the Coaching Notes column; full text is in the "Full coaching notes" section below. */
+const COACHING_NOTE_PREVIEW_LEN = 72;
+
 // ─── Helpers ─────────────────────────────────────────────────
 
 const esc = (v: string | number | undefined | null): string =>
@@ -67,6 +70,14 @@ const rpeText = (rpe: number | undefined): string => {
 const restLabel = (sec: number): string => {
   if (sec >= 120) return `${(sec / 60).toFixed(sec % 60 ? 1 : 0)} min`;
   return `${sec}s`;
+};
+
+/** One-line preview for the table; full note goes in the expandable section below. */
+const coachingNotePreview = (full: string): string => {
+  const t = full.trim();
+  if (!t) return '';
+  if (t.length <= COACHING_NOTE_PREVIEW_LEN) return t;
+  return t.slice(0, COACHING_NOTE_PREVIEW_LEN).trim() + '…';
 };
 
 // ─── Rich HTML table (paste into Google Sheets) ─────────────
@@ -218,8 +229,8 @@ export function workoutToClipboardData(plan: StrengthWorkoutPlan, clientName?: s
           val = e.supersetGroup ? `<span style="background:${COLORS.supersetBorder};color:#fff;padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700;">${esc(e.supersetGroup)}</span>` : '';
           break;
         case 'notes':
-          val = esc(notes);
-          extraStyle = `color:${COLORS.notesText};font-size:10px;font-style:italic;`;
+          val = notes ? esc(coachingNotePreview(notes)) : '';
+          extraStyle = `color:${COLORS.notesText};font-size:10px;font-style:italic;max-width:${cols.find(c => c.key === 'notes')?.width ?? 320}px;`;
           break;
         // Logging columns — intentionally empty for athlete to fill
         case 'log_weight':
@@ -253,6 +264,25 @@ export function workoutToClipboardData(plan: StrengthWorkoutPlan, clientName?: s
     html += `<tr><td colspan="${colCount}" style="background:${COLORS.footerBg};padding:4px 16px 10px;font-size:10px;color:${COLORS.notesText};font-style:italic;">`;
     html += `"${esc(plan.summary)}"`;
     html += `</td></tr>`;
+  }
+
+  // Full coaching notes (expandable reference — keeps main table rows compact)
+  const exercisesWithNotes = working.filter(e => {
+    const n = [e.notes, e.coachingCue].filter(Boolean).join('. ').trim();
+    return n.length > COACHING_NOTE_PREVIEW_LEN || n.length > 0;
+  });
+  if (exercisesWithNotes.length > 0) {
+    html += `<tr><td colspan="${colCount}" style="background:${COLORS.checkboxBg};padding:8px 16px 8px;font-size:10px;font-weight:700;color:${COLORS.metaValue};border-top:1px solid ${COLORS.divider};">📋 Full coaching notes</td></tr>`;
+    for (let idx = 0; idx < exercisesWithNotes.length; idx++) {
+      const e = exercisesWithNotes[idx];
+      const fullNote = [e.notes, e.coachingCue].filter(Boolean).join('. ').trim();
+      if (!fullNote) continue;
+      const num = working.indexOf(e) + 1;
+      html += `<tr><td colspan="${colCount}" style="background:${COLORS.checkboxBg};padding:4px 16px 10px;font-size:10px;color:${COLORS.notesText};border-bottom:1px solid ${COLORS.divider};vertical-align:top;">`;
+      html += `<strong style="color:${COLORS.metaValue};">${num}. ${esc(e.exerciseName)}</strong><br/>`;
+      html += esc(fullNote);
+      html += `</td></tr>`;
+    }
   }
 
   // Branding
@@ -330,7 +360,7 @@ function buildTsv(
     rows.push(''); // spacer after warmup
   }
 
-  // Exercise rows
+  // Exercise rows (coaching notes column = preview only; full notes below)
   for (let i = 0; i < working.length; i++) {
     const e = working[i];
     const notes = [e.notes, e.coachingCue].filter(Boolean).join('. ').trim();
@@ -347,8 +377,8 @@ function buildTsv(
     if (hasSupersets) row.push(e.supersetGroup || '');
     // Logging columns (blank for athlete to fill in)
     row.push('', '', '', '');
-    // Spacer + coaching notes pushed to far right
-    row.push('', notes);
+    // Spacer + coaching notes preview (full notes in section below)
+    row.push('', coachingNotePreview(notes));
     rows.push(row.join('\t'));
   }
 
@@ -357,6 +387,20 @@ function buildTsv(
   rows.push(summaryParts.map(s => s.replace(/[📊⏱🎯💪]/g, '').trim()).join('  |  '));
   if (plan.summary) {
     rows.push(`"${plan.summary}"`);
+  }
+
+  // Full coaching notes (reference section so main table stays compact)
+  const withNotes = working.filter(e => {
+    const n = [e.notes, e.coachingCue].filter(Boolean).join('. ').trim();
+    return n.length > 0;
+  });
+  if (withNotes.length > 0) {
+    rows.push('');
+    rows.push('Full coaching notes');
+    for (const e of withNotes) {
+      const full = [e.notes, e.coachingCue].filter(Boolean).join('. ').trim();
+      if (full) rows.push(`${working.indexOf(e) + 1}. ${e.exerciseName}: ${full}`);
+    }
   }
 
   // Branding
@@ -404,7 +448,7 @@ export function workoutToCsv(plan: StrengthWorkoutPlan, clientName?: string): st
       '', // Actual RPE
       '', // Done
       '', // spacer column
-      notes ? escapeCsv(notes) : '', // coaching notes far right
+      notes ? escapeCsv(coachingNotePreview(notes)) : '', // preview only; full notes below
     ].join(','));
   }
 
@@ -414,6 +458,20 @@ export function workoutToCsv(plan: StrengthWorkoutPlan, clientName?: string): st
   rows.push(`Summary,${working.length} exercises,${totalSets} total sets,${plan.estimatedTonnage ? `${plan.estimatedTonnage.toLocaleString()} lbs tonnage` : ''}`);
   if (plan.muscleGroupsCovered?.length) rows.push(`Muscles,"${plan.muscleGroupsCovered.join(', ')}"`);
   if (plan.summary) rows.push(`Notes,"${escapeCsv(plan.summary)}"`);
+
+  // Full coaching notes (reference section)
+  const withNotes = working.filter(e => {
+    const n = [e.notes, e.coachingCue].filter(Boolean).join('. ').trim();
+    return n.length > 0;
+  });
+  if (withNotes.length > 0) {
+    rows.push('');
+    rows.push('Full coaching notes');
+    for (const e of withNotes) {
+      const full = [e.notes, e.coachingCue].filter(Boolean).join('. ').trim();
+      if (full) rows.push(`${escapeCsv(`${working.indexOf(e) + 1}. ${e.exerciseName}: ${full}`)}`);
+    }
+  }
 
   return rows.join('\n');
 }
