@@ -179,15 +179,23 @@ export const SESSION_STRUCTURE_PRESETS: SessionStructurePreset[] = [
     label: 'Main + Accessory',
     shortLabel: '1+1',
     exerciseRange: { min: 2, max: 2 },
-    description: 'One main compound lift plus one targeted accessory. Great for focused sessions.',
-    promptGuidance: `SESSION STRUCTURE: "Main Lift + Accessory" — This athlete prefers focused 2-exercise sessions.
+    description: 'One main compound lift plus one demanding secondary movement. Both exercises can be fatiguing.',
+    promptGuidance: `SESSION STRUCTURE: "Main + Accessory" — This athlete prefers focused 2-exercise sessions with TWO demanding movements.
+    KEY DISTINCTION FROM OLAD: Unlike OLAD (which pairs one hard lift with light isolation accessories), this format allows BOTH exercises to be systemically fatiguing. The secondary movement is a COMPOUND or challenging accessory, not just isolation work.
     RULES:
-    - Prescribe EXACTLY 2 working exercises: 1 main compound lift and 1 accessory.
-    - The main lift gets the majority of volume (4-6+ working sets).
-    - The accessory targets a supporting muscle group or addresses a weakness (2-4 sets).
+    - Prescribe EXACTLY 2 working exercises: 1 main compound lift + 1 secondary compound or demanding accessory.
+    - The main lift gets the majority of volume (4-6+ working sets at higher intensity).
+    - The secondary exercise should be COMPLEMENTARY and can be a demanding compound movement (3-5 sets).
     - Include warmup sets for the main compound lift.
-    - The accessory should complement the main lift (e.g., main: squat, accessory: RDL or leg curl).
-    - Do NOT add extra exercises. Keep it to exactly 2.`,
+    PAIRING EXAMPLES (Main → Secondary):
+    • Back Squat → Snatch Grip Deadlift, Romanian Deadlift, Front Squat, Bulgarian Split Squat
+    • Bench Press → Barbell Row, Weighted Dips, Incline Bench, Close-Grip Bench
+    • Deadlift → Front Squat, Good Mornings, Deficit Deadlift, Pause Squat
+    • Overhead Press → Weighted Chin-ups, Push Press, Barbell Row, Dips
+    GUIDELINES:
+    - Avoid pairing Squat + Conventional Deadlift or Bench + OHP at max intensity (too much overlap in the same session).
+    - Secondary movement should address a complementary pattern (push/pull balance, hinge/squat pairing, etc.).
+    - Both lifts can be heavy and challenging — this is NOT a "light accessory" format like OLAD.`,
   },
   {
     id: 'standard',
