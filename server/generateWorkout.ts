@@ -3,6 +3,7 @@ import type { FormData, SavedWorkout, StrengthWorkoutPlan, OptimizerRecommendati
 import { SESSION_STRUCTURE_PRESETS } from '../types';
 import { STRENGTH_ARCHETYPES } from '../services/strengthArchetypes';
 import { getExerciseListForPrompt, getExerciseById } from '../services/exerciseLibrary';
+import { computeExerciseSelectionContext, formatExerciseSelectionContextForPrompt } from '../services/exerciseSelectionEngine';
 import { parseRepsToAverage } from '../utils';
 
 // ===== TRAINING INTELLIGENCE =====
@@ -337,6 +338,18 @@ export const generateWorkoutServer = async (
     `;
   }
 
+  // ===== EXERCISE SELECTION ENGINE (rotation & frequency) =====
+  const exerciseSelectionContext = formatExerciseSelectionContextForPrompt(
+    computeExerciseSelectionContext({
+      history: recentWorkouts,
+      sessionStructure: data.sessionStructure,
+      equipment: data.availableEquipment,
+      optimizerRecommendations: optimizerRecommendations ?? undefined,
+      exercisePreferences: exercisePreferences ?? undefined,
+      trainingExperience: data.trainingExperience,
+    })
+  );
+
   // ===== PRE-WORKOUT CHECK-IN INTEGRATION =====
   let checkInContext = '';
   if (data.preWorkoutCheckIn) {
@@ -398,6 +411,7 @@ export const generateWorkoutServer = async (
     ${goalBiasContext}
     ${volumeToleranceContext}
     ${sessionStructureContext}
+    ${exerciseSelectionContext}
     ${checkInContext}
     ${swapAndRebuildContext}
 

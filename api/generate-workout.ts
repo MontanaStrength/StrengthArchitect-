@@ -1,5 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI, Type } from '@google/genai';
+import { computeExerciseSelectionContext, formatExerciseSelectionContextForPrompt } from '../services/exerciseSelectionEngine';
+import type { AvailableEquipment } from '../types';
 
 // ===== SELF-CONTAINED VERCEL SERVERLESS FUNCTION =====
 // This file is a standalone copy of the generation logic for Vercel deployment.
@@ -231,6 +233,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       sessionStructureContext = `\n### ${ssPreset.guidance}\nBINDING: The session structure OVERRIDES the exercise count from both the optimizer and the NSCA defaults.`;
     }
 
+    const exerciseSelectionContext = formatExerciseSelectionContextForPrompt(
+      computeExerciseSelectionContext({
+        history: recentWorkouts,
+        sessionStructure: data.sessionStructure,
+        equipment: (data.availableEquipment || []) as AvailableEquipment[],
+        optimizerRecommendations: optimizerRecommendations ?? undefined,
+        exercisePreferences: exercisePreferences ?? undefined,
+        trainingExperience: data.trainingExperience,
+      })
+    );
+
     let checkInContext = '';
     if (data.preWorkoutCheckIn) {
       const { mood, soreness, nutrition } = data.preWorkoutCheckIn;
@@ -261,6 +274,7 @@ ${optimizerContext}
 ${goalBiasContext}
 ${volumeToleranceContext}
 ${sessionStructureContext}
+${exerciseSelectionContext}
 ${checkInContext}
 ${swapAndRebuildContext}
 GUARDRAILS: Max ${guardrails.maxSetsPerSession} working sets, ${guardrails.maxExercises} exercises, ${guardrails.maxPercentOf1RM}% max 1RM. Weekly load: ${safetyExposure.last7Count} sessions, ${safetyExposure.hardSessions} hard. Disallowed archetypes: ${disallowedArchetypes.join(', ') || 'None'}. ${guardrails.forceCompounds ? 'BEGINNER: compounds only + 1-2 accessories.' : ''}
