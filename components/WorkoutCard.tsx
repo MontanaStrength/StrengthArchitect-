@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { StrengthWorkoutPlan, GymSetup, ExerciseBlock } from '../types';
 import { getArchetypeNameById } from '../services/strengthArchetypes';
-import { getExerciseById, EXERCISE_LIBRARY } from '../services/exerciseLibrary';
+import { getExerciseByIdOrName, EXERCISE_LIBRARY } from '../services/exerciseLibrary';
 import { Dumbbell, Clock, BarChart3, Weight, Info, Lightbulb, ChevronDown, ChevronUp, Flame, Repeat2 } from 'lucide-react';
 
 interface Props {
@@ -208,18 +208,18 @@ const ExerciseRow: React.FC<{
   onSwap?: (newId: string, newName: string) => void;
   onSwapAndRebuild?: (newId: string, newName: string) => void;
 }> = ({ exercise, index, swapOpen, onToggleSwap, onSwap, onSwapAndRebuild }) => {
-  // Find alternatives from same movement pattern
+  // Find alternatives from same movement pattern (match by id or display name so AI variations still get swaps)
   const alternatives = useMemo(() => {
-    const def = getExerciseById(exercise.exerciseId);
+    const def = getExerciseByIdOrName(exercise.exerciseId, exercise.exerciseName);
     if (!def) return [];
     return EXERCISE_LIBRARY
       .filter(e =>
-        e.id !== exercise.exerciseId &&
+        e.id !== def.id &&
         e.movementPattern === def.movementPattern &&
-        e.difficulty !== 'advanced' || def.difficulty === 'advanced'
+        (e.difficulty !== 'advanced' || def.difficulty === 'advanced')
       )
       .slice(0, 6);
-  }, [exercise.exerciseId]);
+  }, [exercise.exerciseId, exercise.exerciseName]);
   const hasSwap = onSwap || onSwapAndRebuild;
   // Build the prescription string
   const prescription: string[] = [];
@@ -243,22 +243,24 @@ const ExerciseRow: React.FC<{
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h4 className="text-base font-bold text-white leading-snug">{exercise.exerciseName}</h4>
-            {alternatives.length > 0 && hasSwap && (
+            {hasSwap && (
               <button
                 onClick={(e) => { e.stopPropagation(); onToggleSwap(); }}
-                className={`p-1 rounded transition-colors ${swapOpen ? 'text-amber-400 bg-amber-500/10' : 'text-gray-600 hover:text-gray-400'}`}
+                className={`p-1.5 rounded transition-colors ${swapOpen ? 'text-amber-400 bg-amber-500/10' : 'text-gray-500 hover:text-amber-400'}`}
                 title="Swap exercise"
               >
-                <Repeat2 size={13} />
+                <Repeat2 size={14} />
               </button>
             )}
           </div>
 
-          {/* Swap dropdown */}
-          {swapOpen && alternatives.length > 0 && hasSwap && (
+          {/* Swap dropdown — always show when opened so the control is discoverable */}
+          {swapOpen && hasSwap && (
             <div className="mt-2 mb-1 bg-neutral-800 border border-neutral-700 rounded-lg p-2 space-y-1.5">
               <p className="text-[10px] text-gray-500 mb-1">Replace with a similar movement:</p>
-              {alternatives.map(alt => (
+              {alternatives.length === 0 ? (
+                <p className="text-xs text-gray-500 py-1">No similar exercises in library for this movement.</p>
+              ) : alternatives.map(alt => (
                 <div key={alt.id} className="flex items-center justify-between gap-2 flex-wrap rounded bg-neutral-700/50 px-2 py-1.5">
                   <span className="text-xs text-gray-200 flex-1 min-w-0">{alt.name}</span>
                   <div className="flex gap-1 shrink-0">

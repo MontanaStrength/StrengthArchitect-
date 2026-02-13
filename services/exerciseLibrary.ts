@@ -1304,6 +1304,17 @@ export const getExerciseById = (id: string): Exercise | undefined => {
 };
 
 /**
+ * Look up by ID first; if not found, try matching display name (e.g. AI returns "Barbell Back Squat" but id is back_squat).
+ */
+export const getExerciseByIdOrName = (id: string, displayName?: string): Exercise | undefined => {
+  const byId = EXERCISE_LIBRARY.find(e => e.id === id);
+  if (byId) return byId;
+  if (!displayName || !displayName.trim()) return undefined;
+  const normalized = displayName.trim().toLowerCase().replace(/^(barbell|dumbbell|kettlebell|cable|band|bodyweight)\s+/i, '');
+  return EXERCISE_LIBRARY.find(e => e.name.toLowerCase() === normalized || e.name.toLowerCase().includes(normalized) || normalized.includes(e.name.toLowerCase()));
+}
+
+/**
  * Filter exercises by available equipment.
  */
 export const filterByEquipment = (equipment: AvailableEquipment[]): Exercise[] => {
