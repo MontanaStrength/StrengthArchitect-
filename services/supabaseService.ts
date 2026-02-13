@@ -574,7 +574,12 @@ export const fetchDismissedAlertsFromCloud = async (userId: string): Promise<str
 
 export const syncCoachClientToCloud = async (client: CoachClient, userId: string) => {
   // Pack extra fields into equipment JSONB to avoid schema migration
-  const hasExtras = client.sessionStructure || client.squat1RM || client.benchPress1RM || client.deadlift1RM || client.overheadPress1RM;
+  const hasExtras =
+    client.sessionStructure != null ||
+    client.squat1RM != null ||
+    client.benchPress1RM != null ||
+    client.deadlift1RM != null ||
+    client.overheadPress1RM != null;
   const equipmentPayload = hasExtras
     ? {
         __v: 2,
@@ -616,10 +621,19 @@ export const fetchCoachClientsFromCloud = async (userId: string): Promise<CoachC
   if (error) throw error;
 
   return (data || []).map(row => {
-    // Handle both old format (plain array) and new format (wrapper with sessionStructure)
+    // Handle both old format (plain array) and new format (wrapper with sessionStructure + 1RMs)
     const rawEquip = row.equipment;
-    const isWrapped = rawEquip && !Array.isArray(rawEquip) && rawEquip.__v;
-    const equipment = isWrapped ? (rawEquip.items || []) : (rawEquip || []);
+    const isObject = rawEquip && typeof rawEquip === 'object' && !Array.isArray(rawEquip);
+    const hasWrappedExtras =
+      isObject &&
+      (rawEquip.__v != null ||
+        'sessionStructure' in rawEquip ||
+        'squat1RM' in rawEquip ||
+        'benchPress1RM' in rawEquip ||
+        'deadlift1RM' in rawEquip ||
+        'overheadPress1RM' in rawEquip);
+    const isWrapped = !!hasWrappedExtras;
+    const equipment = isWrapped ? (rawEquip.items || []) : (Array.isArray(rawEquip) ? rawEquip : []);
     const sessionStructure = isWrapped ? rawEquip.sessionStructure : undefined;
 
     return {
@@ -634,11 +648,11 @@ export const fetchCoachClientsFromCloud = async (userId: string): Promise<CoachC
       notes: row.notes,
       avatarColor: row.avatar_color,
       createdAt: row.created_at,
-      ...(sessionStructure && { sessionStructure }),
-      ...(isWrapped && rawEquip.squat1RM && { squat1RM: rawEquip.squat1RM }),
-      ...(isWrapped && rawEquip.benchPress1RM && { benchPress1RM: rawEquip.benchPress1RM }),
-      ...(isWrapped && rawEquip.deadlift1RM && { deadlift1RM: rawEquip.deadlift1RM }),
-      ...(isWrapped && rawEquip.overheadPress1RM && { overheadPress1RM: rawEquip.overheadPress1RM }),
+      ...(sessionStructure != null && sessionStructure !== '' && { sessionStructure }),
+      ...(isWrapped && rawEquip.squat1RM != null && { squat1RM: Number(rawEquip.squat1RM) }),
+      ...(isWrapped && rawEquip.benchPress1RM != null && { benchPress1RM: Number(rawEquip.benchPress1RM) }),
+      ...(isWrapped && rawEquip.deadlift1RM != null && { deadlift1RM: Number(rawEquip.deadlift1RM) }),
+      ...(isWrapped && rawEquip.overheadPress1RM != null && { overheadPress1RM: Number(rawEquip.overheadPress1RM) }),
     };
   });
 };
