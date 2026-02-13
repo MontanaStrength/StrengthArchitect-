@@ -21,7 +21,7 @@ import {
   syncDismissedAlertsToCloud, fetchDismissedAlertsFromCloud, UserPreferences,
   syncCoachClientToCloud, fetchCoachClientsFromCloud, deleteCoachClientFromCloud,
 } from './services/supabaseService';
-import { generateWorkout, TrainingContext } from './services/geminiService';
+import { generateWorkout, TrainingContext, type SwapAndRebuildRequest } from './services/geminiService';
 import { estimate1RM } from './utils';
 import { initAudio } from './utils/audioManager';
 
@@ -371,7 +371,7 @@ const App: React.FC = () => {
   }, [trainingBlocks]);
 
   // ===== GENERATE WORKOUT =====
-  const handleGenerate = useCallback(async () => {
+  const handleGenerate = useCallback(async (swapAndRebuild?: SwapAndRebuildRequest | null) => {
     setError('');
     setIsGenerating(true);
     setCurrentPlan(null);
@@ -401,7 +401,7 @@ const App: React.FC = () => {
         volTol,
       );
 
-      const plan = await generateWorkout(biasedFormData, history, trainingContext, optimizerRecs, exercisePrefs, bias, volTol);
+      const plan = await generateWorkout(biasedFormData, history, trainingContext, optimizerRecs, exercisePrefs, bias, volTol, swapAndRebuild ?? undefined);
       setCurrentPlan(plan);
 
       const saved: SavedWorkout = {
@@ -970,6 +970,9 @@ const App: React.FC = () => {
                     ex.exerciseId === oldId ? { ...ex, exerciseId: newId, exerciseName: newName } : ex
                   ),
                 });
+              }}
+              onSwapAndRebuild={(oldId, newId, newName) => {
+                handleGenerate({ replaceExerciseId: oldId, withExerciseId: newId, withExerciseName: newName });
               }}
             />
           </div>

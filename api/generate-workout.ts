@@ -151,7 +151,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { data, history = [], trainingContext, optimizerRecommendations, exercisePreferences, goalBias, volumeTolerance } = req.body;
+    const { data, history = [], trainingContext, optimizerRecommendations, exercisePreferences, goalBias, volumeTolerance, swapAndRebuild } = req.body;
     if (!data) return res.status(400).json({ error: 'Missing form data' });
 
     const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
@@ -248,6 +248,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    let swapAndRebuildContext = '';
+    if (swapAndRebuild?.withExerciseId && swapAndRebuild?.withExerciseName) {
+      swapAndRebuildContext = `
+ATHLETE SWAP (BINDING): The athlete has chosen to replace one exercise with "${swapAndRebuild.withExerciseName}" (exerciseId: ${swapAndRebuild.withExerciseId}). You MUST include this exercise in the session with appropriate sets, reps, intensity, and rest. Build the rest of the session around it; keep the same session structure and total volume. Do not include the exercise that was replaced (id: ${swapAndRebuild.replaceExerciseId}).`;
+    }
+
     const prompt = `You are an expert strength coach. Design a session for: ${data.trainingExperience}, ${data.readiness} readiness, ${data.duration}min, Focus: ${data.trainingGoalFocus}, Equipment: ${data.availableEquipment.join(', ')}, Athlete: ${data.age}yo ${data.gender} ${data.weightLbs}lbs. ${liftPRs ? `1RMs: ${liftPRs}` : 'No 1RM data — use RPE-based loading.'}
 ${historyContext}
 ${blockContext}
@@ -256,6 +262,7 @@ ${goalBiasContext}
 ${volumeToleranceContext}
 ${sessionStructureContext}
 ${checkInContext}
+${swapAndRebuildContext}
 GUARDRAILS: Max ${guardrails.maxSetsPerSession} working sets, ${guardrails.maxExercises} exercises, ${guardrails.maxPercentOf1RM}% max 1RM. Weekly load: ${safetyExposure.last7Count} sessions, ${safetyExposure.hardSessions} hard. Disallowed archetypes: ${disallowedArchetypes.join(', ') || 'None'}. ${guardrails.forceCompounds ? 'BEGINNER: compounds only + 1-2 accessories.' : ''}
 FALLBACK DEFAULTS (NSCA/ACSM) — use ONLY where the OPTIMIZER does not specify. Optimizer's sets/reps/intensity are BINDING and always override these:
 - Exercise order: power → multi-joint compounds → single-joint isolation → core last.

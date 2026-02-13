@@ -30,6 +30,8 @@ interface Props {
   onSaveFeedback: (workoutId: string, feedback: FeedbackData) => void;
   onNavigatePlan: () => void;
   onSwapExercise?: (oldExerciseId: string, newExerciseId: string, newExerciseName: string) => void;
+  /** Rebuild the session with the chosen exercise (AI regenerates with this exercise locked in) */
+  onSwapAndRebuild?: (oldExerciseId: string, newExerciseId: string, newExerciseName: string) => void;
 }
 
 const READINESS_OPTIONS: { level: ReadinessLevel; label: string; emoji: string; activeClass: string }[] = [
@@ -67,7 +69,7 @@ const LiftView: React.FC<Props> = ({
   isCoachMode, clientName,
   preWorkoutCheckIn,
   onReadinessChange, onCheckInChange, onGenerate, onStartSession,
-  onNewWorkout, onSaveFeedback, onNavigatePlan, onSwapExercise,
+  onNewWorkout, onSaveFeedback, onNavigatePlan, onSwapExercise, onSwapAndRebuild,
 }) => {
   const [copied, setCopied] = useState(false);
   const [overrideRestDay, setOverrideRestDay] = useState(false);
@@ -218,7 +220,7 @@ const LiftView: React.FC<Props> = ({
           </div>
         )}
 
-        <WorkoutCard plan={currentPlan} gymSetup={gymSetup} onSwapExercise={onSwapExercise} />
+        <WorkoutCard plan={currentPlan} gymSetup={gymSetup} onSwapExercise={onSwapExercise} onSwapAndRebuild={onSwapAndRebuild} />
 
         {isCoachMode && (
           <div className="sa-card border-sa-info/30 bg-sa-info/10 rounded-card p-4 space-y-3">

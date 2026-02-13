@@ -134,6 +134,12 @@ export interface TrainingContext {
   goalEvent?: string;
 }
 
+export interface SwapAndRebuildRequest {
+  replaceExerciseId: string;
+  withExerciseId: string;
+  withExerciseName: string;
+}
+
 export const generateWorkoutServer = async (
   data: FormData,
   history: SavedWorkout[] = [],
@@ -141,7 +147,8 @@ export const generateWorkoutServer = async (
   optimizerRecommendations?: OptimizerRecommendations | null,
   exercisePreferences?: ExercisePreferences | null,
   goalBias?: number | null,
-  volumeTolerance?: number | null
+  volumeTolerance?: number | null,
+  swapAndRebuild?: SwapAndRebuildRequest | null
 ): Promise<StrengthWorkoutPlan> => {
   const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
   if (!apiKey) {
@@ -353,6 +360,18 @@ export const generateWorkoutServer = async (
     }
   }
 
+  // ===== SWAP AND REBUILD (athlete chose a specific exercise replacement) =====
+  let swapAndRebuildContext = '';
+  if (swapAndRebuild?.withExerciseId && swapAndRebuild?.withExerciseName) {
+    swapAndRebuildContext = `
+    ### ATHLETE SWAP (BINDING)
+    The athlete has chosen to replace one exercise with "${swapAndRebuild.withExerciseName}" (exerciseId: ${swapAndRebuild.withExerciseId}).
+    You MUST include this exercise in the session with appropriate sets, reps, intensity, and rest.
+    Build the rest of the session around it; keep the same session structure and total volume.
+    Do not include the exercise that was replaced (id: ${swapAndRebuild.replaceExerciseId}).
+    `;
+  }
+
   // Build 1RM context
   const liftPRs = [
     data.squat1RM ? `Squat 1RM: ${data.squat1RM} lbs` : null,
@@ -380,6 +399,7 @@ export const generateWorkoutServer = async (
     ${volumeToleranceContext}
     ${sessionStructureContext}
     ${checkInContext}
+    ${swapAndRebuildContext}
 
     ### EXERCISE LIBRARY (Select exercises ONLY from this list, use the exact exerciseId)
     ${getExerciseListForPrompt()}

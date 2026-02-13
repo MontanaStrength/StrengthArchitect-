@@ -8,9 +8,11 @@ interface Props {
   plan: StrengthWorkoutPlan;
   gymSetup?: GymSetup;
   onSwapExercise?: (oldExerciseId: string, newExerciseId: string, newExerciseName: string) => void;
+  /** Rebuild the full session with the chosen exercise (AI regenerates with this exercise locked in) */
+  onSwapAndRebuild?: (oldExerciseId: string, newExerciseId: string, newExerciseName: string) => void;
 }
 
-const WorkoutCard: React.FC<Props> = ({ plan, onSwapExercise }) => {
+const WorkoutCard: React.FC<Props> = ({ plan, onSwapExercise, onSwapAndRebuild }) => {
   const [tipsExpanded, setTipsExpanded] = useState(false);
   const [swapOpenId, setSwapOpenId] = useState<string | null>(null);
 
@@ -118,6 +120,7 @@ const WorkoutCard: React.FC<Props> = ({ plan, onSwapExercise }) => {
                       swapOpen={swapOpenId === exercise.exerciseId}
                       onToggleSwap={() => setSwapOpenId(swapOpenId === exercise.exerciseId ? null : exercise.exerciseId)}
                       onSwap={onSwapExercise ? (newId, newName) => onSwapExercise(exercise.exerciseId, newId, newName) : undefined}
+                      onSwapAndRebuild={onSwapAndRebuild ? (newId, newName) => onSwapAndRebuild(exercise.exerciseId, newId, newName) : undefined}
                     />
                   ))}
                 </div>
@@ -135,6 +138,7 @@ const WorkoutCard: React.FC<Props> = ({ plan, onSwapExercise }) => {
                 swapOpen={swapOpenId === exercise.exerciseId}
                 onToggleSwap={() => setSwapOpenId(swapOpenId === exercise.exerciseId ? null : exercise.exerciseId)}
                 onSwap={onSwapExercise ? (newId, newName) => onSwapExercise(exercise.exerciseId, newId, newName) : undefined}
+                onSwapAndRebuild={onSwapAndRebuild ? (newId, newName) => onSwapAndRebuild(exercise.exerciseId, newId, newName) : undefined}
               />
             </div>
           );
@@ -202,7 +206,8 @@ const ExerciseRow: React.FC<{
   swapOpen: boolean;
   onToggleSwap: () => void;
   onSwap?: (newId: string, newName: string) => void;
-}> = ({ exercise, index, swapOpen, onToggleSwap, onSwap }) => {
+  onSwapAndRebuild?: (newId: string, newName: string) => void;
+}> = ({ exercise, index, swapOpen, onToggleSwap, onSwap, onSwapAndRebuild }) => {
   // Find alternatives from same movement pattern
   const alternatives = useMemo(() => {
     const def = getExerciseById(exercise.exerciseId);
@@ -215,6 +220,7 @@ const ExerciseRow: React.FC<{
       )
       .slice(0, 6);
   }, [exercise.exerciseId]);
+  const hasSwap = onSwap || onSwapAndRebuild;
   // Build the prescription string
   const prescription: string[] = [];
   prescription.push(`${exercise.sets} \u00D7 ${exercise.reps}`);
@@ -237,7 +243,7 @@ const ExerciseRow: React.FC<{
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h4 className="text-base font-bold text-white leading-snug">{exercise.exerciseName}</h4>
-            {alternatives.length > 0 && onSwap && (
+            {alternatives.length > 0 && hasSwap && (
               <button
                 onClick={(e) => { e.stopPropagation(); onToggleSwap(); }}
                 className={`p-1 rounded transition-colors ${swapOpen ? 'text-amber-400 bg-amber-500/10' : 'text-gray-600 hover:text-gray-400'}`}
@@ -249,18 +255,31 @@ const ExerciseRow: React.FC<{
           </div>
 
           {/* Swap dropdown */}
-          {swapOpen && alternatives.length > 0 && onSwap && (
-            <div className="mt-2 mb-1 bg-neutral-800 border border-neutral-700 rounded-lg p-2 space-y-0.5">
-              <p className="text-[10px] text-gray-500 mb-1.5">Swap with a similar movement:</p>
+          {swapOpen && alternatives.length > 0 && hasSwap && (
+            <div className="mt-2 mb-1 bg-neutral-800 border border-neutral-700 rounded-lg p-2 space-y-1.5">
+              <p className="text-[10px] text-gray-500 mb-1">Replace with a similar movement:</p>
               {alternatives.map(alt => (
-                <button
-                  key={alt.id}
-                  onClick={() => { onSwap(alt.id, alt.name); onToggleSwap(); }}
-                  className="w-full text-left px-2 py-1.5 rounded text-xs text-gray-300 hover:bg-neutral-700 hover:text-white transition-colors flex items-center justify-between"
-                >
-                  <span>{alt.name}</span>
-                  <span className="text-[9px] text-gray-600">{alt.movementPattern}</span>
-                </button>
+                <div key={alt.id} className="flex items-center justify-between gap-2 flex-wrap rounded bg-neutral-700/50 px-2 py-1.5">
+                  <span className="text-xs text-gray-200 flex-1 min-w-0">{alt.name}</span>
+                  <div className="flex gap-1 shrink-0">
+                    {onSwapAndRebuild && (
+                      <button
+                        onClick={() => { onSwapAndRebuild(alt.id, alt.name); onToggleSwap(); }}
+                        className="text-[10px] font-medium px-2 py-0.5 rounded bg-amber-500/25 text-amber-400 hover:bg-amber-500/35 transition-colors whitespace-nowrap"
+                      >
+                        Rebuild session
+                      </button>
+                    )}
+                    {onSwap && (
+                      <button
+                        onClick={() => { onSwap(alt.id, alt.name); onToggleSwap(); }}
+                        className="text-[10px] text-gray-400 hover:text-white px-2 py-0.5 rounded hover:bg-neutral-600 transition-colors"
+                      >
+                        Just swap
+                      </button>
+                    )}
+                  </div>
+                </div>
               ))}
             </div>
           )}

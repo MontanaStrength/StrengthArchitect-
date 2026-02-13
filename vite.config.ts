@@ -31,6 +31,7 @@ const localApiPlugin = () => {
               body?.exercisePreferences || null,
               body?.goalBias ?? null,
               body?.volumeTolerance ?? null,
+              body?.swapAndRebuild || null,
             );
 
             res.statusCode = 200;

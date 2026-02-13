@@ -11,6 +11,12 @@ export interface TrainingContext {
   goalEvent?: string;
 }
 
+export interface SwapAndRebuildRequest {
+  replaceExerciseId: string;
+  withExerciseId: string;
+  withExerciseName: string;
+}
+
 export const generateWorkout = async (
   data: FormData,
   history: SavedWorkout[] = [],
@@ -18,7 +24,8 @@ export const generateWorkout = async (
   optimizerRecommendations?: OptimizerRecommendations | null,
   exercisePreferences?: ExercisePreferences | null,
   goalBias?: number | null,
-  volumeTolerance?: number | null
+  volumeTolerance?: number | null,
+  swapAndRebuild?: SwapAndRebuildRequest | null
 ): Promise<StrengthWorkoutPlan> => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 120_000); // 2 min timeout
@@ -30,7 +37,7 @@ export const generateWorkout = async (
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ data, history, trainingContext, optimizerRecommendations, exercisePreferences, goalBias, volumeTolerance }),
+      body: JSON.stringify({ data, history, trainingContext, optimizerRecommendations, exercisePreferences, goalBias, volumeTolerance, swapAndRebuild }),
       signal: controller.signal,
     });
   } catch (err: any) {
