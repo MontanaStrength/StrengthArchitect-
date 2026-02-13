@@ -1,12 +1,31 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI, Type } from '@google/genai';
-import { computeExerciseSelectionContext, formatExerciseSelectionContextForPrompt } from '../services/exerciseSelectionEngine';
-import type { AvailableEquipment } from '../types';
 
 // ===== SELF-CONTAINED VERCEL SERVERLESS FUNCTION =====
 // This file is a standalone copy of the generation logic for Vercel deployment.
 // It does NOT import from ../server/generateWorkout.ts because Vercel serverless
 // functions cannot share modules with the main app bundle.
+// Exercise selection engine is loaded dynamically to avoid crashing the function
+// if the import chain (exerciseLibrary, types) fails in the serverless environment.
+
+async function getExerciseSelectionContext(data: any, recentWorkouts: any[], optimizerRecommendations: any, exercisePreferences: any): Promise<string> {
+  try {
+    const { computeExerciseSelectionContext, formatExerciseSelectionContextForPrompt } = await import('../services/exerciseSelectionEngine');
+    return formatExerciseSelectionContextForPrompt(
+      computeExerciseSelectionContext({
+        history: recentWorkouts,
+        sessionStructure: data.sessionStructure,
+        equipment: data.availableEquipment || [],
+        optimizerRecommendations: optimizerRecommendations ?? undefined,
+        exercisePreferences: exercisePreferences ?? undefined,
+        trainingExperience: data.trainingExperience,
+      })
+    );
+  } catch (err) {
+    console.warn('Exercise selection engine failed (non-fatal):', err);
+    return '';
+  }
+}
 
 const parseRepsToAverage = (reps: string): number => {
   if (!reps) return 0;
@@ -234,16 +253,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       sessionStructureContext = `\n### ${ssPreset.guidance}\nBINDING: The session structure OVERRIDES the exercise count from both the optimizer and the NSCA defaults.`;
     }
 
-    const exerciseSelectionContext = formatExerciseSelectionContextForPrompt(
-      computeExerciseSelectionContext({
-        history: recentWorkouts,
-        sessionStructure: data.sessionStructure,
-        equipment: (data.availableEquipment || []) as AvailableEquipment[],
-        optimizerRecommendations: optimizerRecommendations ?? undefined,
-        exercisePreferences: exercisePreferences ?? undefined,
-        trainingExperience: data.trainingExperience,
-      })
-    );
+    const exerciseSelectionContext = await getExerciseSelectionContext(data, recentWorkouts, optimizerRecommendations, exercisePreferences);
 
     let checkInContext = '';
     if (data.preWorkoutCheckIn) {
