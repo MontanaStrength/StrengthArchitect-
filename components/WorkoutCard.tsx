@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { StrengthWorkoutPlan, GymSetup, ExerciseBlock } from '../types';
 import { getArchetypeNameById } from '../services/strengthArchetypes';
-import { getExerciseByIdOrName, EXERCISE_LIBRARY } from '../services/exerciseLibrary';
+import { getExerciseByIdOrName, getComplementaryPatterns, EXERCISE_LIBRARY } from '../services/exerciseLibrary';
 import { Dumbbell, Clock, BarChart3, Weight, Info, Lightbulb, ChevronDown, ChevronUp, Flame, Repeat2 } from 'lucide-react';
 
 interface Props {
@@ -208,19 +208,24 @@ const ExerciseRow: React.FC<{
   onSwap?: (newId: string, newName: string) => void;
   onSwapAndRebuild?: (newId: string, newName: string) => void;
 }> = ({ exercise, index, swapOpen, onToggleSwap, onSwap, onSwapAndRebuild }) => {
-  // Find alternatives from same movement pattern (match by id or display name so AI variations still get swaps)
-  const alternatives = useMemo(() => {
+  // Same-pattern alternatives (e.g. squat → other squats) and other-pattern alternatives (e.g. squat → hinges for less quad stress)
+  const { samePattern, otherPatterns } = useMemo(() => {
     const def = getExerciseByIdOrName(exercise.exerciseId, exercise.exerciseName);
-    if (!def) return [];
-    return EXERCISE_LIBRARY
-      .filter(e =>
+    if (!def) return { samePattern: [] as typeof EXERCISE_LIBRARY, otherPatterns: [] as typeof EXERCISE_LIBRARY };
+    const same = EXERCISE_LIBRARY.filter(
+      e =>
         e.id !== def.id &&
         e.movementPattern === def.movementPattern &&
         (e.difficulty !== 'advanced' || def.difficulty === 'advanced')
-      )
-      .slice(0, 6);
+    ).slice(0, 8);
+    const complementary = getComplementaryPatterns(def.movementPattern);
+    const other = EXERCISE_LIBRARY.filter(
+      e => complementary.includes(e.movementPattern) && (e.difficulty !== 'advanced' || def.difficulty === 'advanced')
+    ).slice(0, 8);
+    return { samePattern: same, otherPatterns: other };
   }, [exercise.exerciseId, exercise.exerciseName]);
   const hasSwap = onSwap || onSwapAndRebuild;
+  const hasAnyAlternatives = samePattern.length > 0 || otherPatterns.length > 0;
   // Build the prescription string
   const prescription: string[] = [];
   prescription.push(`${exercise.sets} \u00D7 ${exercise.reps}`);
@@ -246,43 +251,87 @@ const ExerciseRow: React.FC<{
             {hasSwap && (
               <button
                 onClick={(e) => { e.stopPropagation(); onToggleSwap(); }}
-                className={`p-1.5 rounded transition-colors ${swapOpen ? 'text-amber-400 bg-amber-500/10' : 'text-gray-500 hover:text-amber-400'}`}
+                className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium transition-colors ${swapOpen ? 'text-amber-400 bg-amber-500/10' : 'text-gray-500 hover:text-amber-400'}`}
                 title="Swap exercise"
               >
                 <Repeat2 size={14} />
+                <span>Swap</span>
               </button>
             )}
           </div>
 
-          {/* Swap dropdown — always show when opened so the control is discoverable */}
+          {/* Swap dropdown — same movement + other patterns (e.g. hinge when quad is sore) */}
           {swapOpen && hasSwap && (
-            <div className="mt-2 mb-1 bg-neutral-800 border border-neutral-700 rounded-lg p-2 space-y-1.5">
-              <p className="text-[10px] text-gray-500 mb-1">Replace with a similar movement:</p>
-              {alternatives.length === 0 ? (
-                <p className="text-xs text-gray-500 py-1">No similar exercises in library for this movement.</p>
-              ) : alternatives.map(alt => (
-                <div key={alt.id} className="flex items-center justify-between gap-2 flex-wrap rounded bg-neutral-700/50 px-2 py-1.5">
-                  <span className="text-xs text-gray-200 flex-1 min-w-0">{alt.name}</span>
-                  <div className="flex gap-1 shrink-0">
-                    {onSwapAndRebuild && (
-                      <button
-                        onClick={() => { onSwapAndRebuild(alt.id, alt.name); onToggleSwap(); }}
-                        className="text-[10px] font-medium px-2 py-0.5 rounded bg-amber-500/25 text-amber-400 hover:bg-amber-500/35 transition-colors whitespace-nowrap"
-                      >
-                        Rebuild session
-                      </button>
-                    )}
-                    {onSwap && (
-                      <button
-                        onClick={() => { onSwap(alt.id, alt.name); onToggleSwap(); }}
-                        className="text-[10px] text-gray-400 hover:text-white px-2 py-0.5 rounded hover:bg-neutral-600 transition-colors"
-                      >
-                        Just swap
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
+            <div className="mt-2 mb-1 bg-neutral-800 border border-neutral-700 rounded-lg p-2.5 space-y-2">
+              {!hasAnyAlternatives ? (
+                <p className="text-xs text-gray-500 py-1">No alternatives in library for this movement.</p>
+              ) : (
+                <>
+                  {samePattern.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1.5">Same movement</p>
+                      <div className="space-y-1">
+                        {samePattern.map(alt => (
+                          <div key={alt.id} className="flex items-center justify-between gap-2 flex-wrap rounded bg-neutral-700/50 px-2 py-1.5">
+                            <span className="text-xs text-gray-200 flex-1 min-w-0">{alt.name}</span>
+                            <div className="flex gap-1 shrink-0">
+                              {onSwapAndRebuild && (
+                                <button
+                                  onClick={() => { onSwapAndRebuild(alt.id, alt.name); onToggleSwap(); }}
+                                  className="text-[10px] font-medium px-2 py-0.5 rounded bg-amber-500/25 text-amber-400 hover:bg-amber-500/35 transition-colors whitespace-nowrap"
+                                >
+                                  Rebuild session
+                                </button>
+                              )}
+                              {onSwap && (
+                                <button
+                                  onClick={() => { onSwap(alt.id, alt.name); onToggleSwap(); }}
+                                  className="text-[10px] text-gray-400 hover:text-white px-2 py-0.5 rounded hover:bg-neutral-600 transition-colors"
+                                >
+                                  Just swap
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {otherPatterns.length > 0 && (
+                    <div>
+                      <p className="text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1.5">
+                        Other options (e.g. hinge if quad is sore)
+                      </p>
+                      <div className="space-y-1">
+                        {otherPatterns.map(alt => (
+                          <div key={alt.id} className="flex items-center justify-between gap-2 flex-wrap rounded bg-neutral-700/50 px-2 py-1.5">
+                            <span className="text-xs text-gray-200 flex-1 min-w-0">{alt.name}</span>
+                            <span className="text-[9px] text-gray-500 shrink-0">{alt.movementPattern}</span>
+                            <div className="flex gap-1 shrink-0 w-full sm:w-auto">
+                              {onSwapAndRebuild && (
+                                <button
+                                  onClick={() => { onSwapAndRebuild(alt.id, alt.name); onToggleSwap(); }}
+                                  className="text-[10px] font-medium px-2 py-0.5 rounded bg-amber-500/25 text-amber-400 hover:bg-amber-500/35 transition-colors whitespace-nowrap"
+                                >
+                                  Rebuild session
+                                </button>
+                              )}
+                              {onSwap && (
+                                <button
+                                  onClick={() => { onSwap(alt.id, alt.name); onToggleSwap(); }}
+                                  className="text-[10px] text-gray-400 hover:text-white px-2 py-0.5 rounded hover:bg-neutral-600 transition-colors"
+                                >
+                                  Just swap
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
 

@@ -1329,6 +1329,29 @@ export const filterByMovementPattern = (pattern: MovementPattern): Exercise[] =>
 };
 
 /**
+ * Movement patterns that are sensible alternatives when the athlete can't do the primary
+ * (e.g. sore quads → hinge instead of squat; swap push for pull).
+ */
+export const getComplementaryPatterns = (pattern: MovementPattern): MovementPattern[] => {
+  switch (pattern) {
+    case MovementPattern.SQUAT:
+      return [MovementPattern.HINGE];
+    case MovementPattern.HINGE:
+      return [MovementPattern.SQUAT];
+    case MovementPattern.HORIZONTAL_PUSH:
+      return [MovementPattern.HORIZONTAL_PULL];
+    case MovementPattern.HORIZONTAL_PULL:
+      return [MovementPattern.HORIZONTAL_PUSH];
+    case MovementPattern.VERTICAL_PUSH:
+      return [MovementPattern.VERTICAL_PULL];
+    case MovementPattern.VERTICAL_PULL:
+      return [MovementPattern.VERTICAL_PUSH];
+    default:
+      return [];
+  }
+};
+
+/**
  * Filter exercises by muscle group (primary).
  */
 export const filterByMuscleGroup = (muscle: MuscleGroup): Exercise[] => {
