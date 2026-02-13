@@ -92,7 +92,7 @@ const StepReview: React.FC<StepReviewProps> = ({
 
       {/* Generate button */}
       <button
-        onClick={onGenerate}
+        onClick={() => onGenerate()}
         disabled={isGenerating}
         className="w-full flex items-center justify-center gap-2 py-4 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-wait text-black font-bold rounded-xl text-lg transition-all shadow-lg shadow-amber-500/25"
       >

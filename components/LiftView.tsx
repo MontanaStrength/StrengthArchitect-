@@ -330,9 +330,9 @@ const LiftView: React.FC<Props> = ({
         <div className="sa-error">{error}</div>
       )}
 
-      {/* Generate */}
+      {/* Generate — call with no args so the click event is never passed as swapAndRebuild */}
       <button
-        onClick={onGenerate}
+        onClick={() => onGenerate()}
         className="sa-btn sa-btn-primary w-full py-4 text-lg flex items-center justify-center gap-2"
       >
         <Zap size={20} /> {buildButtonLabel}

@@ -372,6 +372,16 @@ const App: React.FC = () => {
 
   // ===== GENERATE WORKOUT =====
   const handleGenerate = useCallback(async (swapAndRebuild?: SwapAndRebuildRequest | null) => {
+    // Guard: if caller passes a React/DOM event (e.g. onClick={onGenerate}), do not use it as swapAndRebuild
+    const safeSwap =
+      swapAndRebuild &&
+      typeof swapAndRebuild === 'object' &&
+      'withExerciseId' in swapAndRebuild &&
+      'withExerciseName' in swapAndRebuild &&
+      !('nativeEvent' in swapAndRebuild)
+        ? swapAndRebuild
+        : undefined;
+
     setError('');
     setIsGenerating(true);
     setCurrentPlan(null);
@@ -401,7 +411,7 @@ const App: React.FC = () => {
         volTol,
       );
 
-      const plan = await generateWorkout(biasedFormData, history, trainingContext, optimizerRecs, exercisePrefs, bias, volTol, swapAndRebuild ?? undefined);
+      const plan = await generateWorkout(biasedFormData, history, trainingContext, optimizerRecs, exercisePrefs, bias, volTol, safeSwap);
       setCurrentPlan(plan);
 
       const saved: SavedWorkout = {
