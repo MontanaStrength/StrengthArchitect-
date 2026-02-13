@@ -59,12 +59,18 @@ export const generateWorkout = async (
   clearTimeout(timeoutId);
 
   if (!response.ok) {
-    let message = 'Something went wrong generating the workout. Please try again.';
+    let message = `Workout generation failed (HTTP ${response.status}).`;
     try {
-      const errJson = await response.json();
-      if (errJson?.error) message = String(errJson.error);
+      const text = await response.text();
+      try {
+        const errJson = JSON.parse(text);
+        if (errJson?.error) message = String(errJson.error);
+      } catch {
+        // Response wasn't JSON — include the raw text for debugging
+        if (text && text.length < 500) message += ' ' + text;
+      }
     } catch {
-      // ignore
+      // Could not read response body at all
     }
     throw new Error(message);
   }

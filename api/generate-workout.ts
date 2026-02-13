@@ -333,15 +333,27 @@ FALLBACK DEFAULTS (NSCA/ACSM) — use ONLY where the OPTIMIZER does not specify.
     };
 
     let result;
+    let primaryError: string | undefined;
     try {
       result = await attemptGeneration(primaryModelId);
-    } catch {
-      result = await attemptGeneration(fallbackModelId);
+    } catch (err: any) {
+      primaryError = err?.message || String(err);
+      console.warn(`Primary model (${primaryModelId}) failed: ${primaryError}`);
+      try {
+        result = await attemptGeneration(fallbackModelId);
+      } catch (fallbackErr: any) {
+        const fallbackMsg = fallbackErr?.message || String(fallbackErr);
+        console.error(`Fallback model (${fallbackModelId}) also failed: ${fallbackMsg}`);
+        return res.status(500).json({
+          error: `AI generation failed. Primary (${primaryModelId}): ${primaryError}. Fallback (${fallbackModelId}): ${fallbackMsg}`,
+        });
+      }
     }
 
     return res.status(200).json(result);
   } catch (error: any) {
     console.error('Generate workout error:', error);
-    return res.status(500).json({ error: error.message || 'Server error' });
+    const msg = error?.message || 'Server error';
+    return res.status(500).json({ error: msg });
   }
 }
