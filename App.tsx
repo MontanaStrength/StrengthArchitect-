@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
   ReadinessLevel, TrainingExperience, AvailableEquipment, TrainingGoalFocus,
   FormData, StrengthWorkoutPlan, SavedWorkout, CompletedSet, FeedbackData,
@@ -158,6 +158,30 @@ const App: React.FC = () => {
     [appMode, activeClient]
   );
 
+  // Ref to detect if a completed load is still for the current client (avoids stale overwrites)
+  const activeClientIdRef = useRef<string | undefined>(activeClient?.id);
+  useEffect(() => {
+    activeClientIdRef.current = activeClient?.id;
+  }, [activeClient?.id]);
+
+  // When switching athletes in coach mode, sync formData (including 1RMs) immediately so Plan tab and AI use correct loads
+  useEffect(() => {
+    if (appMode !== 'coach' || !activeClient) return;
+    setFormData(prev => ({
+      ...prev,
+      weightLbs: activeClient.weightLbs ?? prev.weightLbs,
+      age: activeClient.age ?? prev.age,
+      gender: activeClient.gender ?? prev.gender,
+      trainingExperience: activeClient.experience ?? prev.trainingExperience,
+      availableEquipment: activeClient.equipment ?? prev.availableEquipment,
+      sessionStructure: activeClient.sessionStructure ?? prev.sessionStructure,
+      squat1RM: activeClient.squat1RM,
+      benchPress1RM: activeClient.benchPress1RM,
+      deadlift1RM: activeClient.deadlift1RM,
+      overheadPress1RM: activeClient.overheadPress1RM,
+    }));
+  }, [appMode, activeClient]);
+
   // ===== AUTH LISTENER =====
   useEffect(() => {
     const checkSession = async () => {
@@ -274,21 +298,24 @@ const App: React.FC = () => {
         setStrengthTests(tests);
         setCustomTemplates(templates);
 
-        // In coach mode, populate form data from client profile (including 1RMs)
-        if (appMode === 'coach' && activeClient) {
-          setFormData(prev => ({
-            ...prev,
-            weightLbs: activeClient.weightLbs,
-            age: activeClient.age,
-            gender: activeClient.gender,
-            trainingExperience: activeClient.experience,
-            availableEquipment: activeClient.equipment,
-            sessionStructure: activeClient.sessionStructure,
-            squat1RM: activeClient.squat1RM || prev.squat1RM,
-            benchPress1RM: activeClient.benchPress1RM || prev.benchPress1RM,
-            deadlift1RM: activeClient.deadlift1RM || prev.deadlift1RM,
-            overheadPress1RM: activeClient.overheadPress1RM || prev.overheadPress1RM,
-          }));
+        // In coach mode, only overwrite formData if this load is still for the current client (avoids stale 1RMs after switching)
+        if (appMode === 'coach' && clientId != null && clientId === activeClientIdRef.current) {
+          const client = activeClient;
+          if (client) {
+            setFormData(prev => ({
+              ...prev,
+              weightLbs: client.weightLbs,
+              age: client.age,
+              gender: client.gender,
+              trainingExperience: client.experience,
+              availableEquipment: client.equipment,
+              sessionStructure: client.sessionStructure,
+              squat1RM: client.squat1RM ?? prev.squat1RM,
+              benchPress1RM: client.benchPress1RM ?? prev.benchPress1RM,
+              deadlift1RM: client.deadlift1RM ?? prev.deadlift1RM,
+              overheadPress1RM: client.overheadPress1RM ?? prev.overheadPress1RM,
+            }));
+          }
         }
 
         // Show "About you" onboarding only for lifter mode when empty. In coach mode we already have client profile from Add Athlete.
