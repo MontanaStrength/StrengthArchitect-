@@ -160,8 +160,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!apiKey) return res.status(500).json({ error: 'Missing GEMINI_API_KEY environment variable.' });
 
     const ai = new GoogleGenAI({ apiKey });
+    // Pin to stable model versions to avoid behavior drift from preview releases
     const isComplexContext = history.length >= 4 || String(data.trainingExperience).includes('Advanced') || String(data.trainingExperience).includes('Elite');
-    const primaryModelId = isComplexContext ? 'gemini-3-pro-preview' : 'gemini-2.5-flash';
+    const primaryModelId = isComplexContext ? 'gemini-2.5-pro' : 'gemini-2.5-flash';
     const fallbackModelId = 'gemini-2.5-flash';
 
     const recentWorkouts = history.slice(0, 12);
@@ -267,7 +268,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 ATHLETE SWAP (BINDING): The athlete has chosen to replace one exercise with "${swapAndRebuild.withExerciseName}" (exerciseId: ${swapAndRebuild.withExerciseId}). You MUST include this exercise in the session with appropriate sets, reps, intensity, and rest. Build the rest of the session around it; keep the same session structure and total volume. Do not include the exercise that was replaced (id: ${swapAndRebuild.replaceExerciseId}).`;
     }
 
-    const prompt = `You are an expert strength coach. Design a session for: ${data.trainingExperience}, ${data.readiness} readiness, ${data.duration}min, Focus: ${data.trainingGoalFocus}, Equipment: ${data.availableEquipment.join(', ')}, Athlete: ${data.age}yo ${data.gender} ${data.weightLbs}lbs. ${liftPRs ? `1RMs: ${liftPRs}` : 'No 1RM data — use RPE-based loading.'}
+    // System instruction: persona + immutable rules (cached more aggressively by the API)
+    const systemInstruction = `You are an elite strength and conditioning coach with deep expertise in barbell training, periodization, and exercise science (NSCA CSCS, ACSM certified). Your role is to design precise, evidence-based workout sessions.
+
+CORE RULES (always apply):
+- Select exercises ONLY from the provided EXERCISE LIBRARY using exact exerciseId values.
+- Select exactly ONE archetype from the STRENGTH TRAINING ARCHETYPES list.
+- The SESSION OPTIMIZER prescriptions are BINDING — never override them with generic defaults.
+- Output valid JSON matching the provided schema. No commentary outside the JSON.
+- All weights in lbs, rounded to the nearest 5.`;
+
+    const prompt = `Design a session for: ${data.trainingExperience}, ${data.readiness} readiness, ${data.duration}min, Focus: ${data.trainingGoalFocus}, Equipment: ${data.availableEquipment.join(', ')}, Athlete: ${data.age}yo ${data.gender} ${data.weightLbs}lbs. ${liftPRs ? `1RMs: ${liftPRs}` : 'No 1RM data — use RPE-based loading.'}
 ${historyContext}
 ${blockContext}
 ${optimizerContext}
@@ -309,10 +320,10 @@ FALLBACK DEFAULTS (NSCA/ACSM) — use ONLY where the OPTIMIZER does not specify.
       required: ['archetypeId', 'title', 'exercises', 'totalDurationMin', 'focus', 'summary', 'whyThisWorkout'] as const
     };
 
-    const attemptGeneration = async (modelId: string, useSearch: boolean) => {
+    const attemptGeneration = async (modelId: string) => {
       const response = await ai.models.generateContent({
         model: modelId, contents: prompt,
-        config: { ...(useSearch ? { tools: [{ googleSearch: {} }] } : {}), responseMimeType: 'application/json', responseSchema }
+        config: { systemInstruction, temperature: 0.5, responseMimeType: 'application/json', responseSchema }
       });
       const text = response.text;
       if (!text) throw new Error('Empty response');
@@ -323,9 +334,9 @@ FALLBACK DEFAULTS (NSCA/ACSM) — use ONLY where the OPTIMIZER does not specify.
 
     let result;
     try {
-      result = await attemptGeneration(primaryModelId, isComplexContext);
+      result = await attemptGeneration(primaryModelId);
     } catch {
-      result = await attemptGeneration(fallbackModelId, false);
+      result = await attemptGeneration(fallbackModelId);
     }
 
     return res.status(200).json(result);

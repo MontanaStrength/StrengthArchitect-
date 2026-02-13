@@ -159,11 +159,12 @@ export const generateWorkoutServer = async (
   const ai = new GoogleGenAI({ apiKey });
 
   // Model routing: Pro for complex contexts, Flash for simple
+  // Pin to stable model versions to avoid behavior drift from preview releases
   const isComplexContext =
     history.length >= 4 ||
     data.trainingExperience.includes('Advanced') ||
     data.trainingExperience.includes('Elite');
-  const primaryModelId = isComplexContext ? 'gemini-3-pro-preview' : 'gemini-2.5-flash';
+  const primaryModelId = isComplexContext ? 'gemini-2.5-pro' : 'gemini-2.5-flash';
   const fallbackModelId = 'gemini-2.5-flash';
 
   const recentWorkouts = history.slice(0, 12);
@@ -394,8 +395,7 @@ export const generateWorkoutServer = async (
   ].filter(Boolean).join(', ');
 
   const prompt = `
-    You are an expert strength and conditioning coach designing a barbell/strength training session.
-    Create a highly specific, scientifically-backed workout plan for:
+    Design a highly specific, scientifically-backed workout session for:
     - Training Experience: ${data.trainingExperience}
     - Readiness: ${data.readiness}
     - Available Equipment: ${data.availableEquipment.join(', ')}
@@ -499,8 +499,17 @@ export const generateWorkoutServer = async (
     - Never change multiple levers simultaneously.
     - If the chosen archetype is in the forbidden list, choose a different one.
 
-    ${isComplexContext ? 'Research current strength training science to ensure the programming is evidence-based and elite-level.' : ''}
   `;
+
+  // System instruction: persona + immutable rules (cheaper — cached more aggressively by the API)
+  const systemInstruction = `You are an elite strength and conditioning coach with deep expertise in barbell training, periodization, and exercise science (NSCA CSCS, ACSM certified). Your role is to design precise, evidence-based workout sessions.
+
+CORE RULES (always apply):
+- Select exercises ONLY from the provided EXERCISE LIBRARY using exact exerciseId values.
+- Select exactly ONE archetype from the STRENGTH TRAINING ARCHETYPES list.
+- The SESSION OPTIMIZER prescriptions are BINDING — never override them with generic defaults.
+- Output valid JSON matching the provided schema. No commentary outside the JSON.
+- All weights in lbs, rounded to the nearest 5.`;
 
   // Structured output schema
   const responseSchema = {
@@ -564,12 +573,13 @@ export const generateWorkoutServer = async (
     required: ['archetypeId', 'title', 'exercises', 'totalDurationMin', 'focus', 'summary', 'whyThisWorkout'] as const
   };
 
-  const attemptGeneration = async (modelId: string, useSearch: boolean): Promise<StrengthWorkoutPlan> => {
+  const attemptGeneration = async (modelId: string): Promise<StrengthWorkoutPlan> => {
     const response = await ai.models.generateContent({
       model: modelId,
       contents: prompt,
       config: {
-        ...(useSearch ? { tools: [{ googleSearch: {} }] } : {}),
+        systemInstruction,
+        temperature: 0.5,
         responseMimeType: 'application/json',
         responseSchema
       }
@@ -586,14 +596,14 @@ export const generateWorkoutServer = async (
   };
 
   try {
-    return await attemptGeneration(primaryModelId, isComplexContext);
+    return await attemptGeneration(primaryModelId);
   } catch (primaryErr) {
     console.warn(
       `Primary model (${primaryModelId}) failed, retrying with fallback (${fallbackModelId}):`,
       primaryErr instanceof Error ? primaryErr.message : primaryErr
     );
     try {
-      return await attemptGeneration(fallbackModelId, false);
+      return await attemptGeneration(fallbackModelId);
     } catch (fallbackErr) {
       console.error('Fallback model also failed:', fallbackErr);
       throw new Error('AI response format was invalid after retry. Please try again.');
