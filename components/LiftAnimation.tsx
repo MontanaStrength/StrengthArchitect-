@@ -1,13 +1,16 @@
 import React from 'react';
 
 /**
- * LiftAnimation — Premium barbell + lifter animation featuring:
- *   • Stylized lifter silhouette (bench-press inspired) moving the bar — so it's
- *     clearly someone pressing, not a floating bar.
- *   • Smooth bench-press rep motion (lifter + bar move together)
+ * LiftAnimation — Premium barbell animation featuring:
+ *   • Smooth bench-press rep motion
  *   • Metallic gradient bar & amber gradient plates with edge highlights
- *   • LIVE FORCE CURVE CHART behind — draws 8 rep peaks, then loops
- *   • Orbital processing dots, plate glow, dynamic shadow
+ *   • Diagonal chrome light sweep on every press
+ *   • LIVE FORCE CURVE CHART behind the barbell — draws 8 rep peaks
+ *     in real time like a force plate readout, then loops
+ *   • Ember spark particles scattering off plates
+ *   • Orbital processing dots circling the barbell
+ *   • Breathing plate glow aura
+ *   • Dynamic ground shadow
  *
  * Pure SVG + CSS keyframes — zero dependencies, smooth 60 fps.
  */
@@ -282,19 +285,8 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
             </g>
           ))}
 
-          {/* ══════════ LIFTER + BARBELL (move together = someone pressing) ══════════ */}
+          {/* ══════════ BARBELL ══════════ */}
           <g style={{ animation: `la-rep ${chartDuration}s linear infinite` }}>
-
-            {/* Stylized lifter silhouette (bench-press inspired): head, chest, arms to bar — reads as "someone pressing" */}
-            <g fill="#334155" fillOpacity="0.92" stroke="#475569" strokeWidth="1" strokeOpacity="0.5" strokeLinejoin="round">
-              {/* Head */}
-              <ellipse cx="120" cy="56" rx="12" ry="14" />
-              {/* Chest / shoulders — filled so torso reads clearly */}
-              <path d="M 85 82 Q 70 100 82 114 L 158 114 Q 170 100 155 82 Q 120 76 85 82 Z" />
-              {/* Arms: thick strokes from shoulder to bar grip */}
-              <line x1="88" y1="108" x2="38" y2="120" strokeWidth="8" fill="none" stroke="#334155" strokeLinecap="round" />
-              <line x1="152" y1="108" x2="202" y2="120" strokeWidth="8" fill="none" stroke="#334155" strokeLinecap="round" />
-            </g>
 
             {/* Plate glow halos (behind plates) */}
             <rect x="8" y="84" width="28" height="72" rx="10"
