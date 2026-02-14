@@ -286,7 +286,23 @@ CORE RULES (always apply):
 - Select exactly ONE archetype from the STRENGTH TRAINING ARCHETYPES list.
 - The SESSION OPTIMIZER prescriptions are BINDING — never override them with generic defaults.
 - Output valid JSON matching the provided schema. No commentary outside the JSON.
-- All weights in lbs, rounded to the nearest 5.`;
+- All weights in lbs, rounded to the nearest 5.
+
+FEW-SHOT EXAMPLES (study these for perfect compliance):
+
+Example 1: Optimizer says "18 working sets, 5×5, 80-87% 1RM, 3-4 exercises"
+→ CORRECT: 4 exercises (Squat 5×5 @ 82%, Bench 4×5 @ 85%, Row 4×5 @ 80%, RDL 3×5 @ 82%) = 16 working sets + warmups. Close to 18 sets, matches 5×5, intensity in range.
+→ WRONG: 5 exercises at 3×10 @ 70% = ignores optimizer, uses generic defaults.
+
+Example 2: OLAD session, optimizer says "12 working sets, 6×2, 88-92% 1RM, 1-4 exercises"
+→ CORRECT: Back Squat 6×2 @ 90% (primary) + Leg Curls 3×12 + Face Pulls 3×15 = 12 working sets, primary gets all heavy volume, accessories stay light.
+→ WRONG: Squat 4×5 @ 85% + Deadlift 4×3 @ 90% = two heavy compounds in OLAD (violates structure), wrong rep scheme.
+
+Example 3: Optimizer says "22 working sets, 4×8-10, 65-75% 1RM, 5-7 exercises" (hypertrophy)
+→ CORRECT: 6 exercises at 3-4 sets each of 8-10 reps @ 70% = 21-24 sets, intensity matches, hypertrophy rep range.
+→ WRONG: 4 exercises at 5×5 @ 85% = strength scheme when optimizer prescribed hypertrophy volume.
+
+KEY TAKEAWAY: The optimizer's sets/reps/intensity are NOT suggestions — they are the prescription. Do not average them with NSCA defaults. If optimizer says 5×5 @ 85%, every working set of the main lift must be 5 reps at ~85%.`;
 
     const prompt = `Design a session for: ${data.trainingExperience}, ${data.readiness} readiness, ${data.duration}min, Focus: ${data.trainingGoalFocus}, Equipment: ${data.availableEquipment.join(', ')}, Athlete: ${data.age}yo ${data.gender} ${data.weightLbs}lbs. ${liftPRs ? `1RMs: ${liftPRs}` : 'No 1RM data — use RPE-based loading.'}
 ${historyContext}
@@ -346,11 +362,13 @@ FALLBACK DEFAULTS (NSCA/ACSM) — use ONLY where the OPTIMIZER does not specify.
     let primaryError: string | undefined;
     try {
       result = await attemptGeneration(primaryModelId);
+      logComplianceCheck(result, optimizerRecommendations, primaryModelId);
     } catch (err: any) {
       primaryError = err?.message || String(err);
       console.warn(`Primary model (${primaryModelId}) failed: ${primaryError}`);
       try {
         result = await attemptGeneration(fallbackModelId);
+        logComplianceCheck(result, optimizerRecommendations, fallbackModelId);
       } catch (fallbackErr: any) {
         const fallbackMsg = fallbackErr?.message || String(fallbackErr);
         console.error(`Fallback model (${fallbackModelId}) also failed: ${fallbackMsg}`);
@@ -365,5 +383,61 @@ FALLBACK DEFAULTS (NSCA/ACSM) — use ONLY where the OPTIMIZER does not specify.
     console.error('Generate workout error:', error);
     const msg = error?.message || 'Server error';
     return res.status(500).json({ error: msg });
+  }
+}
+
+// ===== COMPLIANCE LOGGING =====
+function logComplianceCheck(plan: any, optimizerRecs: any, modelId: string): void {
+  if (!optimizerRecs) return;
+
+  const workingSets = plan.exercises?.filter((e: any) => !e.isWarmupSet) || [];
+  const totalSets = workingSets.reduce((sum: number, e: any) => sum + (e.sets || 0), 0);
+  const exerciseCount = new Set(workingSets.map((e: any) => e.exerciseId)).size;
+
+  const targetSets = optimizerRecs.sessionVolume;
+  const setDiff = Math.abs(totalSets - targetSets);
+  const setComplianceOk = setDiff <= 3;
+
+  const targetExMin = optimizerRecs.exerciseCount?.min || 0;
+  const targetExMax = optimizerRecs.exerciseCount?.max || 99;
+  const exCountOk = exerciseCount >= targetExMin && exerciseCount <= targetExMax;
+
+  const intensities = workingSets.filter((e: any) => e.percentOf1RM).map((e: any) => e.percentOf1RM);
+  const avgIntensity = intensities.length > 0 ? intensities.reduce((a: number, b: number) => a + b, 0) / intensities.length : 0;
+  const targetIntMin = optimizerRecs.intensityRange?.min || 0;
+  const targetIntMax = optimizerRecs.intensityRange?.max || 100;
+  const intensityOk = intensities.length === 0 || (avgIntensity >= targetIntMin - 5 && avgIntensity <= targetIntMax + 5);
+
+  const repSchemeTarget = optimizerRecs.repScheme || '';
+  const repSchemeMatch = repSchemeTarget.match(/(\d+)×(\d+(?:-\d+)?)/);
+  let repSchemeOk = true;
+  if (repSchemeMatch) {
+    const [, targetSetsPerEx, targetReps] = repSchemeMatch;
+    const mainExercises = workingSets.slice(0, Math.min(3, workingSets.length));
+    for (const ex of mainExercises) {
+      const actualReps = ex.reps || '';
+      const actualSets = ex.sets || 0;
+      if (!actualReps.includes(targetReps.split('-')[0])) {
+        repSchemeOk = false;
+        break;
+      }
+      if (Math.abs(actualSets - Number(targetSetsPerEx)) > 1) {
+        repSchemeOk = false;
+        break;
+      }
+    }
+  }
+
+  const overallCompliance = setComplianceOk && exCountOk && intensityOk && repSchemeOk;
+
+  console.log(`[COMPLIANCE CHECK] Model: ${modelId}`);
+  console.log(`  Sets: ${totalSets}/${targetSets} (${setComplianceOk ? '✓' : '✗ DRIFT'})`);
+  console.log(`  Exercises: ${exerciseCount} (target ${targetExMin}-${targetExMax}) (${exCountOk ? '✓' : '✗ DRIFT'})`);
+  console.log(`  Intensity: ${avgIntensity.toFixed(0)}% (target ${targetIntMin}-${targetIntMax}%) (${intensityOk ? '✓' : '✗ DRIFT'})`);
+  console.log(`  Rep scheme: ${repSchemeTarget} (${repSchemeOk ? '✓' : '✗ DRIFT'})`);
+  console.log(`  Overall: ${overallCompliance ? '✓ COMPLIANT' : '✗ NON-COMPLIANT'}`);
+  
+  if (!overallCompliance) {
+    console.warn(`[COMPLIANCE ISSUE] Workout "${plan.title}" (archetype: ${plan.archetypeId}) did not fully match optimizer prescriptions.`);
   }
 }
