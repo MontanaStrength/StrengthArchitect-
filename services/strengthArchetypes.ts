@@ -5,6 +5,33 @@
  * Each archetype is a scientifically-backed strength training template.
  * The AI selects one archetype per session and fills in exercise selection,
  * loads, and rep schemes based on the user's profile and history.
+ * 
+ * ─────────────────────────────────────────────────────────────────────────
+ * TO ADD YOUR OWN CUSTOM ARCHETYPES:
+ * ─────────────────────────────────────────────────────────────────────────
+ * 1. Scroll to the "CUSTOM ARCHETYPES" section at the bottom
+ * 2. Add a new numbered entry following this pattern:
+ * 
+ *    42. custom_myworkout — "My Workout Name": Description of sets/reps/intensity.
+ *        Rest periods. Best for: who this is for and when to use it. Focus: specific notes.
+ * 
+ * REQUIRED COMPONENTS:
+ *    - Number (42, 43, 44... — continue from 41)
+ *    - ID (custom_xxx — use lowercase, underscores, must be unique)
+ *    - Name (in quotes after the —)
+ *    - Sets × reps scheme (e.g., "5×5", "3-4×8-10", "10×10")
+ *    - Intensity (% of 1RM or RPE)
+ *    - Rest periods
+ *    - "Best for:" (experience level, goal, when to use)
+ * 
+ * EXAMPLE:
+ *    42. custom_5_3_1_boring — "5/3/1 Boring But Big": Main lift follows 5/3/1 progression
+ *        (65/75/85% → 70/80/90% → 75/85/95%), then 5×10 @ 50-60% of the same lift.
+ *        3-5 min rest on main sets, 90 sec on volume work. Best for: intermediate lifters
+ *        who want strength + hypertrophy. Focus: squat, bench, deadlift, OHP only.
+ * 
+ * The AI will automatically see and use your custom archetypes in the rotation.
+ * ─────────────────────────────────────────────────────────────────────────
  */
 
 export const STRENGTH_ARCHETYPES = `
@@ -68,6 +95,8 @@ export const STRENGTH_ARCHETYPES = `
 39. adv_eccentric — "Eccentric Overload": 4-5 sec eccentric with 100-110% concentric 1RM (requires spotter or machine). 3-5 sets of 3-5 reps. Best for: advanced hypertrophy and strength past sticking points.
 40. adv_isometric — "Isometric Holds": 3-5 sec holds at sticking points with 80-90% 1RM. 5-8 sets. Builds tendon strength and position-specific strength. Best for: overcoming plateaus.
 41. adv_mechanical_advantage — "Mechanical Advantage Drop Set": Start with weakest variation, progress to strongest (e.g., incline → flat → decline bench) without rest. Best for: advanced hypertrophy.
+
+=== CUSTOM ARCHETYPES (add your own below) ===
 `;
 
 /**
