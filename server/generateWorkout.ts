@@ -159,12 +159,11 @@ export const generateWorkoutServer = async (
   const ai = new GoogleGenAI({ apiKey });
 
   // Model routing: Pro for complex contexts, Flash for simple
-  // Pin to stable model versions to avoid behavior drift from preview releases
   const isComplexContext =
     history.length >= 4 ||
     data.trainingExperience.includes('Advanced') ||
     data.trainingExperience.includes('Elite');
-  const primaryModelId = isComplexContext ? 'gemini-2.5-pro' : 'gemini-2.5-flash';
+  const primaryModelId = isComplexContext ? 'gemini-3-pro-preview' : 'gemini-2.5-flash';
   const fallbackModelId = 'gemini-2.5-flash';
 
   const recentWorkouts = history.slice(0, 12);
@@ -395,7 +394,8 @@ export const generateWorkoutServer = async (
   ].filter(Boolean).join(', ');
 
   const prompt = `
-    Design a highly specific, scientifically-backed workout session for:
+    You are an expert strength and conditioning coach designing a barbell/strength training session.
+    Create a highly specific, scientifically-backed workout plan for:
     - Training Experience: ${data.trainingExperience}
     - Readiness: ${data.readiness}
     - Available Equipment: ${data.availableEquipment.join(', ')}
@@ -499,33 +499,8 @@ export const generateWorkoutServer = async (
     - Never change multiple levers simultaneously.
     - If the chosen archetype is in the forbidden list, choose a different one.
 
+    ${isComplexContext ? 'Research current strength training science to ensure the programming is evidence-based and elite-level.' : ''}
   `;
-
-  // System instruction: persona + immutable rules (cheaper — cached more aggressively by the API)
-  const systemInstruction = `You are an elite strength and conditioning coach with deep expertise in barbell training, periodization, and exercise science (NSCA CSCS, ACSM certified). Your role is to design precise, evidence-based workout sessions.
-
-CORE RULES (always apply):
-- Select exercises ONLY from the provided EXERCISE LIBRARY using exact exerciseId values.
-- Select exactly ONE archetype from the STRENGTH TRAINING ARCHETYPES list.
-- The SESSION OPTIMIZER prescriptions are BINDING — never override them with generic defaults.
-- Output valid JSON matching the provided schema. No commentary outside the JSON.
-- All weights in lbs, rounded to the nearest 5.
-
-FEW-SHOT EXAMPLES (study these for perfect compliance):
-
-Example 1: Optimizer says "18 working sets, 5×5, 80-87% 1RM, 3-4 exercises"
-→ CORRECT: 4 exercises (Squat 5×5 @ 82%, Bench 4×5 @ 85%, Row 4×5 @ 80%, RDL 3×5 @ 82%) = 16 working sets + warmups. Close to 18 sets, matches 5×5, intensity in range.
-→ WRONG: 5 exercises at 3×10 @ 70% = ignores optimizer, uses generic defaults.
-
-Example 2: OLAD session, optimizer says "12 working sets, 6×2, 88-92% 1RM, 1-4 exercises"
-→ CORRECT: Back Squat 6×2 @ 90% (primary) + Leg Curls 3×12 + Face Pulls 3×15 = 12 working sets, primary gets all heavy volume, accessories stay light.
-→ WRONG: Squat 4×5 @ 85% + Deadlift 4×3 @ 90% = two heavy compounds in OLAD (violates structure), wrong rep scheme.
-
-Example 3: Optimizer says "22 working sets, 4×8-10, 65-75% 1RM, 5-7 exercises" (hypertrophy)
-→ CORRECT: 6 exercises at 3-4 sets each of 8-10 reps @ 70% = 21-24 sets, intensity matches, hypertrophy rep range.
-→ WRONG: 4 exercises at 5×5 @ 85% = strength scheme when optimizer prescribed hypertrophy volume.
-
-KEY TAKEAWAY: The optimizer's sets/reps/intensity are NOT suggestions — they are the prescription. Do not average them with NSCA defaults. If optimizer says 5×5 @ 85%, every working set of the main lift must be 5 reps at ~85%.`;
 
   // Structured output schema
   const responseSchema = {
@@ -589,13 +564,12 @@ KEY TAKEAWAY: The optimizer's sets/reps/intensity are NOT suggestions — they a
     required: ['archetypeId', 'title', 'exercises', 'totalDurationMin', 'focus', 'summary', 'whyThisWorkout'] as const
   };
 
-  const attemptGeneration = async (modelId: string): Promise<StrengthWorkoutPlan> => {
+  const attemptGeneration = async (modelId: string, useSearch: boolean): Promise<StrengthWorkoutPlan> => {
     const response = await ai.models.generateContent({
       model: modelId,
       contents: prompt,
       config: {
-        systemInstruction,
-        temperature: 0.5,
+        ...(useSearch ? { tools: [{ googleSearch: {} }] } : {}),
         responseMimeType: 'application/json',
         responseSchema
       }
@@ -612,18 +586,14 @@ KEY TAKEAWAY: The optimizer's sets/reps/intensity are NOT suggestions — they a
   };
 
   try {
-    const plan = await attemptGeneration(primaryModelId);
-    logComplianceCheck(plan, optimizerRecommendations, primaryModelId);
-    return plan;
+    return await attemptGeneration(primaryModelId, isComplexContext);
   } catch (primaryErr) {
     console.warn(
       `Primary model (${primaryModelId}) failed, retrying with fallback (${fallbackModelId}):`,
       primaryErr instanceof Error ? primaryErr.message : primaryErr
     );
     try {
-      const plan = await attemptGeneration(fallbackModelId);
-      logComplianceCheck(plan, optimizerRecommendations, fallbackModelId);
-      return plan;
+      return await attemptGeneration(fallbackModelId, false);
     } catch (fallbackErr) {
       console.error('Fallback model also failed:', fallbackErr);
       throw new Error('AI response format was invalid after retry. Please try again.');

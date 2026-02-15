@@ -179,9 +179,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!apiKey) return res.status(500).json({ error: 'Missing GEMINI_API_KEY environment variable.' });
 
     const ai = new GoogleGenAI({ apiKey });
-    // Pin to stable model versions to avoid behavior drift from preview releases
     const isComplexContext = history.length >= 4 || String(data.trainingExperience).includes('Advanced') || String(data.trainingExperience).includes('Elite');
-    const primaryModelId = isComplexContext ? 'gemini-2.5-pro' : 'gemini-2.5-flash';
+    const primaryModelId = isComplexContext ? 'gemini-3-pro-preview' : 'gemini-2.5-flash';
     const fallbackModelId = 'gemini-2.5-flash';
 
     const recentWorkouts = history.slice(0, 12);
@@ -278,33 +277,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 ATHLETE SWAP (BINDING): The athlete has chosen to replace one exercise with "${swapAndRebuild.withExerciseName}" (exerciseId: ${swapAndRebuild.withExerciseId}). You MUST include this exercise in the session with appropriate sets, reps, intensity, and rest. Build the rest of the session around it; keep the same session structure and total volume. Do not include the exercise that was replaced (id: ${swapAndRebuild.replaceExerciseId}).`;
     }
 
-    // System instruction: persona + immutable rules (cached more aggressively by the API)
-    const systemInstruction = `You are an elite strength and conditioning coach with deep expertise in barbell training, periodization, and exercise science (NSCA CSCS, ACSM certified). Your role is to design precise, evidence-based workout sessions.
-
-CORE RULES (always apply):
-- Select exercises ONLY from the provided EXERCISE LIBRARY using exact exerciseId values.
-- Select exactly ONE archetype from the STRENGTH TRAINING ARCHETYPES list.
-- The SESSION OPTIMIZER prescriptions are BINDING — never override them with generic defaults.
-- Output valid JSON matching the provided schema. No commentary outside the JSON.
-- All weights in lbs, rounded to the nearest 5.
-
-FEW-SHOT EXAMPLES (study these for perfect compliance):
-
-Example 1: Optimizer says "18 working sets, 5×5, 80-87% 1RM, 3-4 exercises"
-→ CORRECT: 4 exercises (Squat 5×5 @ 82%, Bench 4×5 @ 85%, Row 4×5 @ 80%, RDL 3×5 @ 82%) = 16 working sets + warmups. Close to 18 sets, matches 5×5, intensity in range.
-→ WRONG: 5 exercises at 3×10 @ 70% = ignores optimizer, uses generic defaults.
-
-Example 2: OLAD session, optimizer says "12 working sets, 6×2, 88-92% 1RM, 1-4 exercises"
-→ CORRECT: Back Squat 6×2 @ 90% (primary) + Leg Curls 3×12 + Face Pulls 3×15 = 12 working sets, primary gets all heavy volume, accessories stay light.
-→ WRONG: Squat 4×5 @ 85% + Deadlift 4×3 @ 90% = two heavy compounds in OLAD (violates structure), wrong rep scheme.
-
-Example 3: Optimizer says "22 working sets, 4×8-10, 65-75% 1RM, 5-7 exercises" (hypertrophy)
-→ CORRECT: 6 exercises at 3-4 sets each of 8-10 reps @ 70% = 21-24 sets, intensity matches, hypertrophy rep range.
-→ WRONG: 4 exercises at 5×5 @ 85% = strength scheme when optimizer prescribed hypertrophy volume.
-
-KEY TAKEAWAY: The optimizer's sets/reps/intensity are NOT suggestions — they are the prescription. Do not average them with NSCA defaults. If optimizer says 5×5 @ 85%, every working set of the main lift must be 5 reps at ~85%.`;
-
-    const prompt = `Design a session for: ${data.trainingExperience}, ${data.readiness} readiness, ${data.duration}min, Focus: ${data.trainingGoalFocus}, Equipment: ${data.availableEquipment.join(', ')}, Athlete: ${data.age}yo ${data.gender} ${data.weightLbs}lbs. ${liftPRs ? `1RMs: ${liftPRs}` : 'No 1RM data — use RPE-based loading.'}
+    const prompt = `You are an expert strength coach. Design a session for: ${data.trainingExperience}, ${data.readiness} readiness, ${data.duration}min, Focus: ${data.trainingGoalFocus}, Equipment: ${data.availableEquipment.join(', ')}, Athlete: ${data.age}yo ${data.gender} ${data.weightLbs}lbs. ${liftPRs ? `1RMs: ${liftPRs}` : 'No 1RM data — use RPE-based loading.'}
 ${historyContext}
 ${blockContext}
 ${optimizerContext}
@@ -346,10 +319,10 @@ FALLBACK DEFAULTS (NSCA/ACSM) — use ONLY where the OPTIMIZER does not specify.
       required: ['archetypeId', 'title', 'exercises', 'totalDurationMin', 'focus', 'summary', 'whyThisWorkout'] as const
     };
 
-    const attemptGeneration = async (modelId: string) => {
+    const attemptGeneration = async (modelId: string, useSearch: boolean) => {
       const response = await ai.models.generateContent({
         model: modelId, contents: prompt,
-        config: { systemInstruction, temperature: 0.5, responseMimeType: 'application/json', responseSchema }
+        config: { ...(useSearch ? { tools: [{ googleSearch: {} }] } : {}), responseMimeType: 'application/json', responseSchema }
       });
       const text = response.text;
       if (!text) throw new Error('Empty response');
@@ -361,14 +334,12 @@ FALLBACK DEFAULTS (NSCA/ACSM) — use ONLY where the OPTIMIZER does not specify.
     let result;
     let primaryError: string | undefined;
     try {
-      result = await attemptGeneration(primaryModelId);
-      logComplianceCheck(result, optimizerRecommendations, primaryModelId);
+      result = await attemptGeneration(primaryModelId, isComplexContext);
     } catch (err: any) {
       primaryError = err?.message || String(err);
       console.warn(`Primary model (${primaryModelId}) failed: ${primaryError}`);
       try {
-        result = await attemptGeneration(fallbackModelId);
-        logComplianceCheck(result, optimizerRecommendations, fallbackModelId);
+        result = await attemptGeneration(fallbackModelId, false);
       } catch (fallbackErr: any) {
         const fallbackMsg = fallbackErr?.message || String(fallbackErr);
         console.error(`Fallback model (${fallbackModelId}) also failed: ${fallbackMsg}`);
