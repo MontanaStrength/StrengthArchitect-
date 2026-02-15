@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Activity, BarChart3, Cpu, Dumbbell, Check } from 'lucide-react';
 import LiftAnimation from './LiftAnimation';
+import LiftAnimationGeometric from './LiftAnimationGeometric';
 
 interface Props {
   /** Optional context line shown below the title (e.g. "Week 3/8 · Strength Block") */
@@ -44,9 +45,10 @@ const LoadingView: React.FC<Props> = ({ contextLabel }) => {
 
   return (
     <div className="py-8 space-y-8">
-      {/* Animated barbell */}
+      {/* Animated barbell — switch between styles */}
       <div className="flex justify-center">
-        <LiftAnimation size={160} />
+        <LiftAnimationGeometric size={160} />
+        {/* <LiftAnimation size={160} /> */}
       </div>
 
       {/* Header */}
