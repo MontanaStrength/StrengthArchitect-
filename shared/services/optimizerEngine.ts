@@ -861,6 +861,18 @@ export function computeOptimizerRecommendations(
       const { totalHeuristic } = taperedFrederickTotals(taperedRepScheme, midIntensity, calculateSetMetabolicLoad);
       Object.assign(taperedRepScheme, { totalFrederickHeuristic: Math.round(totalHeuristic * 100) / 100 });
       repScheme = `Tapered: ${taperedRepScheme.description} (Frederick ~${Math.round(taperedRepScheme.totalFrederickLoad)}, effective ~${Math.round(totalHeuristic)} w/ fatigue drift, ~${taperedRepScheme.totalReps} reps)`;
+
+      // Clamp intensity so weight is achievable at prescribed reps + RPE.
+      // Standard RPE chart: max %1RM ≈ (reps + RIR) → e1RM lookup.
+      // For lead sets (e.g. 10 reps @ RPE 8 = 2 RIR → ~12RM ≈ 69%):
+      const leadRIR = 10 - taperedRepScheme.leadRPE;
+      const effectiveMaxReps = taperedRepScheme.leadReps + leadRIR;
+      // Epley inverse: %1RM = 1 / (1 + reps/30)
+      const maxPctForLead = Math.round(100 / (1 + effectiveMaxReps / 30));
+      if (intMax > maxPctForLead) {
+        intMax = maxPctForLead;
+        intMin = Math.min(intMin, intMax - 5);
+      }
     }
   }
 
