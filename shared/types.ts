@@ -696,3 +696,35 @@ export interface CoachClient {
   deadlift1RM?: number;
   overheadPress1RM?: number;
 }
+
+// ===== COACH–CLIENT MESSAGING =====
+
+export type MessageSender = 'coach' | 'client';
+
+export interface Conversation {
+  id: string;
+  coachUserId: string;
+  clientId: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface Message {
+  id: string;
+  conversationId: string;
+  sender: MessageSender;
+  /** Supabase user id when sender is coach; optional when sender is client (until athlete has account) */
+  senderUserId?: string | null;
+  body: string;
+  createdAt: number;
+  readAt: number | null;
+}
+
+export interface MessageAttachment {
+  id: string;
+  messageId: string;
+  storagePath: string;
+  fileName: string;
+  contentType: string;
+  createdAt: number;
+}

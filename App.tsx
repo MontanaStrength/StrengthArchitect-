@@ -58,12 +58,15 @@ import SessionRecapView from './components/SessionRecapView';
 import ModeSelectionView from './components/coach/ModeSelectionView';
 import ClientRosterView from './components/coach/ClientRosterView';
 import ClientFormModal from './components/coach/ClientFormModal';
+import CoachInboxView from './components/coach/CoachInboxView';
+import ConversationThreadView from './components/coach/ConversationThreadView';
+import type { ConversationWithMeta } from './shared/services/messagingService';
 import { computeOptimizerRecommendations } from './shared/services/optimizerEngine';
 import BrandIcon from './components/BrandIcon';
 
 import ErrorBoundary from './components/ErrorBoundary';
 
-import { Dumbbell, BarChart3, Calendar, Target, Activity, Bell, ChevronLeft, LogOut, Wrench, Calculator, BookOpen, Layers, LayoutList, Plus, Users, TrendingUp, Heart } from 'lucide-react';
+import { Dumbbell, BarChart3, Calendar, Target, Activity, Bell, ChevronLeft, LogOut, Wrench, Calculator, BookOpen, Layers, LayoutList, Plus, Users, TrendingUp, Heart, MessageCircle } from 'lucide-react';
 
 type ViewState =
   | 'form'
@@ -151,6 +154,11 @@ const App: React.FC = () => {
   const [editingClient, setEditingClient] = useState<CoachClient | null>(null);
   const [clientsLoading, setClientsLoading] = useState(false);
   const [prefsLoaded, setPrefsLoaded] = useState(false);
+  // Coach messaging: 'roster' | 'inbox' | 'thread'
+  const [coachSubView, setCoachSubView] = useState<'roster' | 'inbox' | 'thread'>('roster');
+  const [selectedConversation, setSelectedConversation] = useState<ConversationWithMeta | null>(null);
+  const [selectedThreadClient, setSelectedThreadClient] = useState<CoachClient | null>(null);
+  const [coachMessagesOverlay, setCoachMessagesOverlay] = useState(false);
 
   // Effective client ID for all scoped data operations
   const cid = useMemo(() =>
@@ -678,8 +686,43 @@ const App: React.FC = () => {
     return <ModeSelectionView onSelectMode={handleSelectMode} />;
   }
 
-  // ===== COACH: CLIENT ROSTER GATE =====
+  // ===== COACH: CLIENT ROSTER / INBOX / THREAD =====
   if (appMode === 'coach' && !activeClient) {
+    const showInbox = coachSubView === 'inbox';
+    const showThread = coachSubView === 'thread' && user;
+    const threadClientName = selectedConversation?.clientName ?? selectedThreadClient?.name ?? '';
+
+    if (showThread && user) {
+      return (
+        <ConversationThreadView
+          clientId={selectedThreadClient?.id ?? null}
+          conversationId={selectedConversation?.id ?? null}
+          clientName={threadClientName}
+          coachUserId={user.id}
+          onBack={() => {
+            setCoachSubView(selectedConversation ? 'inbox' : 'roster');
+            setSelectedConversation(null);
+            setSelectedThreadClient(null);
+          }}
+        />
+      );
+    }
+
+    if (showInbox && user) {
+      return (
+        <CoachInboxView
+          coachUserId={user.id}
+          clients={coachClients.map(c => ({ id: c.id, name: c.name }))}
+          onSelectConversation={(conv) => {
+            setSelectedConversation(conv);
+            setSelectedThreadClient(null);
+            setCoachSubView('thread');
+          }}
+          onBack={() => setCoachSubView('roster')}
+        />
+      );
+    }
+
     return (
       <>
         <ClientRosterView
@@ -691,6 +734,12 @@ const App: React.FC = () => {
           onDeleteClient={handleDeleteClient}
           onSwitchMode={() => handleSelectMode('lifter')}
           onSignOut={handleSignOut}
+          onOpenInbox={() => setCoachSubView('inbox')}
+          onOpenThreadWithClient={(client) => {
+            setSelectedThreadClient(client);
+            setSelectedConversation(null);
+            setCoachSubView('thread');
+          }}
         />
         {showClientForm && (
           <ClientFormModal
@@ -831,6 +880,15 @@ const App: React.FC = () => {
             )}
           </div>
           <div className="flex items-center gap-1">
+            {appMode === 'coach' && activeClient && user && (
+              <button
+                onClick={() => setCoachMessagesOverlay(true)}
+                className="p-2 text-gray-500 hover:text-blue-400 transition-colors rounded-btn"
+                title="Messages"
+              >
+                <MessageCircle size={18} />
+              </button>
+            )}
             <button onClick={() => setView('notifications')} className="p-2 text-gray-500 hover:text-white transition-colors rounded-btn">
               <Bell size={18} />
             </button>
@@ -840,6 +898,19 @@ const App: React.FC = () => {
           </div>
         </div>
       </header>
+
+      {/* ── Coach: Messages overlay (when viewing a client) ── */}
+      {coachMessagesOverlay && appMode === 'coach' && activeClient && user && (
+        <div className="fixed inset-0 z-[100] bg-[#0f0f0f]">
+          <ConversationThreadView
+            clientId={activeClient.id}
+            conversationId={null}
+            clientName={activeClient.name}
+            coachUserId={user.id}
+            onBack={() => setCoachMessagesOverlay(false)}
+          />
+        </div>
+      )}
 
       {/* ── Coach: Client Banner ── */}
       {appMode === 'coach' && activeClient && (

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CoachClient } from '../../shared/types';
-import { Plus, Users, ChevronRight, Search, Settings, LogOut } from 'lucide-react';
+import { Plus, Users, ChevronRight, Search, Settings, LogOut, MessageCircle } from 'lucide-react';
 import BrandIcon from '../BrandIcon';
 
 interface Props {
@@ -12,12 +12,15 @@ interface Props {
   onDeleteClient: (id: string) => void;
   onSwitchMode: () => void;
   onSignOut: () => void;
+  onOpenInbox?: () => void;
+  onOpenThreadWithClient?: (client: CoachClient) => void;
 }
 
 const AVATAR_COLORS = ['#f59e0b', '#3b82f6', '#22c55e', '#ef4444', '#a855f7', '#ec4899', '#14b8a6', '#f97316'];
 
 const ClientRosterView: React.FC<Props> = ({
   clients, clientsLoading, onSelectClient, onAddClient, onEditClient, onDeleteClient, onSwitchMode, onSignOut,
+  onOpenInbox, onOpenThreadWithClient,
 }) => {
   const [search, setSearch] = useState('');
 
@@ -48,6 +51,12 @@ const ClientRosterView: React.FC<Props> = ({
             <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full font-medium">Coach</span>
           </div>
           <div className="flex items-center gap-2">
+            {onOpenInbox && (
+              <button onClick={onOpenInbox} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 transition-colors text-sm font-medium" title="Messages">
+                <MessageCircle size={18} />
+                <span>Messages</span>
+              </button>
+            )}
             <button onClick={onSwitchMode} className="p-2 text-gray-500 hover:text-gray-300 transition-colors" title="Switch mode">
               <Settings size={16} />
             </button>
@@ -164,8 +173,16 @@ const ClientRosterView: React.FC<Props> = ({
                   <ChevronRight size={16} className="text-gray-700 group-hover:text-amber-500 transition-colors mt-1 shrink-0" />
                 </div>
               </button>
-              {/* Edit button */}
-              <div className="flex justify-end mt-2 pt-2 border-t border-neutral-800/50">
+              <div className="flex justify-end items-center gap-2 mt-2 pt-2 border-t border-neutral-800/50">
+                {onOpenThreadWithClient && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onOpenThreadWithClient(client); }}
+                    className="text-[10px] text-gray-600 hover:text-blue-400 transition-colors flex items-center gap-1"
+                    title="Message"
+                  >
+                    <MessageCircle size={12} /> Message
+                  </button>
+                )}
                 <button
                   onClick={(e) => { e.stopPropagation(); onEditClient(client); }}
                   className="text-[10px] text-gray-600 hover:text-gray-400 transition-colors"
