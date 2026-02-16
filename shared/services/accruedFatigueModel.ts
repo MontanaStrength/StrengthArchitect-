@@ -8,8 +8,8 @@
  * display so prescriptions stay in the target zone under fatigue-aware counting.
  */
 
-/** Drift per set (RPE) — literature range ~0.3–0.5; we use 0.35. */
-export const HEURISTIC_DRIFT_PER_SET = 0.35;
+/** Drift per set (RPE) — 0.15 assumes 2–3 min rest (near-full recovery). Literature: ~0.3–0.5 at 60–90s rest, ~0.12–0.18 at 120–180s. */
+export const HEURISTIC_DRIFT_PER_SET = 0.15;
 
 /**
  * Effective RPE for set index i (0-based): prescribed + drift × i.

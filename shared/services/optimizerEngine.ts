@@ -23,7 +23,7 @@ import {
   ReadinessLevel,
   SESSION_STRUCTURE_PRESETS,
 } from '../types';
-import { getTaperedHeuristicTotal, taperedFrederickTotals } from './accruedFatigueModel';
+import { taperedFrederickTotals } from './accruedFatigueModel';
 
 // Re-use the same TrainingContext shape from gemini service
 export interface TrainingContext {
@@ -217,10 +217,7 @@ function prescribeTaperedSets(
           const loadPerTaperSet = calculateSetMetabolicLoad(intensityPct, taperReps, taperRPE);
           const taperLoad = taperSets * loadPerTaperSet;
           const totalFrederickLoad = leadLoad + taperLoad;
-          const heuristicTotal = getTaperedHeuristicTotal(
-            leadSets, leadReps, leadRPE, taperSets, taperReps, taperRPE, intensityPct, calculateSetMetabolicLoad,
-          );
-          if (heuristicTotal <= frederickCap && totalFrederickLoad >= frederickCap * 0.5) {
+          if (totalFrederickLoad <= frederickCap && totalFrederickLoad >= frederickCap * 0.5) {
             return {
               leadSets,
               leadReps,
@@ -260,10 +257,7 @@ function prescribeTaperedSets(
           const loadPerTaperSet = calculateSetMetabolicLoad(intensityPct, taperReps, taperRPE);
           const taperLoad = taperSets * loadPerTaperSet;
           const totalFrederickLoad = leadLoad + taperLoad;
-          const heuristicTotal = getTaperedHeuristicTotal(
-            leadSets, leadReps, leadRPE, taperSets, taperReps, taperRPE, intensityPct, calculateSetMetabolicLoad,
-          );
-          if (heuristicTotal <= relaxedCap) {
+          if (totalFrederickLoad <= relaxedCap) {
             return {
               leadSets,
               leadReps,
@@ -825,7 +819,7 @@ export function computeOptimizerRecommendations(
     if (taperedRepScheme) {
       const { totalHeuristic } = taperedFrederickTotals(taperedRepScheme, midIntensity, calculateSetMetabolicLoad);
       Object.assign(taperedRepScheme, { totalFrederickHeuristic: Math.round(totalHeuristic * 100) / 100 });
-      repScheme = `Tapered: ${taperedRepScheme.description} (Frederick-capped, ~${taperedRepScheme.totalReps} reps, fatigue-aware load ~${Math.round(totalHeuristic)})`;
+      repScheme = `Tapered: ${taperedRepScheme.description} (Frederick ~${Math.round(taperedRepScheme.totalFrederickLoad)}, effective ~${Math.round(totalHeuristic)} w/ fatigue drift, ~${taperedRepScheme.totalReps} reps)`;
     }
   }
 
@@ -891,7 +885,7 @@ export function computeOptimizerRecommendations(
     parts.push(`Peak force drops after rep ${peakForceDropRep} at ~${Math.round((intMin + intMax) / 2)}%. Strength prescription: ${strengthSetDivision.sets}×${strengthSetDivision.repsPerSet} with ${Math.round(strengthSetDivision.restSeconds / 60)}+ min rest.`);
   }
   if (taperedRepScheme) {
-    parts.push(`Tapered sets (Frederick-capped): ${taperedRepScheme.description} — total ~${taperedRepScheme.totalReps} reps, fatigue-aware (heuristic) load ~${taperedRepScheme.totalFrederickHeuristic != null ? Math.round(taperedRepScheme.totalFrederickHeuristic) : Math.round(taperedRepScheme.totalFrederickLoad)} (in zone).`);
+    parts.push(`Tapered sets: ${taperedRepScheme.description} — ~${taperedRepScheme.totalReps} reps, prescribed Frederick ~${Math.round(taperedRepScheme.totalFrederickLoad)} (capped), effective ~${taperedRepScheme.totalFrederickHeuristic != null ? Math.round(taperedRepScheme.totalFrederickHeuristic) : '?'} (w/ RPE drift).`);
   }
 
   return {

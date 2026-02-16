@@ -74,11 +74,12 @@ Hypertrophy target per exercise in the optimizer is **618–989**; 1545 falls in
 
 ### Frederick and accrued fatigue (heuristic only)
 
-The base Frederick formula treats each set in isolation: **no set-to-set fatigue**. In practice, later sets at the same load/reps feel harder (RPE drift). We use a single **heuristic**: effective RPE for set index *i* (0-based) = `prescribed_RPE + 0.35 × i`. Literature: ~0.3–0.5 RPE drift per set (Helms et al.; work rate and session RPE).
+The base Frederick formula treats each set in isolation: **no set-to-set fatigue**. In practice, later sets at the same load/reps feel harder (RPE drift). We use a single **heuristic**: effective RPE for set index *i* (0-based) = `prescribed_RPE + 0.15 × i`. The 0.15 value assumes 2–3 min rest between sets (near-full PCr recovery). Literature: ~0.3–0.5 drift at 60–90s rest, ~0.12–0.18 at 120–180s (Helms et al.; Schoenfeld inter-set recovery).
 
-- **Tapered cap:** The solver accepts a prescription only if the **heuristic** Frederick total (summing sets with effective RPE above) is ≤ the per-exercise cap (618–989). So prescriptions stay in zone under fatigue-aware counting.
-- **Display:** `taperedRepScheme.totalFrederickHeuristic` and the rationale show the fatigue-aware total; the rep scheme line shows "fatigue-aware load ~X".
-- Implementation: `shared/services/accruedFatigueModel.ts` (`effectiveRPEHeuristic`, `getTaperedHeuristicTotal`, `taperedFrederickTotals`); used in `optimizerEngine.ts` for capping and for the tapered recommendation.
+- **Tapered cap:** The solver caps on the **no-fatigue** (prescribed) Frederick total ≤ 989. This is the "on paper" load. The heuristic total is **display-only** — it shows the coach/athlete the estimated true load once RPE drift is accounted for.
+- **Display:** `taperedRepScheme.totalFrederickHeuristic` and the rationale show the effective (fatigue-aware) total alongside the prescribed total (e.g. "prescribed Frederick ~800, effective ~1200 w/ RPE drift").
+- **Why not cap on heuristic?** With ~83 target reps (11+ sets), the +0.35 per set drift makes the heuristic total 50–70% higher than prescribed. Capping on heuristic would make it impossible to find any valid taper — the solver returns null and falls through to uniform sets, which is worse.
+- Implementation: `shared/services/accruedFatigueModel.ts` (`effectiveRPEHeuristic`, `taperedFrederickTotals`); used in `optimizerEngine.ts` for display alongside the tapered recommendation.
 
 5. **Plates**  
    - 230 lbs: 45 + 45 + 2.5 per side (230 lbs).  
