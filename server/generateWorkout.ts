@@ -258,11 +258,12 @@ export const generateWorkoutServer = async (
     BINDING: EACH EXERCISE should have approximately ${optimizerRecommendations.targetRepsPerExercise} total working reps. Structure sets × reps to hit this number.` : ''}
     ${optimizerRecommendations.taperedRepScheme ? `
     ### TAPERED SETS (Frederick + Hanley) — BINDING
-    Use this exact structure for EACH main hypertrophy exercise so total reps and metabolic load stay in zone:
+    Use this exact structure for EACH main compound exercise so total reps and metabolic load stay in zone:
     - LEAD (high metabolic): ${optimizerRecommendations.taperedRepScheme.leadSets} sets × ${optimizerRecommendations.taperedRepScheme.leadReps} reps @ RPE ${optimizerRecommendations.taperedRepScheme.leadRPE}
     - TAPER (lower reps/set to cap Frederick): ${optimizerRecommendations.taperedRepScheme.taperSets} sets × ${optimizerRecommendations.taperedRepScheme.taperReps} reps @ RPE ${optimizerRecommendations.taperedRepScheme.taperRPE}
     Total ~${optimizerRecommendations.taperedRepScheme.totalReps} reps per exercise, Frederick load ~${Math.round(optimizerRecommendations.taperedRepScheme.totalFrederickLoad)} (in target zone).
-    List the lead sets first, then the taper sets, for each exercise.` : ''}
+    List the lead sets first, then the taper sets, for each exercise.
+    WEIGHT REQUIRED: If 1RM data exists, you MUST calculate and include weightLbs and percentOf1RM for EVERY exercise (lead AND taper). Use the prescribed intensity range (${optimizerRecommendations.intensityRange.min}–${optimizerRecommendations.intensityRange.max}% 1RM) for lead sets. Taper sets use a lighter load matching the lower RPE. Round all weights to nearest 5 lbs.` : ''}
     ${optimizerRecommendations.strengthSetDivision ? `
     ### PEAK FORCE SET DIVISION (Strength/Power) — BINDING
     - Peak force drops after rep ${optimizerRecommendations.peakForceDropRep}
