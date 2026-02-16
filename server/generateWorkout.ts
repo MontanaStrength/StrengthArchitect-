@@ -434,6 +434,7 @@ export const generateWorkoutServer = async (
 
     ### LOADING RULES
     - If 1RM data is provided, calculate weights as percentages of 1RM. Round to nearest 5 lbs.
+    - ALWAYS include BOTH weightLbs AND percentOf1RM for every exercise when 1RM data exists. The card displays both.
     - If no 1RM data, use RPE targets only (e.g., RPE 7, RPE 8).
     - Include warmup sets for main compound lifts (e.g., empty bar, 50%, 70% before working weight).
     - All weights must be in lbs and achievable with standard plates.
