@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { StrengthTestResult, StrengthTestType } from '../types';
-import { estimate1RM } from '../utils';
+import { StrengthTestResult, StrengthTestType } from '../shared/types';
+import { estimate1RM } from '../shared/utils';
 import { ClipboardList, Plus } from 'lucide-react';
 
 interface Props {

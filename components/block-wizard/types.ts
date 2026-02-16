@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { TrainingBlockPhase, TrainingPhase, SplitPattern } from '../../types';
+import { TrainingBlockPhase, TrainingPhase, SplitPattern } from '../../shared/types';
 
 /** The in-progress block being built by the wizard */
 export interface BlockWizardState {

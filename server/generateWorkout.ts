@@ -1,10 +1,10 @@
 import { GoogleGenAI, Type } from '@google/genai';
-import type { FormData, SavedWorkout, StrengthWorkoutPlan, OptimizerRecommendations, ExercisePreferences, SessionStructure } from '../types';
-import { SESSION_STRUCTURE_PRESETS } from '../types';
-import { STRENGTH_ARCHETYPES } from '../services/strengthArchetypes';
-import { getExerciseListForPrompt, getExerciseById } from '../services/exerciseLibrary';
-import { computeExerciseSelectionContext, formatExerciseSelectionContextForPrompt } from '../services/exerciseSelectionEngine';
-import { parseRepsToAverage } from '../utils';
+import type { FormData, SavedWorkout, StrengthWorkoutPlan, OptimizerRecommendations, ExercisePreferences, SessionStructure } from '../shared/types';
+import { SESSION_STRUCTURE_PRESETS } from '../shared/types';
+import { STRENGTH_ARCHETYPES } from '../shared/services/strengthArchetypes';
+import { getExerciseListForPrompt, getExerciseById } from '../shared/services/exerciseLibrary';
+import { computeExerciseSelectionContext, formatExerciseSelectionContextForPrompt } from '../shared/services/exerciseSelectionEngine';
+import { parseRepsToAverage } from '../shared/utils';
 
 // ===== TRAINING INTELLIGENCE =====
 

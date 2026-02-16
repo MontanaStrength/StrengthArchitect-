@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { ScheduledWorkout, SavedWorkout, TrainingGoalFocus, ScheduledWorkoutStatus } from '../types';
+import { ScheduledWorkout, SavedWorkout, TrainingGoalFocus, ScheduledWorkoutStatus } from '../shared/types';
 import { Calendar, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Props {

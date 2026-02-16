@@ -1,6 +1,6 @@
 import React from 'react';
 import { WizardStepProps } from './types';
-import { TrainingExperience } from '../../types';
+import { TrainingExperience } from '../../shared/types';
 
 const EXPERIENCE: { value: TrainingExperience; label: string; desc: string }[] = [
   { value: TrainingExperience.BEGINNER,     label: 'Beginner',     desc: '< 1 year consistent training' },

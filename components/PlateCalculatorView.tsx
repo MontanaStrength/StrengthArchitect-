@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { GymSetup } from '../types';
-import { calculatePlateLoading, roundToNearestLoadable } from '../utils/plateCalculator';
+import { GymSetup } from '../shared/types';
+import { calculatePlateLoading, roundToNearestLoadable } from '../shared/utils/plateCalculator';
 
 interface Props {
   gymSetup: GymSetup;

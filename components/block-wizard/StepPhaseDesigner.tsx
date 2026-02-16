@@ -6,7 +6,7 @@ import {
   PHASE_PRESETS,
   SPLIT_PATTERNS,
   SplitPattern,
-} from '../../types';
+} from '../../shared/types';
 import { Plus, Trash2, ChevronUp, ChevronDown, GripVertical } from 'lucide-react';
 
 /** All available phases a user can add */

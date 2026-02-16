@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { SavedWorkout, LiftRecord, Achievement } from '../types';
+import { SavedWorkout, LiftRecord, Achievement } from '../shared/types';
 import { Trophy } from 'lucide-react';
 
 interface Props {

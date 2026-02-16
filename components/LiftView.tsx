@@ -2,11 +2,11 @@ import React, { useMemo, useState } from 'react';
 import {
   TrainingBlock, ReadinessLevel, StrengthWorkoutPlan, SavedWorkout,
   GymSetup, FeedbackData, PreWorkoutCheckIn, MoodLevel, SorenessLevel, NutritionQuality,
-} from '../types';
+} from '../shared/types';
 import WorkoutCard from './WorkoutCard';
 import FeedbackSection from './FeedbackSection';
 import LoadingView from './LoadingView';
-import { workoutToCsv, workoutToClipboardData, workoutExportFilename } from '../utils/workoutToSheets';
+import { workoutToCsv, workoutToClipboardData, workoutExportFilename } from '../shared/utils/workoutToSheets';
 import { Dumbbell, Zap, RefreshCw, Layers, FileSpreadsheet, Download, Copy, Check } from 'lucide-react';
 
 interface Props {

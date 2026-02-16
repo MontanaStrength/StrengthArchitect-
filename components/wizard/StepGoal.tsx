@@ -1,6 +1,6 @@
 import React from 'react';
 import { WizardStepProps } from './types';
-import { TrainingGoalFocus } from '../../types';
+import { TrainingGoalFocus } from '../../shared/types';
 
 const GOALS: { value: TrainingGoalFocus; label: string; desc: string; icon: string }[] = [
   { value: 'strength',    label: 'Strength',    desc: 'Heavy loads, low reps',          icon: '🏋️' },

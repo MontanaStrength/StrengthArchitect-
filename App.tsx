@@ -6,7 +6,7 @@ import {
   ScheduledWorkout, SleepEntry, TrainingGoal, CustomTemplate, StrengthTestResult,
   GymSetup, DEFAULT_GYM_SETUP, OptimizerConfig, DEFAULT_OPTIMIZER_CONFIG,
   OptimizerRecommendations, Achievement, AppMode, CoachClient,
-} from './types';
+} from './shared/types';
 import {
   supabase, syncWorkoutToCloud, fetchWorkoutsFromCloud, deleteWorkoutFromCloud,
   syncTrainingBlockToCloud, fetchTrainingBlocksFromCloud, deleteTrainingBlockFromCloud,
@@ -20,10 +20,10 @@ import {
   syncUserPreferencesToCloud, fetchUserPreferencesFromCloud,
   syncDismissedAlertsToCloud, fetchDismissedAlertsFromCloud, UserPreferences,
   syncCoachClientToCloud, fetchCoachClientsFromCloud, deleteCoachClientFromCloud,
-} from './services/supabaseService';
-import { generateWorkout, TrainingContext, type SwapAndRebuildRequest } from './services/geminiService';
-import { estimate1RM } from './utils';
-import { initAudio } from './utils/audioManager';
+} from './shared/services/supabaseService';
+import { generateWorkout, TrainingContext, type SwapAndRebuildRequest } from './shared/services/geminiService';
+import { estimate1RM } from './shared/utils';
+import { initAudio } from './shared/utils/audioManager';
 
 // Component imports
 import AuthView from './components/AuthView';
@@ -55,10 +55,10 @@ import { WorkoutWizard } from './components/wizard';
 import { BlockWizard } from './components/block-wizard';
 import OnboardingView from './components/OnboardingView';
 import SessionRecapView from './components/SessionRecapView';
-import ModeSelectionView from './components/ModeSelectionView';
-import ClientRosterView from './components/ClientRosterView';
-import ClientFormModal from './components/ClientFormModal';
-import { computeOptimizerRecommendations } from './services/optimizerEngine';
+import ModeSelectionView from './components/coach/ModeSelectionView';
+import ClientRosterView from './components/coach/ClientRosterView';
+import ClientFormModal from './components/coach/ClientFormModal';
+import { computeOptimizerRecommendations } from './shared/services/optimizerEngine';
 import BrandIcon from './components/BrandIcon';
 
 import ErrorBoundary from './components/ErrorBoundary';

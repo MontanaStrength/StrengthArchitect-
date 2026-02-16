@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { TrainingBlock, SavedWorkout, LiftRecord, TrainingBlockPhase } from '../types';
-import { computeSessionIntensity } from '../utils';
+import { TrainingBlock, SavedWorkout, LiftRecord, TrainingBlockPhase } from '../shared/types';
+import { computeSessionIntensity } from '../shared/utils';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
   LineChart, Line, Legend,

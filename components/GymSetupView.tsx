@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { GymSetup, AvailableEquipment, DEFAULT_GYM_SETUP } from '../types';
+import { GymSetup, AvailableEquipment, DEFAULT_GYM_SETUP } from '../shared/types';
 
 interface Props {
   gymSetup: GymSetup;

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { SavedWorkout, CompletedSet, GymSetup, ExerciseBlock } from '../types';
-import { formatTime, formatPlateLoading, estimate1RM } from '../utils';
-import { playBeep, initAudio } from '../utils/audioManager';
-import { calculatePlateLoading } from '../utils/plateCalculator';
+import { SavedWorkout, CompletedSet, GymSetup, ExerciseBlock } from '../shared/types';
+import { formatTime, formatPlateLoading, estimate1RM } from '../shared/utils';
+import { playBeep, initAudio } from '../shared/utils/audioManager';
+import { calculatePlateLoading } from '../shared/utils/plateCalculator';
 import { Play, Pause, SkipForward, Check, Volume2, VolumeX, X } from 'lucide-react';
 
 interface Props {

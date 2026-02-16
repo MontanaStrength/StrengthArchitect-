@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { OptimizerConfig, MuscleGroup, SavedWorkout, LiftRecord, FormData } from '../types';
-import { computeOptimizerRecommendations, TrainingContext } from '../services/optimizerEngine';
+import { OptimizerConfig, MuscleGroup, SavedWorkout, LiftRecord, FormData } from '../shared/types';
+import { computeOptimizerRecommendations, TrainingContext } from '../shared/services/optimizerEngine';
 
 interface Props {
   config: OptimizerConfig;

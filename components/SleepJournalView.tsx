@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SleepEntry, SleepQuality } from '../types';
+import { SleepEntry, SleepQuality } from '../shared/types';
 import { Moon, Plus, Trash2 } from 'lucide-react';
 
 interface Props {

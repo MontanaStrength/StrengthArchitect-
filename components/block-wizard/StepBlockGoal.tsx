@@ -1,6 +1,6 @@
 import React from 'react';
 import { BlockStepProps } from './types';
-import { PERIODIZATION_TEMPLATES, TrainingPhase } from '../../types';
+import { PERIODIZATION_TEMPLATES, TrainingPhase } from '../../shared/types';
 import { Layers, Wrench } from 'lucide-react';
 
 const GOALS = [

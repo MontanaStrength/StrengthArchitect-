@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Dumbbell, ChevronRight, Zap, Target, User } from 'lucide-react';
-import { TrainingExperience, AvailableEquipment, TrainingBlock, TrainingPhase, SplitPattern } from '../types';
+import { TrainingExperience, AvailableEquipment, TrainingBlock, TrainingPhase, SplitPattern } from '../shared/types';
 
 interface Props {
   onComplete: (data: {

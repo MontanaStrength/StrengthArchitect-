@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FeedbackData } from '../types';
+import { FeedbackData } from '../shared/types';
 import { ThumbsUp, ThumbsDown } from 'lucide-react';
 
 interface Props {

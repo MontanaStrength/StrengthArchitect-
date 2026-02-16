@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TrainingBlock, TrainingBlockPhase, TrainingPhase, PERIODIZATION_TEMPLATES } from '../types';
+import { TrainingBlock, TrainingBlockPhase, TrainingPhase, PERIODIZATION_TEMPLATES } from '../shared/types';
 import { Layers, Plus, Trash2, Play, Square, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Props {

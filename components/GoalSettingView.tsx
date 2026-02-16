@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { TrainingGoal, GoalCategory } from '../types';
+import { TrainingGoal, GoalCategory } from '../shared/types';
 import { Target, Plus, Trash2, Check } from 'lucide-react';
 
 interface Props {

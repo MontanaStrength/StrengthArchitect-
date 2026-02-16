@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { Exercise, MovementPattern, MuscleGroup, AvailableEquipment } from '../types';
-import { EXERCISE_LIBRARY, filterByMovementPattern, filterByMuscleGroup, filterByEquipment } from '../services/exerciseLibrary';
+import { Exercise, MovementPattern, MuscleGroup, AvailableEquipment } from '../shared/types';
+import { EXERCISE_LIBRARY, filterByMovementPattern, filterByMuscleGroup, filterByEquipment } from '../shared/services/exerciseLibrary';
 
 const ExerciseLibraryView: React.FC = () => {
   const [search, setSearch] = useState('');

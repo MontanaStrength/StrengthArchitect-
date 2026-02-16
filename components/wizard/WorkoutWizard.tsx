@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { FormData, OptimizerConfig } from '../../types';
-import { TrainingContext } from '../../services/geminiService';
+import { FormData, OptimizerConfig } from '../../shared/types';
+import { TrainingContext } from '../../shared/services/geminiService';
 import { WizardStepConfig, WizardStepProps } from './types';
 
 // Steps — import and register here. To add/remove/reorder steps, just

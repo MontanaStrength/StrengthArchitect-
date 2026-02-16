@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SavedWorkout } from '../types';
+import { SavedWorkout } from '../shared/types';
 import { History, Trash2, ChevronDown, ChevronUp, Download } from 'lucide-react';
 
 interface Props {

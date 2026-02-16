@@ -1,6 +1,6 @@
 import React from 'react';
 import { Dumbbell, Users, ChevronRight } from 'lucide-react';
-import { AppMode } from '../types';
+import { AppMode } from '../../shared/types';
 
 interface Props {
   onSelectMode: (mode: AppMode) => void;

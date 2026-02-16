@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { supabase, isSupabaseConfigured } from '../services/supabaseService';
+import { supabase, isSupabaseConfigured } from '../shared/services/supabaseService';
 import { Dumbbell, ArrowRight } from 'lucide-react';
 
 const AuthView: React.FC = () => {

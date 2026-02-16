@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { SavedWorkout, LiftRecord, SleepEntry, TrainingGoal } from '../types';
+import { SavedWorkout, LiftRecord, SleepEntry, TrainingGoal } from '../shared/types';
 
 interface Props {
   history: SavedWorkout[];

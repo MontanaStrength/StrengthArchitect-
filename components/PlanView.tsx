@@ -104,8 +104,8 @@ function sortExercisesForSlot(category: string, tier: string, exercises: typeof 
   return { recommended, others };
 }
 import React, { useState, useMemo } from 'react';
-import { TrainingBlock, ExerciseSlot, ExercisePreferences, MovementPattern, SessionStructure, SESSION_STRUCTURE_PRESETS, DEFAULT_SESSION_STRUCTURE } from '../types';
-import { EXERCISE_LIBRARY } from '../services/exerciseLibrary';
+import { TrainingBlock, ExerciseSlot, ExercisePreferences, MovementPattern, SessionStructure, SESSION_STRUCTURE_PRESETS, DEFAULT_SESSION_STRUCTURE } from '../shared/types';
+import { EXERCISE_LIBRARY } from '../shared/services/exerciseLibrary';
 import { Layers, Calendar, Dumbbell, ChevronRight, Check, CheckCircle2, ArrowRight, Rocket } from 'lucide-react';
 
 interface EstimatedMaxes {

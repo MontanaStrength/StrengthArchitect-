@@ -1,6 +1,6 @@
 import React from 'react';
 import { WizardStepProps } from './types';
-import { ReadinessLevel, TrainingExperience } from '../../types';
+import { ReadinessLevel, TrainingExperience } from '../../shared/types';
 import { Sparkles, ArrowRight } from 'lucide-react';
 
 /** Summary card labels */

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BodyCompEntry } from '../types';
+import { BodyCompEntry } from '../shared/types';
 import { BarChart3, Plus, Trash2 } from 'lucide-react';
 
 interface Props {

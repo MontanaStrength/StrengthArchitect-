@@ -1,12 +1,12 @@
 import React, { useMemo } from 'react';
-import { SavedWorkout, SleepEntry, ExerciseBlock } from '../types';
+import { SavedWorkout, SleepEntry, ExerciseBlock } from '../shared/types';
 import {
   calculateSetFatigueScore,
   calculateSetMetabolicLoad,
   FATIGUE_ZONES,
   METABOLIC_ZONES,
-} from '../services/optimizerEngine';
-import { parseRepsToAverage } from '../utils';
+} from '../shared/services/optimizerEngine';
+import { parseRepsToAverage } from '../shared/utils';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   ReferenceLine, ReferenceArea, LineChart, Line,

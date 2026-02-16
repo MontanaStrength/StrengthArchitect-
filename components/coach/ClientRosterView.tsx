@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { CoachClient } from '../types';
+import { CoachClient } from '../../shared/types';
 import { Plus, Users, ChevronRight, Search, Settings, LogOut } from 'lucide-react';
-import BrandIcon from './BrandIcon';
+import BrandIcon from '../BrandIcon';
 
 interface Props {
   clients: CoachClient[];

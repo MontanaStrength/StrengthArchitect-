@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { CustomTemplate, CustomTemplateExercise, TrainingGoalFocus } from '../types';
-import { getAllExercises } from '../services/exerciseLibrary';
+import { CustomTemplate, CustomTemplateExercise, TrainingGoalFocus } from '../shared/types';
+import { getAllExercises } from '../shared/services/exerciseLibrary';
 import { LayoutList, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Props {

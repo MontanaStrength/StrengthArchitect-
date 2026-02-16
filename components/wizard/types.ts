@@ -9,8 +9,8 @@
  * progress, and the generate action. Steps only read / write formData.
  */
 
-import { FormData, OptimizerConfig, TrainingGoalFocus } from '../../types';
-import { TrainingContext } from '../../services/geminiService';
+import { FormData, OptimizerConfig, TrainingGoalFocus } from '../../shared/types';
+import { TrainingContext } from '../../shared/services/geminiService';
 
 /** Props every wizard step receives */
 export interface WizardStepProps {

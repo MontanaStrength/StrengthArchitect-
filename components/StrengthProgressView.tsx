@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { LiftRecord, SavedWorkout } from '../types';
-import { estimate1RM } from '../utils';
+import { LiftRecord, SavedWorkout } from '../shared/types';
+import { estimate1RM } from '../shared/utils';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   ReferenceLine, Area, AreaChart,

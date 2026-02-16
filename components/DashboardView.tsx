@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import {
   SavedWorkout, LiftRecord, TrainingGoal, SleepEntry,
   MuscleGroup,
-} from '../types';
+} from '../shared/types';
 import {
   BarChart3, TrendingUp, Trophy, Target, Moon, Dumbbell,
   Heart, Activity, Award,

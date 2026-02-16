@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { SavedWorkout } from '../types';
-import { computeSessionIntensity } from '../utils';
+import { SavedWorkout } from '../shared/types';
+import { computeSessionIntensity } from '../shared/utils';
 import { Calendar, Flame, Trophy, ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 interface Props {

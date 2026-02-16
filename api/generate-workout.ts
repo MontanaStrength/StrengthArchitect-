@@ -10,7 +10,7 @@ import { GoogleGenAI, Type } from '@google/genai';
 
 async function getExerciseSelectionContext(data: any, recentWorkouts: any[], optimizerRecommendations: any, exercisePreferences: any): Promise<string> {
   try {
-    const { computeExerciseSelectionContext, formatExerciseSelectionContextForPrompt } = await import('../services/exerciseSelectionEngine');
+    const { computeExerciseSelectionContext, formatExerciseSelectionContextForPrompt } = await import('../shared/services/exerciseSelectionEngine');
     return formatExerciseSelectionContextForPrompt(
       computeExerciseSelectionContext({
         history: recentWorkouts,

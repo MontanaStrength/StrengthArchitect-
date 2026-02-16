@@ -1,6 +1,6 @@
 import React from 'react';
 import { BlockStepProps } from './types';
-import { TrainingPhase } from '../../types';
+import { TrainingPhase } from '../../shared/types';
 import { CheckCircle2, Calendar, Dumbbell, Layers } from 'lucide-react';
 
 interface StepBlockReviewProps extends BlockStepProps {

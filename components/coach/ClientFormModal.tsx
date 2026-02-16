@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { CoachClient, TrainingExperience, AvailableEquipment, SessionStructure, SESSION_STRUCTURE_PRESETS, DEFAULT_SESSION_STRUCTURE } from '../types';
+import { CoachClient, TrainingExperience, AvailableEquipment, SessionStructure, SESSION_STRUCTURE_PRESETS, DEFAULT_SESSION_STRUCTURE } from '../../shared/types';
 import { X, UserPlus, Save } from 'lucide-react';
 
 interface Props {

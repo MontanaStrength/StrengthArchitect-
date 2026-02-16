@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
-import { StrengthWorkoutPlan, GymSetup, ExerciseBlock } from '../types';
-import { getArchetypeNameById } from '../services/strengthArchetypes';
-import { getExerciseByIdOrName, getComplementaryPatterns, EXERCISE_LIBRARY } from '../services/exerciseLibrary';
+import { StrengthWorkoutPlan, GymSetup, ExerciseBlock } from '../shared/types';
+import { getArchetypeNameById } from '../shared/services/strengthArchetypes';
+import { getExerciseByIdOrName, getComplementaryPatterns, EXERCISE_LIBRARY } from '../shared/services/exerciseLibrary';
 import { Dumbbell, Clock, BarChart3, Weight, Info, Lightbulb, ChevronDown, ChevronUp, Flame, Repeat2 } from 'lucide-react';
 
 interface Props {

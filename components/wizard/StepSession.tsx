@@ -1,6 +1,6 @@
 import React from 'react';
 import { WizardStepProps } from './types';
-import { ReadinessLevel } from '../../types';
+import { ReadinessLevel } from '../../shared/types';
 
 const DURATIONS = [30, 45, 60, 75, 90];
 

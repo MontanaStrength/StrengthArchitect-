@@ -5,7 +5,7 @@ import {
   TrainingPhase,
   PERIODIZATION_TEMPLATES,
   ScheduledWorkout,
-} from '../../types';
+} from '../../shared/types';
 import { BlockWizardState, BlockStepConfig, BlockStepProps, DEFAULT_BLOCK_STATE } from './types';
 
 import StepBlockGoal from './StepBlockGoal';

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { SavedWorkout, MuscleGroup } from '../types';
-import { getExerciseById } from '../services/exerciseLibrary';
+import { SavedWorkout, MuscleGroup } from '../shared/types';
+import { getExerciseById } from '../shared/services/exerciseLibrary';
 
 interface Props {
   history: SavedWorkout[];

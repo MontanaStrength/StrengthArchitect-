@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
-import { LiftRecord } from '../types';
-import { estimate1RM } from '../utils';
+import { LiftRecord } from '../shared/types';
+import { estimate1RM } from '../shared/utils';
 import { Trophy, Plus, Trash2, TrendingUp } from 'lucide-react';
 
 interface Props {
