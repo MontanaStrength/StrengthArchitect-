@@ -253,6 +253,13 @@ export const generateWorkoutServer = async (
     ### VOLUME STRESS PRESCRIPTION (Hanley Fatigue Metric) — PER EXERCISE
     - Prescribed total reps per exercise: ${optimizerRecommendations.targetRepsPerExercise || 'N/A'}
     BINDING: EACH EXERCISE should have approximately ${optimizerRecommendations.targetRepsPerExercise} total working reps. Structure sets × reps to hit this number.` : ''}
+    ${optimizerRecommendations.taperedRepScheme ? `
+    ### TAPERED SETS (Frederick + Hanley) — BINDING
+    Use this exact structure for EACH main hypertrophy exercise so total reps and metabolic load stay in zone:
+    - LEAD (high metabolic): ${optimizerRecommendations.taperedRepScheme.leadSets} sets × ${optimizerRecommendations.taperedRepScheme.leadReps} reps @ RPE ${optimizerRecommendations.taperedRepScheme.leadRPE}
+    - TAPER (lower reps/set to cap Frederick): ${optimizerRecommendations.taperedRepScheme.taperSets} sets × ${optimizerRecommendations.taperedRepScheme.taperReps} reps @ RPE ${optimizerRecommendations.taperedRepScheme.taperRPE}
+    Total ~${optimizerRecommendations.taperedRepScheme.totalReps} reps per exercise, Frederick load ~${Math.round(optimizerRecommendations.taperedRepScheme.totalFrederickLoad)} (in target zone).
+    List the lead sets first, then the taper sets, for each exercise.` : ''}
     ${optimizerRecommendations.strengthSetDivision ? `
     ### PEAK FORCE SET DIVISION (Strength/Power) — BINDING
     - Peak force drops after rep ${optimizerRecommendations.peakForceDropRep}
@@ -630,9 +637,9 @@ function logComplianceCheck(
   const targetIntMax = optimizerRecs.intensityRange.max;
   const intensityOk = intensities.length === 0 || (avgIntensity >= targetIntMin - 5 && avgIntensity <= targetIntMax + 5);
 
-  // Check rep scheme (rough — matches pattern like "5×5" or "4×8-10")
-  const repSchemeTarget = optimizerRecs.repScheme; // e.g. "5×5", "4×8-10"
-  const repSchemeMatch = repSchemeTarget.match(/(\d+)×(\d+(?:-\d+)?)/);
+  // Check rep scheme (rough — matches pattern like "5×5" or "4×8-10"). Skip when tapered prescription is used.
+  const repSchemeTarget = optimizerRecs.repScheme; // e.g. "5×5", "4×8-10", or "Tapered: 2×10 @ RPE 8, then ..."
+  const repSchemeMatch = optimizerRecs.taperedRepScheme ? null : repSchemeTarget.match(/(\d+)×(\d+(?:-\d+)?)/);
   let repSchemeOk = true;
   if (repSchemeMatch) {
     const [, targetSetsPerEx, targetReps] = repSchemeMatch;

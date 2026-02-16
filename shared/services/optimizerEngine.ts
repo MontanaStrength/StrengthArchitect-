@@ -169,6 +169,113 @@ const prescribeHypertrophySets = (
   return { minSets, maxSets, perSetLoad };
 };
 
+/**
+ * Tapered-set prescription for hypertrophy: a few high-metabolic sets first,
+ * then taper (fewer reps per set and/or lower RPE) so total Frederick load
+ * stays in the target zone while hitting Hanley's total rep target.
+ * Returns a scheme like "2×10 @ RPE 8, then 8×7 @ RPE 6" with totalReps and totalFrederickLoad.
+ */
+function prescribeTaperedSets(
+  targetReps: number,
+  intensityPct: number,
+  frederickCap: number, // e.g. 989 — total load per exercise should not exceed
+): {
+  leadSets: number;
+  leadReps: number;
+  leadRPE: number;
+  taperSets: number;
+  taperReps: number;
+  taperRPE: number;
+  totalReps: number;
+  totalFrederickLoad: number;
+  description: string;
+} | null {
+  const leadRPE = 8;
+  const leadRepsOptions = [10, 9];
+  const taperRepsOptions = [7, 6, 8];
+  const taperRPEOptions = [7, 6, 5] as const;
+
+  for (const leadReps of leadRepsOptions) {
+    const loadPerLeadSet = calculateSetMetabolicLoad(intensityPct, leadReps, leadRPE);
+    for (let leadSets = 2; leadSets <= 3; leadSets++) {
+      const leadLoad = leadSets * loadPerLeadSet;
+      const leadRepsTotal = leadSets * leadReps;
+      const remainingReps = targetReps - leadRepsTotal;
+      if (remainingReps < 4) continue;
+
+      const budget = frederickCap - leadLoad;
+      if (budget <= 0) continue;
+
+      for (const taperReps of taperRepsOptions) {
+        const taperSets = Math.max(1, Math.round(remainingReps / taperReps));
+        const actualTaperReps = taperSets * taperReps;
+        const totalReps = leadRepsTotal + actualTaperReps;
+        if (Math.abs(totalReps - targetReps) > 10) continue;
+
+        for (const taperRPE of taperRPEOptions) {
+          const loadPerTaperSet = calculateSetMetabolicLoad(intensityPct, taperReps, taperRPE);
+          const taperLoad = taperSets * loadPerTaperSet;
+          const totalFrederickLoad = leadLoad + taperLoad;
+          if (totalFrederickLoad <= frederickCap && totalFrederickLoad >= frederickCap * 0.5) {
+            return {
+              leadSets,
+              leadReps,
+              leadRPE,
+              taperSets,
+              taperReps,
+              taperRPE,
+              totalReps,
+              totalFrederickLoad: Math.round(totalFrederickLoad * 100) / 100,
+              description: `${leadSets}×${leadReps} @ RPE ${leadRPE}, then ${taperSets}×${taperReps} @ RPE ${taperRPE}`,
+            };
+          }
+        }
+      }
+    }
+  }
+
+  // Fallback: allow slightly over cap (up to 1100) to hit rep target
+  const relaxedCap = Math.min(frederickCap * 1.12, 1100);
+  for (const leadReps of leadRepsOptions) {
+    const loadPerLeadSet = calculateSetMetabolicLoad(intensityPct, leadReps, leadRPE);
+    for (let leadSets = 2; leadSets <= 3; leadSets++) {
+      const leadLoad = leadSets * loadPerLeadSet;
+      const leadRepsTotal = leadSets * leadReps;
+      const remainingReps = targetReps - leadRepsTotal;
+      if (remainingReps < 4) continue;
+      const budget = relaxedCap - leadLoad;
+      if (budget <= 0) continue;
+
+      for (const taperReps of taperRepsOptions) {
+        const taperSets = Math.max(1, Math.round(remainingReps / taperReps));
+        const actualTaperReps = taperSets * taperReps;
+        const totalReps = leadRepsTotal + actualTaperReps;
+        if (Math.abs(totalReps - targetReps) > 12) continue;
+
+        for (const taperRPE of taperRPEOptions) {
+          const loadPerTaperSet = calculateSetMetabolicLoad(intensityPct, taperReps, taperRPE);
+          const taperLoad = taperSets * loadPerTaperSet;
+          const totalFrederickLoad = leadLoad + taperLoad;
+          if (totalFrederickLoad <= relaxedCap) {
+            return {
+              leadSets,
+              leadReps,
+              leadRPE,
+              taperSets,
+              taperReps,
+              taperRPE,
+              totalReps,
+              totalFrederickLoad: Math.round(totalFrederickLoad * 100) / 100,
+              description: `${leadSets}×${leadReps} @ RPE ${leadRPE}, then ${taperSets}×${taperReps} @ RPE ${taperRPE}`,
+            };
+          }
+        }
+      }
+    }
+  }
+  return null;
+}
+
 // ── Hanley Fatigue Metric ────────────────────────────────────
 //   Score = Reps × (100 / (100 - Intensity))²
 //   Where: Intensity = %1RM (0-100)
@@ -691,6 +798,28 @@ export function computeOptimizerRecommendations(
     }
   }
 
+  // ── 11c. Tapered sets (hypertrophy) — Frederick + Hanley ──
+  //   Prescribe lead high-metabolic sets, then taper (fewer reps/set, lower RPE)
+  //   so total Frederick load stays in zone while hitting Hanley total reps.
+  let taperedRepScheme: ReturnType<typeof prescribeTaperedSets> | undefined = undefined;
+
+  if (
+    isHypertrophyLike &&
+    !forceDeload &&
+    targetRepsPerExercise != null &&
+    metabolicLoadTarget != null
+  ) {
+    const midIntensity = (intMin + intMax) / 2;
+    taperedRepScheme = prescribeTaperedSets(
+      targetRepsPerExercise,
+      midIntensity,
+      metabolicLoadTarget.max,
+    );
+    if (taperedRepScheme) {
+      repScheme = `Tapered: ${taperedRepScheme.description} (Frederick-capped, ~${taperedRepScheme.totalReps} reps, total load ~${Math.round(taperedRepScheme.totalFrederickLoad)})`;
+    }
+  }
+
   // ── 12. Peak Force Drop-Off — strength/power set division ──
   //   For strength and power goals, every rep should be performed at
   //   peak force output. The heuristic estimates when force begins
@@ -752,6 +881,9 @@ export function computeOptimizerRecommendations(
   if (peakForceDropRep && strengthSetDivision) {
     parts.push(`Peak force drops after rep ${peakForceDropRep} at ~${Math.round((intMin + intMax) / 2)}%. Strength prescription: ${strengthSetDivision.sets}×${strengthSetDivision.repsPerSet} with ${Math.round(strengthSetDivision.restSeconds / 60)}+ min rest.`);
   }
+  if (taperedRepScheme) {
+    parts.push(`Tapered sets (Frederick-capped): ${taperedRepScheme.description} — total ~${taperedRepScheme.totalReps} reps, Frederick load ~${Math.round(taperedRepScheme.totalFrederickLoad)} (in zone).`);
+  }
 
   return {
     sessionVolume,
@@ -772,5 +904,6 @@ export function computeOptimizerRecommendations(
     targetRepsPerExercise,
     peakForceDropRep,
     strengthSetDivision,
+    taperedRepScheme: taperedRepScheme ?? undefined,
   };
 }

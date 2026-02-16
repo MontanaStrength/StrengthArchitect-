@@ -297,6 +297,18 @@ export interface OptimizerRecommendations {
   // Peak Force Drop-Off — strength/power set division
   peakForceDropRep?: number; // rep at which peak force starts to decline
   strengthSetDivision?: { sets: number; repsPerSet: number; restSeconds: number }; // strength-optimised scheme
+  // Tapered sets (hypertrophy): lead high-metabolic sets, then taper to keep Frederick total in zone
+  taperedRepScheme?: {
+    leadSets: number;
+    leadReps: number;
+    leadRPE: number;
+    taperSets: number;
+    taperReps: number;
+    taperRPE: number;
+    totalReps: number;
+    totalFrederickLoad: number;
+    description: string; // e.g. "2×10 @ RPE 8, then 8×7 @ RPE 6"
+  };
 }
 
 export const DEFAULT_OPTIMIZER_CONFIG: OptimizerConfig = {
