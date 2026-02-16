@@ -192,9 +192,16 @@ function prescribeTaperedSets(
   description: string;
 } | null {
   const leadRPE = 8;
-  const leadRepsOptions = [10, 9];
-  const taperRepsOptions = [7, 6, 8];
-  const taperRPEOptions = [7, 6, 5, 4] as const; // include 4 so we can stay under cap at high rep targets
+  const leadRepsOptions = [10, 9, 8];
+  const taperRepsOptions = [7, 6, 5, 8];
+  // RPE 6 minimum for taper — below that the weight is too light for useful stimulus.
+  // Prefer RPE 7 (meaningful back-off), fall back to RPE 6.
+  const taperRPEOptions = [7, 6] as const;
+
+  // Frederick gate for tapered sessions: 1500 (not the uniform-set cap of 989).
+  // With 9-11 tapered sets, totals naturally run 1200-1700 at meaningful taper RPE.
+  // 1500 keeps taper RPE at 6-7 (useful stimulus) without runaway accumulation.
+  const taperedFrederickGate = 1600;
 
   for (const leadReps of leadRepsOptions) {
     const loadPerLeadSet = calculateSetMetabolicLoad(intensityPct, leadReps, leadRPE);
@@ -203,9 +210,6 @@ function prescribeTaperedSets(
       const leadRepsTotal = leadSets * leadReps;
       const remainingReps = targetReps - leadRepsTotal;
       if (remainingReps < 4) continue;
-
-      const budget = frederickCap - leadLoad;
-      if (budget <= 0) continue;
 
       for (const taperReps of taperRepsOptions) {
         const taperSets = Math.max(1, Math.round(remainingReps / taperReps));
@@ -217,47 +221,7 @@ function prescribeTaperedSets(
           const loadPerTaperSet = calculateSetMetabolicLoad(intensityPct, taperReps, taperRPE);
           const taperLoad = taperSets * loadPerTaperSet;
           const totalFrederickLoad = leadLoad + taperLoad;
-          if (totalFrederickLoad <= frederickCap && totalFrederickLoad >= frederickCap * 0.5) {
-            return {
-              leadSets,
-              leadReps,
-              leadRPE,
-              taperSets,
-              taperReps,
-              taperRPE,
-              totalReps,
-              totalFrederickLoad: Math.round(totalFrederickLoad * 100) / 100,
-              description: `${leadSets}×${leadReps} @ RPE ${leadRPE}, then ${taperSets}×${taperReps} @ RPE ${taperRPE}`,
-            };
-          }
-        }
-      }
-    }
-  }
-
-  // Fallback: allow slightly over cap (up to 1100) to hit rep target
-  const relaxedCap = Math.min(frederickCap * 1.12, 1100);
-  for (const leadReps of leadRepsOptions) {
-    const loadPerLeadSet = calculateSetMetabolicLoad(intensityPct, leadReps, leadRPE);
-    for (let leadSets = 2; leadSets <= 3; leadSets++) {
-      const leadLoad = leadSets * loadPerLeadSet;
-      const leadRepsTotal = leadSets * leadReps;
-      const remainingReps = targetReps - leadRepsTotal;
-      if (remainingReps < 4) continue;
-      const budget = relaxedCap - leadLoad;
-      if (budget <= 0) continue;
-
-      for (const taperReps of taperRepsOptions) {
-        const taperSets = Math.max(1, Math.round(remainingReps / taperReps));
-        const actualTaperReps = taperSets * taperReps;
-        const totalReps = leadRepsTotal + actualTaperReps;
-        if (Math.abs(totalReps - targetReps) > 12) continue;
-
-        for (const taperRPE of taperRPEOptions) {
-          const loadPerTaperSet = calculateSetMetabolicLoad(intensityPct, taperReps, taperRPE);
-          const taperLoad = taperSets * loadPerTaperSet;
-          const totalFrederickLoad = leadLoad + taperLoad;
-          if (totalFrederickLoad <= relaxedCap) {
+          if (totalFrederickLoad <= taperedFrederickGate) {
             return {
               leadSets,
               leadReps,
@@ -579,8 +543,8 @@ export function computeOptimizerRecommendations(
   const setsPerExScalar = volumeTolerance <= 1 ? 0.75
     : volumeTolerance <= 2 ? 0.85
     : volumeTolerance <= 3 ? 1.0
-    : volumeTolerance <= 4 ? 1.25
-    : 1.50;
+    : volumeTolerance <= 4 ? 1.15
+    : 1.30;
 
   // ── 1. Base session volume (working sets) ──────────────
   const userMaxSets = config.maxSetsPerSession || 25;
