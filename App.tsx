@@ -248,9 +248,16 @@ const App: React.FC = () => {
     loadPrefs();
   }, [user]);
 
-  // ===== PHASE 2: LOAD COACH CLIENTS (coach mode only) =====
+  // ===== PHASE 2: LOAD COACH CLIENTS (always when signed in — needed for onboarding skip and roster) =====
   useEffect(() => {
-    if (!user || appMode !== 'coach') return;
+    if (!user) return;
+    if (appMode !== 'coach') {
+      // In lifter mode still fetch so we can skip onboarding for established coaches
+      fetchCoachClientsFromCloud(user.id)
+        .then((clients) => setCoachClients(clients))
+        .catch(() => setCoachClients([]));
+      return;
+    }
     console.log('[Coach] Phase 2: loading clients for user', user.id, 'appMode=', appMode);
     setClientsLoading(true);
     fetchCoachClientsFromCloud(user.id)
@@ -326,9 +333,9 @@ const App: React.FC = () => {
           }
         }
 
-        // Show "About you" onboarding only for lifter mode when empty. In coach mode we already have client profile from Add Athlete.
+        // Show "About you" onboarding only for lifter mode when empty. Skip if user has coach clients (established coach).
         if (blocks.length === 0 && workouts.length === 0) {
-          setShowOnboarding(appMode !== 'coach');
+          setShowOnboarding(appMode !== 'coach' && coachClients.length === 0);
         } else {
           setShowOnboarding(false);
         }
@@ -338,7 +345,7 @@ const App: React.FC = () => {
       }
     };
     loadTrainingData();
-  }, [user, prefsLoaded, appMode, activeClient?.id]);
+  }, [user, prefsLoaded, appMode, activeClient?.id, coachClients.length]);
 
   // ===== TRAINING CONTEXT (from active block) =====
   const trainingContext = useMemo<TrainingContext | null>(() => {
