@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { StrengthWorkoutPlan, GymSetup, ExerciseBlock } from '../shared/types';
+import { HEURISTIC_DRIFT_PER_SET } from '../shared/services/accruedFatigueModel';
 import { getArchetypeNameById } from '../shared/services/strengthArchetypes';
 import { getExerciseByIdOrName, getComplementaryPatterns, EXERCISE_LIBRARY } from '../shared/services/exerciseLibrary';
 import { Dumbbell, Clock, BarChart3, Weight, Info, Lightbulb, ChevronDown, ChevronUp, Flame, Repeat2 } from 'lucide-react';
@@ -232,11 +233,22 @@ const ExerciseRow: React.FC<{
   if (exercise.weightLbs) prescription.push(`${exercise.weightLbs} lbs`);
   if (exercise.percentOf1RM) prescription.push(`${exercise.percentOf1RM}% 1RM`);
 
-  const intensityTag = exercise.rpeTarget
-    ? `RPE ${exercise.rpeTarget}`
-    : exercise.rirTarget !== undefined
-      ? `${exercise.rirTarget} RIR`
-      : null;
+  const intensityTag = (() => {
+    if (exercise.rpeTarget) {
+      const startRPE = exercise.rpeTarget;
+      const sets = exercise.sets ?? 1;
+      if (sets > 1) {
+        const endRPE = Math.min(10, startRPE + HEURISTIC_DRIFT_PER_SET * (sets - 1));
+        const endRounded = Math.round(endRPE * 10) / 10;
+        if (endRounded > startRPE + 0.3) {
+          return `RPE ${startRPE}–${endRounded % 1 === 0 ? endRounded.toFixed(0) : endRounded.toFixed(1)}`;
+        }
+      }
+      return `RPE ${startRPE}`;
+    }
+    if (exercise.rirTarget !== undefined) return `${exercise.rirTarget} RIR`;
+    return null;
+  })();
 
   return (
     <div className="px-5 py-4">
