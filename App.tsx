@@ -887,6 +887,16 @@ const App: React.FC = () => {
             )}
           </div>
           <div className="flex items-center gap-1">
+            {appMode === 'lifter' && coachClients.length > 0 && (
+              <button
+                onClick={() => handleSelectMode('coach')}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 transition-colors text-sm font-medium"
+                title="Switch to Coach mode"
+              >
+                <Users size={18} />
+                <span>Coach</span>
+              </button>
+            )}
             {appMode === 'coach' && activeClient && user && (
               <button
                 onClick={() => setCoachMessagesOverlay(true)}
