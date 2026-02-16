@@ -305,14 +305,14 @@ export const FATIGUE_ZONES = [
   { zone: 'extreme'       as const, label: 'Tread Carefully', min: 700, max: 9999 },
 ] as const;
 
-/** Goal-based target fatigue zones per exercise (for the reverse calculator)
- *  Tuned +23% above original baseline (Hanley 2026 rev-2), then bumped +6% for athlete tolerance. */
+/** Goal-based target fatigue zones per exercise (for the reverse calculator).
+ *  Baseline ~500 avg. At hypertrophy midpoint (67.5%), vol tol 4 → ~61 reps. */
 const FATIGUE_TARGETS: Record<TrainingGoalFocus, { min: number; max: number }> = {
-  hypertrophy: { min: 530, max: 730 },  // many reps at moderate intensity
-  strength:    { min: 530, max: 730 },  // fewer reps but high multiplier
-  power:       { min: 335, max: 530 },  // minimal reps, maximal quality
-  endurance:   { min: 460, max: 660 },  // high reps at low intensity
-  general:     { min: 530, max: 660 },  // balanced
+  hypertrophy: { min: 400, max: 600 },  // many reps at moderate intensity
+  strength:    { min: 400, max: 600 },  // fewer reps but high multiplier
+  power:       { min: 250, max: 400 },  // minimal reps, maximal quality
+  endurance:   { min: 350, max: 550 },  // high reps at low intensity
+  general:     { min: 400, max: 550 },  // balanced
 };
 
 // ── Peak Force Drop-Off Heuristic ────────────────────────────

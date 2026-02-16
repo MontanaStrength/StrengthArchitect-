@@ -263,7 +263,7 @@ export const generateWorkoutServer = async (
     - TAPER (lower reps/set to cap Frederick): ${optimizerRecommendations.taperedRepScheme.taperSets} sets × ${optimizerRecommendations.taperedRepScheme.taperReps} reps @ RPE ${optimizerRecommendations.taperedRepScheme.taperRPE}
     Total ~${optimizerRecommendations.taperedRepScheme.totalReps} reps per exercise, Frederick load ~${Math.round(optimizerRecommendations.taperedRepScheme.totalFrederickLoad)} (in target zone).
     List the lead sets first, then the taper sets, for each exercise.
-    WEIGHT REQUIRED: If 1RM data exists, you MUST calculate and include weightLbs and percentOf1RM for EVERY exercise (lead AND taper). Use the prescribed intensity range (${optimizerRecommendations.intensityRange.min}–${optimizerRecommendations.intensityRange.max}% 1RM) for lead sets. Taper sets use a lighter load matching the lower RPE. Round all weights to nearest 5 lbs.` : ''}
+    WEIGHT REQUIRED: If 1RM data exists, you MUST calculate and include weightLbs and percentOf1RM for EVERY exercise (lead AND taper). Use the prescribed intensity range (${optimizerRecommendations.intensityRange.min}–${optimizerRecommendations.intensityRange.max}% 1RM) for lead sets. Taper sets: use a lighter load matching the lower RPE but NEVER below 60% 1RM — that is the minimum for meaningful training stimulus. Round all weights to nearest 5 lbs.` : ''}
     ${optimizerRecommendations.strengthSetDivision ? `
     ### PEAK FORCE SET DIVISION (Strength/Power) — BINDING
     - Peak force drops after rep ${optimizerRecommendations.peakForceDropRep}
