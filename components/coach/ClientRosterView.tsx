@@ -177,10 +177,10 @@ const ClientRosterView: React.FC<Props> = ({
                 {onOpenThreadWithClient && (
                   <button
                     onClick={(e) => { e.stopPropagation(); onOpenThreadWithClient(client); }}
-                    className="text-[10px] text-gray-600 hover:text-blue-400 transition-colors flex items-center gap-1"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 transition-colors text-xs font-medium"
                     title="Message"
                   >
-                    <MessageCircle size={12} /> Message
+                    <MessageCircle size={14} /> Message
                   </button>
                 )}
                 <button
