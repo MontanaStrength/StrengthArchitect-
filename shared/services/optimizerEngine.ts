@@ -486,7 +486,7 @@ const computeWeeklyVolume = (history: SavedWorkout[]): Partial<Record<MuscleGrou
   return vol;
 };
 
-/** Recent fatigue load (last 7d) */
+/** Recent fatigue load (last 7d) + RPE trend (last 5 sessions) */
 const computeFatigueSignals = (history: SavedWorkout[]) => {
   const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
   const recent = history.filter(w => w.timestamp >= cutoff);
@@ -511,7 +511,32 @@ const computeFatigueSignals = (history: SavedWorkout[]) => {
     if (avgPct >= 85 || avgRPE >= 8.5 || (w.sessionRPE || 0) >= 8) hardSessions++;
   }
 
-  return { sessionsLast7d: recent.length, hardSessions, totalSets, totalTonnage };
+  // RPE trend: rolling average of session RPE over last 5 sessions (any timeframe)
+  const withRPE = [...history]
+    .filter(w => w.sessionRPE != null && w.sessionRPE > 0)
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, 5);
+  const rpeTrendAvg = withRPE.length >= 2
+    ? withRPE.reduce((s, w) => s + (w.sessionRPE || 0), 0) / withRPE.length
+    : null;
+  // Direction: compare most recent 2 vs oldest 2 (if we have ≥4 sessions)
+  let rpeTrendDirection: 'rising' | 'falling' | 'stable' | null = null;
+  if (withRPE.length >= 4) {
+    const recentAvg = (withRPE[0].sessionRPE! + withRPE[1].sessionRPE!) / 2;
+    const olderAvg = (withRPE[withRPE.length - 2].sessionRPE! + withRPE[withRPE.length - 1].sessionRPE!) / 2;
+    const diff = recentAvg - olderAvg;
+    rpeTrendDirection = diff >= 0.5 ? 'rising' : diff <= -0.5 ? 'falling' : 'stable';
+  }
+
+  return {
+    sessionsLast7d: recent.length,
+    hardSessions,
+    totalSets,
+    totalTonnage,
+    rpeTrendAvg,
+    rpeTrendDirection,
+    rpeTrendSessionCount: withRPE.length,
+  };
 };
 
 /** Should we force a deload based on config + week counting? */
@@ -573,6 +598,22 @@ export function computeOptimizerRecommendations(
     sessionVolume = Math.round(sessionVolume * 0.80);  // back off 20%
   } else if (fatigue.hardSessions >= 2 && fatigue.sessionsLast7d >= 4) {
     sessionVolume = Math.round(sessionVolume * 0.90);
+  }
+
+  // ── 2b. RPE trend adjustment ──────────────────────────
+  //   Rolling avg of session RPE over last 5 sessions. If consistently
+  //   high (≥8.5 avg) or rising, scale volume down. If low (≤6) and
+  //   stable/falling, nudge volume up slightly — the athlete can handle more.
+  if (fatigue.rpeTrendAvg != null && fatigue.rpeTrendSessionCount >= 2) {
+    if (fatigue.rpeTrendAvg >= 9.0) {
+      sessionVolume = Math.round(sessionVolume * 0.80); // overreaching — cut 20%
+    } else if (fatigue.rpeTrendAvg >= 8.5) {
+      sessionVolume = Math.round(sessionVolume * 0.88); // high chronic load — cut 12%
+    } else if (fatigue.rpeTrendAvg >= 8.0 && fatigue.rpeTrendDirection === 'rising') {
+      sessionVolume = Math.round(sessionVolume * 0.92); // trending up toward overreach — cut 8%
+    } else if (fatigue.rpeTrendAvg <= 6.0 && fatigue.rpeTrendDirection !== 'rising') {
+      sessionVolume = Math.round(sessionVolume * 1.05); // athlete is coasting — nudge up 5%
+    }
   }
 
   // ── 3. Auto-deload override ────────────────────────────
@@ -857,6 +898,10 @@ export function computeOptimizerRecommendations(
   }
   if (fatigue.hardSessions > 0) {
     parts.push(`Fatigue: ${fatigue.hardSessions} hard session(s) and ${fatigue.sessionsLast7d} total in last 7 days.`);
+  }
+  if (fatigue.rpeTrendAvg != null && fatigue.rpeTrendSessionCount >= 2) {
+    const dir = fatigue.rpeTrendDirection ? `, ${fatigue.rpeTrendDirection}` : '';
+    parts.push(`RPE trend (last ${fatigue.rpeTrendSessionCount} sessions): avg ${fatigue.rpeTrendAvg.toFixed(1)}${dir}.`);
   }
   if (forceDeload) {
     parts.push(`AUTO-DELOAD triggered after ${config.deloadFrequencyWeeks} consecutive training weeks — volume halved, intensity capped.`);
