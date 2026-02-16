@@ -201,7 +201,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (recentWorkouts.length > 0) {
       const formatted = recentWorkouts.map((w: any, i: number) => {
         const signals = computeSessionIntensitySignals(w);
-        const feedback = w.feedback?.rating ? ` (Feedback: ${w.feedback.rating})` : '';
+        const feedbackParts: string[] = [];
+        if (w.feedback?.rating) feedbackParts.push(w.feedback.rating);
+        if (w.feedback?.comment) feedbackParts.push(`"${w.feedback.comment}"`);
+        const feedback = feedbackParts.length > 0 ? ` (Athlete feedback: ${feedbackParts.join(' — ')})` : '';
         const tonnage = w.actualTonnage || signals.estimatedTonnage;
         const tag = signals.avgPercent >= 85 || signals.avgRPE >= 8.5 ? 'Hard' : 'Moderate/Easy';
         return `${i + 1}. [${new Date(w.timestamp).toLocaleDateString()}] "${w.title}" (${tag}) — ${signals.totalSets} sets, ~${Math.round(tonnage)} lbs${w.sessionRPE ? `, RPE: ${w.sessionRPE}` : ''}${feedback}`;

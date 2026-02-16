@@ -189,7 +189,10 @@ export const generateWorkoutServer = async (
     const formattedHistory = recentWorkouts
       .map((w, i) => {
         const signals = computeSessionIntensitySignals(w);
-        const feedback = w.feedback?.rating ? ` (Feedback: ${w.feedback.rating})` : '';
+        const feedbackParts: string[] = [];
+        if (w.feedback?.rating) feedbackParts.push(w.feedback.rating);
+        if (w.feedback?.comment) feedbackParts.push(`"${w.feedback.comment}"`);
+        const feedback = feedbackParts.length > 0 ? ` (Athlete feedback: ${feedbackParts.join(' — ')})` : '';
         const tonnage = w.actualTonnage || signals.estimatedTonnage;
         const intensityTag = signals.avgPercent >= 85 || signals.avgRPE >= 8.5 ? 'Hard' : 'Moderate/Easy';
         return `${i + 1}. [${new Date(w.timestamp).toLocaleDateString()}] "${w.title}" (Focus: ${w.focus})${w.archetypeId ? ` (Archetype: ${w.archetypeId})` : ''} (${intensityTag}) — ${signals.totalSets} sets, ~${Math.round(tonnage)} lbs tonnage${w.sessionRPE ? `, Session RPE: ${w.sessionRPE}` : ''}${feedback}`;
