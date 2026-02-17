@@ -133,6 +133,9 @@ export interface TrainingContext {
   totalWeeksInPhase: number;
   blockName: string;
   goalEvent?: string;
+  weekInBlock?: number;
+  totalBlockWeeks?: number;
+  isEndOfBlock?: boolean;
 }
 
 export interface SwapAndRebuildRequest {
@@ -226,6 +229,7 @@ export const generateWorkoutServer = async (
     - Preferred Archetypes: ${trainingContext.primaryArchetypes.join(', ')}
     ${trainingContext.goalEvent ? `- Goal Event: ${trainingContext.goalEvent}` : ''}
     IMPORTANT: Respect the training block's phase. Choose archetypes that align with the phase focus.
+    ${trainingContext.isEndOfBlock ? 'End of block (final 2 weeks): include peak-force sessions (heavy singles, cluster sets, or higher intensity) to realize strength; do not only prescribe hypertrophy work.' : ''}
     `;
   }
 

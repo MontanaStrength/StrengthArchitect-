@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   ReadinessLevel, TrainingExperience, AvailableEquipment, TrainingGoalFocus,
   FormData, StrengthWorkoutPlan, SavedWorkout, CompletedSet, FeedbackData,
-  TrainingBlock, TrainingBlockPhase, TrainingPhase, LiftRecord, BodyCompEntry,
+  TrainingBlock, TrainingBlockPhase, TrainingPhase, PHASE_PRESETS, LiftRecord, BodyCompEntry,
   ScheduledWorkout, SleepEntry, TrainingGoal, CustomTemplate, StrengthTestResult,
   GymSetup, DEFAULT_GYM_SETUP, OptimizerConfig, DEFAULT_OPTIMIZER_CONFIG,
   OptimizerRecommendations, Achievement, AppMode, CoachClient,
@@ -360,19 +360,45 @@ const App: React.FC = () => {
     const blockStartMs = activeBlock.startDate;
     const elapsedWeeks = Math.floor((now - blockStartMs) / (7 * 24 * 60 * 60 * 1000));
 
-    let cumWeeks = 0;
+    const phases = activeBlock.phases || [];
+    const totalBlockWeeks = phases.length > 0
+      ? phases.reduce((s, p) => s + p.weekCount, 0)
+      : (activeBlock.lengthWeeks ?? 8);
+    const weekInBlock = Math.min(Math.max(elapsedWeeks + 1, 1), totalBlockWeeks);
+    const isEndOfBlock = totalBlockWeeks >= 2 && weekInBlock >= totalBlockWeeks - 1;
+
     let currentPhase: TrainingBlockPhase | null = null;
     let weekInPhase = 1;
     let totalWeeksInPhase = 1;
 
-    for (const phase of activeBlock.phases) {
-      if (elapsedWeeks < cumWeeks + phase.weekCount) {
-        currentPhase = phase;
-        weekInPhase = elapsedWeeks - cumWeeks + 1;
-        totalWeeksInPhase = phase.weekCount;
-        break;
+    if (phases.length > 0) {
+      let cumWeeks = 0;
+      for (const phase of phases) {
+        if (elapsedWeeks < cumWeeks + phase.weekCount) {
+          currentPhase = phase;
+          weekInPhase = elapsedWeeks - cumWeeks + 1;
+          totalWeeksInPhase = phase.weekCount;
+          break;
+        }
+        cumWeeks += phase.weekCount;
       }
-      cumWeeks += phase.weekCount;
+    }
+
+    // Bias-based block with no explicit phases: derive effective phase (last 2 weeks = Peaking)
+    if (!currentPhase && totalBlockWeeks >= 2) {
+      const bias = activeBlock.goalBias ?? 50;
+      if (isEndOfBlock) {
+        const peaking = PHASE_PRESETS[TrainingPhase.PEAKING];
+        currentPhase = { ...peaking, weekCount: 2, sessionsPerWeek: 3, splitPattern: 'full-body', description: peaking.description };
+        weekInPhase = weekInBlock - (totalBlockWeeks - 2);
+        totalWeeksInPhase = 2;
+      } else {
+        const phaseType = bias < 40 ? TrainingPhase.HYPERTROPHY : bias < 70 ? TrainingPhase.ACCUMULATION : TrainingPhase.STRENGTH;
+        const preset = PHASE_PRESETS[phaseType];
+        currentPhase = { ...preset, weekCount: totalBlockWeeks - 2, sessionsPerWeek: 4, splitPattern: 'upper-lower', description: preset.description };
+        weekInPhase = weekInBlock;
+        totalWeeksInPhase = totalBlockWeeks - 2;
+      }
     }
 
     if (!currentPhase) return null;
@@ -386,6 +412,9 @@ const App: React.FC = () => {
       totalWeeksInPhase,
       blockName: activeBlock.name,
       goalEvent: activeBlock.goalEvent,
+      weekInBlock,
+      totalBlockWeeks,
+      isEndOfBlock,
     };
   }, [trainingBlocks]);
 

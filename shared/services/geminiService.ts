@@ -9,6 +9,12 @@ export interface TrainingContext {
   totalWeeksInPhase: number;
   blockName: string;
   goalEvent?: string;
+  /** 1-based week index within the block */
+  weekInBlock?: number;
+  /** Total weeks in the block (from phases or lengthWeeks) */
+  totalBlockWeeks?: number;
+  /** True when in the final 2 weeks of the block (peak-force emphasis) */
+  isEndOfBlock?: boolean;
 }
 
 export interface SwapAndRebuildRequest {

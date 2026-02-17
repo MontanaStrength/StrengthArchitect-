@@ -214,7 +214,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     let blockContext = '';
     if (trainingContext) {
-      blockContext = `ACTIVE BLOCK: "${trainingContext.blockName}" — ${trainingContext.phaseName} (Week ${trainingContext.weekInPhase}/${trainingContext.totalWeeksInPhase}), Intensity: ${trainingContext.intensityFocus}, Volume: ${trainingContext.volumeFocus}`;
+      blockContext = `ACTIVE BLOCK: "${trainingContext.blockName}" — ${trainingContext.phaseName} (Week ${trainingContext.weekInPhase}/${trainingContext.totalWeeksInPhase}), Intensity: ${trainingContext.intensityFocus}, Volume: ${trainingContext.volumeFocus}${trainingContext.isEndOfBlock ? '. End of block (final 2 weeks): include peak-force sessions (heavy singles, cluster sets, or higher intensity) to realize strength; do not only prescribe hypertrophy work.' : ''}`;
     }
 
     let optimizerContext = '';
