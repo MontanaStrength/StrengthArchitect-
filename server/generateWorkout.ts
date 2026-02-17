@@ -263,7 +263,7 @@ export const generateWorkoutServer = async (
     - TAPER: ${optimizerRecommendations.taperedRepScheme.taperSets} sets × ${optimizerRecommendations.taperedRepScheme.taperReps} reps @ RPE ${optimizerRecommendations.taperedRepScheme.taperRPE} → use the SAME weight as lead sets (fewer reps = lower RPE naturally)
     Total ~${optimizerRecommendations.taperedRepScheme.totalReps} reps per exercise, Frederick load ~${Math.round(optimizerRecommendations.taperedRepScheme.totalFrederickLoad)}.
     RPEs are Epley-derived: lead RPE comes from the target effort, taper RPE is what fewer reps at the same weight actually feels like.
-    List the lead sets first, then the taper sets, for each exercise.
+    IMPORTANT: Output lead and taper as SEPARATE exercise entries (separate cards). For example, for Barbell Back Squat output TWO entries: one "Barbell Back Squat" with ${optimizerRecommendations.taperedRepScheme.leadSets} sets × ${optimizerRecommendations.taperedRepScheme.leadReps} reps, then another "Barbell Back Squat" with ${optimizerRecommendations.taperedRepScheme.taperSets} sets × ${optimizerRecommendations.taperedRepScheme.taperReps} reps. Do NOT combine them into a single entry with mixed rep counts.
     WEIGHT REQUIRED: You MUST include weightLbs and percentOf1RM for every exercise. Lead AND taper use the SAME weight (${optimizerRecommendations.taperedRepScheme.leadIntensityPct || optimizerRecommendations.intensityRange.max}% 1RM). Round to nearest 5 lbs.` : ''}
     ${optimizerRecommendations.strengthSetDivision ? `
     ### PEAK FORCE SET DIVISION (Strength/Power) — BINDING
