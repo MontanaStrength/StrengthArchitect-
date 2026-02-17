@@ -103,10 +103,11 @@ function sortExercisesForSlot(category: string, tier: string, exercises: typeof 
     .sort((a, b) => a.name.localeCompare(b.name));
   return { recommended, others };
 }
-import React, { useState, useMemo } from 'react';
-import { TrainingBlock, ExerciseSlot, ExercisePreferences, MovementPattern, SessionStructure, SESSION_STRUCTURE_PRESETS, DEFAULT_SESSION_STRUCTURE } from '../shared/types';
+import React, { useState, useMemo, useEffect } from 'react';
+import { TrainingBlock, TrainingBlockPhase, TrainingPhase, PHASE_PRESETS, ExerciseSlot, ExercisePreferences, MovementPattern, SessionStructure, SESSION_STRUCTURE_PRESETS, DEFAULT_SESSION_STRUCTURE } from '../shared/types';
 import { EXERCISE_LIBRARY } from '../shared/services/exerciseLibrary';
 import { Layers, Calendar, Dumbbell, ChevronRight, Check, CheckCircle2, ArrowRight, Rocket } from 'lucide-react';
+import BlockPhaseSlider from './BlockPhaseSlider';
 
 interface EstimatedMaxes {
   squat1RM?: number;
@@ -222,6 +223,42 @@ const BIAS_LABELS: Record<string, string> = {
 const getBiasKey = (v: number) =>
   v < 20 ? 'hypertrophy' : v < 40 ? 'hypertrophy-plus' : v < 60 ? 'balanced' : v < 80 ? 'strength-plus' : 'strength';
 
+/** Build default phase breakpoints from block length or existing phases. Returns [endWeekPhase1, endWeekPhase2]. */
+function defaultPhaseBreakpoints(lengthWeeks: number, existingPhases?: TrainingBlockPhase[]): [number, number] {
+  if (existingPhases?.length === 3 &&
+      existingPhases[0].phase === TrainingPhase.HYPERTROPHY &&
+      existingPhases[1].phase === TrainingPhase.STRENGTH &&
+      existingPhases[2].phase === TrainingPhase.PEAKING) {
+    const b1 = existingPhases[0].weekCount;
+    const b2 = b1 + existingPhases[1].weekCount;
+    return [b1, b2];
+  }
+  if (lengthWeeks < 3) return [1, 2];
+  if (lengthWeeks === 8) return [3, 6]; // common 3-3-2 split
+  if (lengthWeeks === 16) return [6, 12]; // 6 hyp, 6 strength, 4 peaking
+  const third = Math.max(1, Math.floor(lengthWeeks / 3));
+  return [third, lengthWeeks - Math.max(1, Math.floor((lengthWeeks - third) / 2))];
+}
+
+/** Build 3-phase array (Hypertrophy → Strength → Peaking) from breakpoints and block length. */
+function buildPhasesFromBreakpoints(
+  breakpoint1: number,
+  breakpoint2: number,
+  lengthWeeks: number
+): TrainingBlockPhase[] {
+  const w1 = breakpoint1;
+  const w2 = breakpoint2 - breakpoint1;
+  const w3 = lengthWeeks - breakpoint2;
+  const hyp = PHASE_PRESETS[TrainingPhase.HYPERTROPHY];
+  const str = PHASE_PRESETS[TrainingPhase.STRENGTH];
+  const peak = PHASE_PRESETS[TrainingPhase.PEAKING];
+  return [
+    { ...hyp, weekCount: w1, sessionsPerWeek: 4, splitPattern: 'upper-lower', description: hyp.description },
+    { ...str, weekCount: w2, sessionsPerWeek: 4, splitPattern: 'upper-lower', description: str.description },
+    { ...peak, weekCount: w3, sessionsPerWeek: 3, splitPattern: 'squat-bench-deadlift', description: peak.description },
+  ];
+}
+
 const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChange, onNavigateToLift }) => {
   const [subTab, setSubTab] = useState<SubTab>(() => {
     const saved = localStorage.getItem('sa-plan-subtab');
@@ -237,7 +274,20 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
   const [name, setName] = useState(block?.name || '');
   const [lengthWeeks, setLengthWeeks] = useState(block?.lengthWeeks || 8);
   const [goalBias, setGoalBias] = useState(block?.goalBias ?? 50);
+  const [phaseBreakpoint1, setPhaseBreakpoint1] = useState(() =>
+    defaultPhaseBreakpoints(block?.lengthWeeks || 8, block?.phases)[0]
+  );
+  const [phaseBreakpoint2, setPhaseBreakpoint2] = useState(() =>
+    defaultPhaseBreakpoints(block?.lengthWeeks || 8, block?.phases)[1]
+  );
   const [volumeTolerance, setVolumeTolerance] = useState(block?.volumeTolerance ?? 3);
+  useEffect(() => {
+    if (!block) return;
+    const len = block.lengthWeeks ?? 8;
+    const [b1, b2] = defaultPhaseBreakpoints(len, block.phases);
+    setPhaseBreakpoint1(b1);
+    setPhaseBreakpoint2(b2);
+  }, [block?.id]); // sync breakpoints when switching to a different block
   const [trainingDays, setTrainingDays] = useState<number[]>(block?.trainingDays || []);
   const [sessionStructure, setSessionStructure] = useState<SessionStructure>(block?.sessionStructure || DEFAULT_SESSION_STRUCTURE);
   const [slots, setSlots] = useState<ExerciseSlot[]>(
@@ -272,11 +322,15 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
 
   const handleSave = () => {
     if (!isComplete) return;
+    const phases =
+      lengthWeeks >= 3
+        ? buildPhasesFromBreakpoints(phaseBreakpoint1, phaseBreakpoint2, lengthWeeks)
+        : block?.phases || [];
     const updated: TrainingBlock = {
       id: block?.id || crypto.randomUUID(),
       name: name.trim(),
       startDate: block?.startDate || Date.now(),
-      phases: block?.phases || [],
+      phases,
       goalEvent: block?.goalEvent,
       isActive: block?.isActive ?? true,
       lengthWeeks,
@@ -304,6 +358,12 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
       .sort((a, b) => a - b)
       .map(d => DAY_LABELS[d]);
     const biasLabel = BIAS_LABELS[getBiasKey(savedBlock.goalBias ?? 50)];
+    const phaseSummary =
+      savedBlock.phases?.length === 3
+        ? savedBlock.phases
+            .map((p) => `${p.phase} ${p.weekCount}w`)
+            .join(' → ')
+        : null;
     const filledSlots = savedBlock.exercisePreferences?.slots?.filter(s => s.exerciseId).length || 0;
 
     return (
@@ -366,7 +426,7 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-500">Focus</span>
-                <span className="text-gray-300 font-medium">{biasLabel}</span>
+                <span className="text-gray-300 font-medium">{phaseSummary ?? biasLabel}</span>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-500">Total sessions</span>
@@ -470,18 +530,18 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
                 <input
                   type="range"
                   min={1}
-                  max={8}
+                  max={16}
                   value={lengthWeeks}
                   onChange={e => setLengthWeeks(Number(e.target.value))}
                   className="w-full accent-amber-500"
                   list="weeks-ticks"
                 />
                 <datalist id="weeks-ticks">
-                  {[1,2,3,4,5,6,7,8].map(n => <option key={n} value={n} />)}
+                  {Array.from({ length: 16 }, (_, i) => i + 1).map(n => <option key={n} value={n} />)}
                 </datalist>
                 <div className="flex justify-between px-0.5 -mt-1">
-                  {[1,2,3,4,5,6,7,8].map(n => (
-                    <span key={n} className={`text-[10px] ${n === lengthWeeks ? 'text-amber-400 font-bold' : 'text-gray-600'}`}>{n}</span>
+                  {Array.from({ length: 16 }, (_, i) => i + 1).map(n => (
+                    <span key={n} className={`text-[9px] ${n === lengthWeeks ? 'text-amber-400 font-bold' : 'text-gray-600'}`}>{n}</span>
                   ))}
                 </div>
               </div>
@@ -489,43 +549,23 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
             </div>
           </div>
 
-          {/* Goal Bias */}
+          {/* Phase sequence: Hypertrophy → Strength → Peaking (multi-point slider) */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Block Focus</label>
-            <div className="space-y-2">
-              <div className="flex justify-between items-baseline mb-1">
-                <span className={`text-xs font-mono ${goalBias < 30 ? 'text-amber-400 font-bold' : 'text-gray-500'}`}>{100 - goalBias}% Hypertrophy</span>
-                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                  goalBias < 30 ? 'bg-purple-500/20 text-purple-300' :
-                  goalBias > 64 ? 'bg-red-500/20 text-red-300' :
-                  'bg-amber-500/20 text-amber-300'
-                }`}>
-                  {goalBias < 20 ? 'Size' :
-                   goalBias < 40 ? 'Size + Strength' :
-                   goalBias < 60 ? 'Balanced' :
-                   goalBias < 80 ? 'Strength + Size' :
-                   'Strength'}
-                </span>
-                <span className={`text-xs font-mono ${goalBias > 64 ? 'text-amber-400 font-bold' : 'text-gray-500'}`}>{goalBias}% Strength</span>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={5}
-                value={goalBias}
-                onChange={e => setGoalBias(Number(e.target.value))}
-                className="w-full accent-amber-500"
-                list="bias-ticks"
+            {lengthWeeks >= 3 ? (
+              <BlockPhaseSlider
+                lengthWeeks={lengthWeeks}
+                breakpoint1={phaseBreakpoint1}
+                breakpoint2={phaseBreakpoint2}
+                onChange={(b1, b2) => {
+                  setPhaseBreakpoint1(b1);
+                  setPhaseBreakpoint2(b2);
+                }}
+                className="mt-1"
               />
-              <datalist id="bias-ticks">
-                {[0,5,10,15,20,25,30,35,40,45,50,55,60,65,70,75,80,85,90,95,100].map(n => <option key={n} value={n} />)}
-              </datalist>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-gray-600">💪 Size</span>
-                <span className="text-gray-600">🏋️ Strength</span>
-              </div>
-            </div>
+            ) : (
+              <p className="text-xs text-gray-500 py-2">Set block length to 3+ weeks to use phase planning (Hypertrophy → Strength → Peaking).</p>
+            )}
           </div>
 
           {/* Volume Tolerance */}

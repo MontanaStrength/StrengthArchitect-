@@ -22,7 +22,7 @@ import {
   syncCoachClientToCloud, fetchCoachClientsFromCloud, deleteCoachClientFromCloud,
 } from './shared/services/supabaseService';
 import { generateWorkout, TrainingContext, type SwapAndRebuildRequest } from './shared/services/geminiService';
-import { estimate1RM } from './shared/utils';
+import { estimate1RM, getDynamic1RMs } from './shared/utils';
 import { initAudio } from './shared/utils/audioManager';
 
 // Component imports
@@ -431,14 +431,48 @@ const App: React.FC = () => {
       const activeBlock = trainingBlocks.find(b => b.isActive);
       const exercisePrefs = activeBlock?.exercisePreferences || null;
 
-      // Map goalBias (0=hypertrophy, 100=strength) to trainingGoalFocus
-      const bias = activeBlock?.goalBias ?? 50;
+      // Bias for prompt + optimizer: when block has explicit phases, derive from current phase and
+      // week-within-phase so session structure and prompt narrative match, with a smooth gradient
+      // toward the next phase (e.g. 8 weeks hypertrophy: start 100% hypertrophy bias, end ~60–70%
+      // hypertrophy so transition into strength block is gradual).
+      const hasExplicitPhases = (activeBlock?.phases?.length ?? 0) >= 3;
+      const rawBias = activeBlock?.goalBias ?? 50;
+      const phaseName = trainingContext?.phaseName?.toLowerCase() ?? '';
+      const weekInPhase = trainingContext?.weekInPhase ?? 1;
+      const totalWeeksInPhase = Math.max(1, trainingContext?.totalWeeksInPhase ?? 1);
+      const progressInPhase = totalWeeksInPhase > 1 ? (weekInPhase - 1) / (totalWeeksInPhase - 1) : 0;
+
+      let bias: number;
+      if (hasExplicitPhases && trainingContext) {
+        if (phaseName.includes('peak') || phaseName.includes('realization')) {
+          bias = Math.round(90 + progressInPhase * 5); // 90 → 95 across peaking
+        } else if (phaseName.includes('strength') || phaseName.includes('intensif')) {
+          bias = Math.round(65 + progressInPhase * 25); // 65 → 90 into peaking
+        } else if (phaseName.includes('hypertrophy') || phaseName.includes('accumulation')) {
+          bias = Math.round(20 + progressInPhase * 20); // 20 → 40 (end ~60% hypertrophy / 40% strength)
+        } else {
+          bias = rawBias;
+        }
+        bias = Math.max(0, Math.min(100, bias));
+      } else {
+        bias = rawBias;
+      }
       const biasGoal: typeof formData.trainingGoalFocus =
         bias < 30 ? 'hypertrophy' :
         bias > 64 ? 'strength' : 'general';
       // Resolve session structure: block setting > client/form setting > default
       const resolvedSessionStructure = activeBlock?.sessionStructure || formData.sessionStructure || undefined;
       const biasedFormData = { ...formData, trainingGoalFocus: biasGoal, sessionStructure: resolvedSessionStructure };
+
+      // Dynamic 1RMs: use best from recent lift records (last 8 weeks) so prescriptions reflect current strength during the block
+      const stored = {
+        squat1RM: formData.squat1RM,
+        benchPress1RM: formData.benchPress1RM,
+        deadlift1RM: formData.deadlift1RM,
+        overheadPress1RM: formData.overheadPress1RM,
+      };
+      const dynamic1RMs = getDynamic1RMs(stored, liftRecords, 8);
+      const dataForGenerate = { ...biasedFormData, ...dynamic1RMs };
 
       // Optimizer always active — computes volume, intensity, fatigue, metabolic stress
       const volTol = activeBlock?.volumeTolerance ?? 3;
@@ -451,7 +485,7 @@ const App: React.FC = () => {
         bias,
       );
 
-      const plan = await generateWorkout(biasedFormData, history, trainingContext, optimizerRecs, exercisePrefs, bias, volTol, safeSwap);
+      const plan = await generateWorkout(dataForGenerate, history, trainingContext, optimizerRecs, exercisePrefs, bias, volTol, safeSwap);
       setCurrentPlan(plan);
 
       const saved: SavedWorkout = {
@@ -472,7 +506,7 @@ const App: React.FC = () => {
     } finally {
       setIsGenerating(false);
     }
-  }, [formData, history, trainingContext, optimizerConfig, user, trainingBlocks, cid]);
+  }, [formData, history, trainingContext, optimizerConfig, user, trainingBlocks, liftRecords, cid]);
 
   // ===== SAVE FEEDBACK =====
   const handleSaveFeedback = useCallback(async (workoutId: string, feedback: FeedbackData) => {

@@ -565,16 +565,21 @@ const phaseVolumeScalar = (ctx: TrainingContext | null | undefined): number => {
   return 1.0;
 };
 
-/** Phase-aware intensity adjustment (±% band shift) */
+/** Phase-aware intensity adjustment (±% band shift). Includes a small ramp within phase so intensity creeps up toward the next phase. */
 const phaseIntensityShift = (ctx: TrainingContext | null | undefined): number => {
   if (!ctx) return 0;
   const phase = ctx.phaseName.toLowerCase();
-  if (phase.includes('deload') || phase.includes('taper')) return -10;
-  if (phase.includes('peak'))                              return +5;
-  if (phase.includes('intensif'))                          return +5;
-  if (phase.includes('accumulation'))                      return -5;
-  if (phase.includes('hypertrophy'))                       return -3;
-  return 0;
+  let base = 0;
+  if (phase.includes('deload') || phase.includes('taper')) base = -10;
+  else if (phase.includes('peak')) base = 5;
+  else if (phase.includes('intensif')) base = 5;
+  else if (phase.includes('accumulation')) base = -5;
+  else if (phase.includes('hypertrophy')) base = -3;
+  const total = ctx.totalWeeksInPhase ?? 1;
+  const week = ctx.weekInPhase ?? 1;
+  const progress = total > 1 ? (week - 1) / (total - 1) : 0;
+  const ramp = Math.round(progress * 3); // +0 early phase, up to +3% by end of phase
+  return base + ramp;
 };
 
 /** Count weekly working sets by muscle group from last 7 days of history */

@@ -1,5 +1,5 @@
 
-import type { SavedWorkout, CompletedSet, MuscleGroup } from './types';
+import type { SavedWorkout, CompletedSet, MuscleGroup, LiftRecord } from './types';
 
 /**
  * Estimates 1RM using the Epley formula: weight × (1 + reps / 30).
@@ -15,6 +15,48 @@ export const estimate1RM = (weight: number, reps: number, rpe?: number): number 
   if (effectiveReps <= 1) return weight;
   return Math.round(weight * (1 + effectiveReps / 30));
 };
+
+/** Map from form 1RM keys to the primary exerciseId we use for lift records. */
+const MAIN_LIFT_EXERCISE_IDS: Record<string, string> = {
+  squat1RM: 'back_squat',
+  benchPress1RM: 'bench_press',
+  deadlift1RM: 'conventional_deadlift',
+  overheadPress1RM: 'overhead_press',
+};
+
+export type Dynamic1RMs = {
+  squat1RM?: number;
+  benchPress1RM?: number;
+  deadlift1RM?: number;
+  overheadPress1RM?: number;
+};
+
+/**
+ * Computes "dynamic" 1RMs from recent lift records so prescriptions reflect
+ * current strength during a block (1RMs can improve over the block). For each
+ * main lift, takes the best estimated1RM from records in the last lookbackWeeks;
+ * if that exceeds the stored (form) 1RM, we use it. Otherwise keeps stored.
+ * Only returns keys where we have a value (stored or from records).
+ */
+export function getDynamic1RMs(
+  stored: Dynamic1RMs,
+  liftRecords: LiftRecord[],
+  lookbackWeeks: number = 8
+): Partial<Dynamic1RMs> {
+  const cutoff = Date.now() - lookbackWeeks * 7 * 24 * 60 * 60 * 1000;
+  const result: Partial<Dynamic1RMs> = {};
+
+  for (const key of Object.keys(MAIN_LIFT_EXERCISE_IDS) as (keyof Dynamic1RMs)[]) {
+    const exerciseId = MAIN_LIFT_EXERCISE_IDS[key];
+    const storedVal = stored[key];
+    const recentBest = liftRecords
+      .filter((r) => r.exerciseId === exerciseId && r.date >= cutoff)
+      .reduce((best, r) => (r.estimated1RM > best ? r.estimated1RM : best), 0);
+    const dynamic = recentBest > 0 ? Math.max(recentBest, storedVal ?? 0) : storedVal;
+    if (dynamic != null && dynamic > 0) result[key] = Math.round(dynamic);
+  }
+  return result;
+}
 
 /**
  * Calculates weight from a target 1RM percentage.

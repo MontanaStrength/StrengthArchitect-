@@ -471,6 +471,10 @@ export const generateWorkoutServer = async (
     data.deadlift1RM ? `Deadlift 1RM: ${data.deadlift1RM} lbs` : null,
     data.overheadPress1RM ? `OHP 1RM: ${data.overheadPress1RM} lbs` : null,
   ].filter(Boolean).join(', ');
+  const has1RMData = !!(data.squat1RM || data.benchPress1RM || data.deadlift1RM || data.overheadPress1RM);
+  const dynamic1RMNote = has1RMData
+    ? ' These 1RMs may reflect recent performance (updated from logged sets during the block). Use RPE as the primary autoregulation lever; if the athlete has been hitting top sets at or above target RPE, their true 1RM may have increased further.'
+    : '';
 
   const prompt = `
     You are an expert strength and conditioning coach designing a barbell/strength training session.
@@ -481,7 +485,7 @@ export const generateWorkoutServer = async (
     - Session Duration Target: ${data.duration} minutes
     - Training Goal Focus: ${data.trainingGoalFocus}
     - Athlete: ${data.age}yo ${data.gender}, ${data.weightLbs} lbs
-    ${liftPRs ? `- Known 1RMs: ${liftPRs}` : '- No 1RM data provided — use RPE-based loading'}
+    ${liftPRs ? `- Known 1RMs: ${liftPRs}.${dynamic1RMNote}` : '- No 1RM data provided — use RPE-based loading'}
 
     ${historyContext}
     ${blockContext}
