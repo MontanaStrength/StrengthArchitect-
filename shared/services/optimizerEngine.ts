@@ -274,7 +274,7 @@ function prescribeTaperedSets(
 }
 
 // ── Cluster-Taper Hybrid Solver ──────────────────────────────
-//   For bias ≥ 50 (upper-general zone): combines peak-force quality
+//   For bias ≥ 44 (upper-general zone): combines peak-force quality
 //   with metabolic volume. Same weight for both blocks.
 //
 //   Force block:  reps capped at peak-force drop-off → every rep is
@@ -987,11 +987,11 @@ export function computeOptimizerRecommendations(
   //   3-5 mini-sets of 3-5 reps with 15-20s rest. Stops when reps drop.
   //   Equivalent hypertrophy to 3 traditional sets in ~30% of the time.
   //   Applied to accessories/machines only — NOT barbell squat/bench/deadlift.
-  //   Triggered when: hypertrophy-focused (bias < 50), not deload, not low readiness.
+  //   Triggered when: hypertrophy-focused (bias < 44), not deload, not low readiness.
   //   Rotation: every 4th qualifying session (deterministic ~25%).
   let myoRepScheme: OptimizerRecommendations['myoRepScheme'] | undefined;
   const isLowReadiness = String(formData.readiness).toLowerCase().includes('low');
-  const myoRepEligible = isHypertrophyLike && !forceDeload && goalBias < 50 && !isLowReadiness;
+  const myoRepEligible = isHypertrophyLike && !forceDeload && goalBias < 44 && !isLowReadiness;
   const isMyoRepSession = myoRepEligible && (history.length % 4 === 0);
 
   if (isMyoRepSession) {
@@ -1038,8 +1038,8 @@ export function computeOptimizerRecommendations(
   ) {
     const midIntensity = (intMin + intMax) / 2;
 
-    if (goalBias >= 50) {
-      // ── Cluster-Taper hybrid (bias ≥ 50) ──
+    if (goalBias >= 44) {
+      // ── Cluster-Taper hybrid (bias ≥ 44) ──
       clusterTaperScheme = prescribeClusterTaperSets(
         targetRepsPerExercise,
         intMin,
@@ -1047,9 +1047,9 @@ export function computeOptimizerRecommendations(
       ) ?? undefined;
 
       if (clusterTaperScheme) {
-        // ~50% of cluster-taper sessions use interleaved ordering (F-M-F-M...)
+        // ~70% of cluster-taper sessions use interleaved ordering (F-M-F-M...)
         // instead of blocked (FFF-MMM). Deterministic rotation based on session count.
-        const useInterleaved = history.length % 2 === 1;
+        const useInterleaved = history.length % 10 < 7;
         (clusterTaperScheme as any).interleaved = useInterleaved;
 
         const { totalHeuristic } = clusterTaperFrederickTotals(clusterTaperScheme, calculateSetMetabolicLoad, useInterleaved);
@@ -1064,7 +1064,7 @@ export function computeOptimizerRecommendations(
       }
     }
 
-    // ── Metabolic taper (bias < 50, or cluster-taper fallback) ──
+    // ── Metabolic taper (bias < 44, or cluster-taper fallback) ──
     if (!clusterTaperScheme) {
       taperedRepScheme = prescribeTaperedSets(
         targetRepsPerExercise,
