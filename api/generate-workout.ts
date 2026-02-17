@@ -228,9 +228,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const peakForceRx = optimizerRecommendations.strengthSetDivision
         ? ` PEAK FORCE (BINDING): force drops after rep ${optimizerRecommendations.peakForceDropRep}. REQUIRED: ${optimizerRecommendations.strengthSetDivision.sets}×${optimizerRecommendations.strengthSetDivision.repsPerSet}. Cap ALL sets at ${optimizerRecommendations.peakForceDropRep} reps max.`
         : '';
-      const clusterTaperRx = optimizerRecommendations.clusterTaperScheme
-        ? ` CLUSTER-TAPER HYBRID (BINDING): FORCE BLOCK ${optimizerRecommendations.clusterTaperScheme.forceBlock.sets}×${optimizerRecommendations.clusterTaperScheme.forceBlock.reps} @ RPE ${optimizerRecommendations.clusterTaperScheme.forceBlock.rpe} at ${optimizerRecommendations.clusterTaperScheme.intensityPct}% 1RM (peak-force capped, ${Math.round(optimizerRecommendations.clusterTaperScheme.forceRestSeconds / 60)}-${Math.round(optimizerRecommendations.clusterTaperScheme.forceRestSeconds / 60) + 1} min rest), then METABOLIC BLOCK ${optimizerRecommendations.clusterTaperScheme.metabolicBlock.sets}×${optimizerRecommendations.clusterTaperScheme.metabolicBlock.reps} @ RPE ${optimizerRecommendations.clusterTaperScheme.metabolicBlock.rpe} at SAME weight (${Math.round(optimizerRecommendations.clusterTaperScheme.metabolicRestSeconds / 60)}-${Math.round(optimizerRecommendations.clusterTaperScheme.metabolicRestSeconds / 60) + 1} min rest). Total ~${optimizerRecommendations.clusterTaperScheme.totalReps} reps. Output force and metabolic blocks as SEPARATE exercise entries (separate cards). MUST include weightLbs AND percentOf1RM. Both blocks use SAME weight. Round to 5 lbs.`
-        : '';
+      const clusterTaperRx = (() => {
+        const ct = optimizerRecommendations.clusterTaperScheme;
+        if (!ct) return '';
+        const fb = ct.forceBlock;
+        const mb = ct.metabolicBlock;
+        const fRest = `${Math.round(ct.forceRestSeconds / 60)}-${Math.round(ct.forceRestSeconds / 60) + 1} min`;
+        const mRest = `${Math.round(ct.metabolicRestSeconds / 60)}-${Math.round(ct.metabolicRestSeconds / 60) + 1} min`;
+        const base = ` CLUSTER-TAPER HYBRID (BINDING): FORCE ${fb.sets}×${fb.reps} @ RPE ${fb.rpe} at ${ct.intensityPct}% 1RM (${fRest} rest), METABOLIC ${mb.sets}×${mb.reps} @ RPE ${mb.rpe} at SAME weight (${mRest} rest). Total ~${ct.totalReps} reps. MUST include weightLbs AND percentOf1RM. ALL sets use SAME weight. Round to 5 lbs.`;
+        if (ct.interleaved) {
+          return base + ` INTERLEAVED: Alternate force and metabolic sets (F→M→F→M...). Output as SINGLE exercise entry per movement with total sets ${fb.sets + mb.sets}, reps "${fb.reps}/${mb.reps} alternating". Notes: "Interleaved: alternate ${fb.reps}-rep force (${fRest}) with ${mb.reps}-rep metabolic (${mRest}). Same weight."`;
+        }
+        return base + ` BLOCKED: Force sets first, then metabolic. Output as SEPARATE exercise entries (separate cards).`;
+      })();
       const taperedRx = optimizerRecommendations.taperedRepScheme
         ? ` TAPERED SETS (Epley-consistent, BINDING): LEAD ${optimizerRecommendations.taperedRepScheme.leadSets}×${optimizerRecommendations.taperedRepScheme.leadReps} @ RPE ${optimizerRecommendations.taperedRepScheme.leadRPE} at ${optimizerRecommendations.taperedRepScheme.leadIntensityPct || optimizerRecommendations.intensityRange.max}% 1RM, then TAPER ${optimizerRecommendations.taperedRepScheme.taperSets}×${optimizerRecommendations.taperedRepScheme.taperReps} @ RPE ${optimizerRecommendations.taperedRepScheme.taperRPE} at SAME weight. Fewer reps = lower RPE naturally. Total ~${optimizerRecommendations.taperedRepScheme.totalReps} reps. Output lead and taper as SEPARATE exercise entries (separate cards), not combined. MUST include weightLbs AND percentOf1RM. Lead and taper use SAME weight. Round to 5 lbs.`
         : '';

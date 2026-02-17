@@ -1047,10 +1047,16 @@ export function computeOptimizerRecommendations(
       ) ?? undefined;
 
       if (clusterTaperScheme) {
-        const { totalHeuristic } = clusterTaperFrederickTotals(clusterTaperScheme, calculateSetMetabolicLoad);
+        // ~50% of cluster-taper sessions use interleaved ordering (F-M-F-M...)
+        // instead of blocked (FFF-MMM). Deterministic rotation based on session count.
+        const useInterleaved = history.length % 2 === 1;
+        (clusterTaperScheme as any).interleaved = useInterleaved;
+
+        const { totalHeuristic } = clusterTaperFrederickTotals(clusterTaperScheme, calculateSetMetabolicLoad, useInterleaved);
         clusterTaperHeuristic = Math.round(totalHeuristic * 100) / 100;
 
-        repScheme = `Cluster-Taper: ${clusterTaperScheme.description} (~${clusterTaperScheme.totalReps} reps, Frederick ~${Math.round(clusterTaperScheme.totalFrederickLoad)})`;
+        const orderLabel = useInterleaved ? 'interleaved' : 'blocked';
+        repScheme = `Cluster-Taper (${orderLabel}): ${clusterTaperScheme.description} (~${clusterTaperScheme.totalReps} reps, Frederick ~${Math.round(clusterTaperScheme.totalFrederickLoad)})`;
 
         // Override intensity range to the hybrid intensity
         intMin = Math.max(intMin, clusterTaperScheme.intensityPct - 3);
@@ -1151,7 +1157,8 @@ export function computeOptimizerRecommendations(
   if (clusterTaperScheme) {
     const fb = clusterTaperScheme.forceBlock;
     const mb = clusterTaperScheme.metabolicBlock;
-    parts.push(`Cluster-Taper hybrid: Force ${fb.sets}×${fb.reps} @ RPE ${fb.rpe} (peak-force capped, ${Math.round(clusterTaperScheme.forceRestSeconds / 60)}+ min rest), then Metabolic ${mb.sets}×${mb.reps} @ RPE ${mb.rpe} (${Math.round(clusterTaperScheme.metabolicRestSeconds / 60)}.5 min rest). All @ ${clusterTaperScheme.intensityPct}% 1RM (same weight). ~${clusterTaperScheme.totalReps} reps, Frederick ~${Math.round(clusterTaperScheme.totalFrederickLoad)}, effective ~${clusterTaperHeuristic != null ? Math.round(clusterTaperHeuristic) : '?'} (w/ RPE drift).`);
+    const orderLabel = (clusterTaperScheme as any).interleaved ? 'INTERLEAVED (F-M-F-M...)' : 'BLOCKED (Force first, then Metabolic)';
+    parts.push(`Cluster-Taper hybrid (${orderLabel}): Force ${fb.sets}×${fb.reps} @ RPE ${fb.rpe} (peak-force capped, ${Math.round(clusterTaperScheme.forceRestSeconds / 60)}+ min rest), Metabolic ${mb.sets}×${mb.reps} @ RPE ${mb.rpe} (${Math.round(clusterTaperScheme.metabolicRestSeconds / 60)}.5 min rest). All @ ${clusterTaperScheme.intensityPct}% 1RM (same weight). ~${clusterTaperScheme.totalReps} reps, Frederick ~${Math.round(clusterTaperScheme.totalFrederickLoad)}, effective ~${clusterTaperHeuristic != null ? Math.round(clusterTaperHeuristic) : '?'} (w/ RPE drift).`);
   }
   if (taperedRepScheme) {
     parts.push(`Tapered sets: ${taperedRepScheme.description} — ~${taperedRepScheme.totalReps} reps, prescribed Frederick ~${Math.round(taperedRepScheme.totalFrederickLoad)} (capped), effective ~${taperedHeuristic != null ? Math.round(taperedHeuristic) : '?'} (w/ RPE drift).`);

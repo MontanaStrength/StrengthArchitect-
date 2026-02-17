@@ -115,20 +115,34 @@ export interface ClusterTaperPrescription {
 
 /**
  * Heuristic Frederick total for a cluster-taper prescription.
- * Force block sets come first, then metabolic block sets.
+ *
+ * When `interleaved` is false (default / blocked): force sets first, then metabolic.
+ * When `interleaved` is true: force and metabolic sets alternate (F-M-F-M...).
+ *   If one block has more sets, the extras are appended at the end.
+ *
  * RPE drift applies across the entire sequence (set index 0-based).
  */
 export function clusterTaperFrederickTotals(
   scheme: ClusterTaperPrescription,
   calculateSetMetabolicLoad: (intensityPct: number, reps: number, rpe: number) => number,
+  interleaved: boolean = false,
 ): { totalNoFatigue: number; totalHeuristic: number } {
+  const forceSet = { intensityPct: scheme.intensityPct, reps: scheme.forceBlock.reps, rpe: scheme.forceBlock.rpe };
+  const metabSet = { intensityPct: scheme.intensityPct, reps: scheme.metabolicBlock.reps, rpe: scheme.metabolicBlock.rpe };
+
   const sets: Array<{ intensityPct: number; reps: number; rpe: number }> = [];
-  for (let i = 0; i < scheme.forceBlock.sets; i++) {
-    sets.push({ intensityPct: scheme.intensityPct, reps: scheme.forceBlock.reps, rpe: scheme.forceBlock.rpe });
+
+  if (interleaved) {
+    const maxPairs = Math.max(scheme.forceBlock.sets, scheme.metabolicBlock.sets);
+    for (let i = 0; i < maxPairs; i++) {
+      if (i < scheme.forceBlock.sets) sets.push({ ...forceSet });
+      if (i < scheme.metabolicBlock.sets) sets.push({ ...metabSet });
+    }
+  } else {
+    for (let i = 0; i < scheme.forceBlock.sets; i++) sets.push({ ...forceSet });
+    for (let i = 0; i < scheme.metabolicBlock.sets; i++) sets.push({ ...metabSet });
   }
-  for (let i = 0; i < scheme.metabolicBlock.sets; i++) {
-    sets.push({ intensityPct: scheme.intensityPct, reps: scheme.metabolicBlock.reps, rpe: scheme.metabolicBlock.rpe });
-  }
+
   const result = calculateSessionMetabolicLoadWithFatigue(sets, 0, 'heuristic', calculateSetMetabolicLoad);
   return { totalNoFatigue: scheme.totalFrederickLoad, totalHeuristic: result.totalLoad };
 }

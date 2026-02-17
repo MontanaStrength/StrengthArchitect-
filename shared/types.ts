@@ -331,6 +331,8 @@ export interface OptimizerRecommendations {
     totalFrederickLoad: number;
     description: string;
     totalFrederickHeuristic?: number;
+    /** When true, force and metabolic sets are alternated (F-M-F-M...) instead of blocked (FFF-MMM). */
+    interleaved?: boolean;
   };
   /** Last session’s per-set RPE summary for prompt/autoregulation (e.g. "Bench: 4 sets avg RPE 8.8; Squat: 3 sets avg RPE 7.2"). */
   lastSessionSetRPESummary?: string;
