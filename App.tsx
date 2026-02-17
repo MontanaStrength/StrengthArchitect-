@@ -45,6 +45,7 @@ import GoalSettingView from './components/GoalSettingView';
 import StrengthTestView from './components/StrengthTestView';
 import CustomTemplateBuilder from './components/CustomTemplateBuilder';
 import GymSetupView from './components/GymSetupView';
+import OptimizerView from './components/OptimizerView';
 import PlateCalculatorView from './components/PlateCalculatorView';
 import ExerciseLibraryView from './components/ExerciseLibraryView';
 import TrackingView from './components/TrackingView';
@@ -66,7 +67,7 @@ import BrandIcon from './components/BrandIcon';
 
 import ErrorBoundary from './components/ErrorBoundary';
 
-import { Dumbbell, BarChart3, Calendar, Target, Activity, Bell, ChevronLeft, LogOut, Wrench, Calculator, BookOpen, Layers, LayoutList, Plus, Users, TrendingUp, Heart, MessageCircle } from 'lucide-react';
+import { Dumbbell, BarChart3, Calendar, Target, Activity, Bell, ChevronLeft, LogOut, Wrench, Calculator, BookOpen, Layers, LayoutList, Plus, Users, TrendingUp, Heart, MessageCircle, Zap } from 'lucide-react';
 
 type ViewState =
   | 'form'
@@ -95,7 +96,8 @@ type ViewState =
   | 'block-wizard'
   | 'plan'
   | 'lift'
-  | 'analyze';
+  | 'analyze'
+  | 'optimizer';
 
 const App: React.FC = () => {
   // ===== AUTH =====
@@ -139,6 +141,7 @@ const App: React.FC = () => {
   const [gymSetup, setGymSetup] = useState<GymSetup>(DEFAULT_GYM_SETUP);
   const [optimizerConfig, setOptimizerConfig] = useState<OptimizerConfig>(DEFAULT_OPTIMIZER_CONFIG);
   const [audioMuted, setAudioMuted] = useState(false);
+  const [intraSessionAutoregulation, setIntraSessionAutoregulation] = useState(false);
   const [dismissedAlertIds, setDismissedAlertIds] = useState<string[]>([]);
   const [dataLoaded, setDataLoaded] = useState(false);
   const [showOnboarding, setShowOnboarding] = useState(false);
@@ -218,6 +221,7 @@ const App: React.FC = () => {
         if (prefs.gymSetup) setGymSetup(prefs.gymSetup);
         if (prefs.optimizerConfig) setOptimizerConfig(prefs.optimizerConfig);
         if (prefs.audioMuted !== undefined) setAudioMuted(prefs.audioMuted);
+        if (prefs.intraSessionAutoregulation !== undefined) setIntraSessionAutoregulation(prefs.intraSessionAutoregulation);
         // Restore saved mode if localStorage is empty
         if (!appMode && prefs.appMode) {
           setAppMode(prefs.appMode as AppMode);
@@ -524,23 +528,30 @@ const App: React.FC = () => {
     setGymSetup(setup);
     setFormData(prev => ({ ...prev, availableEquipment: setup.availableEquipment }));
     if (user) {
-      syncUserPreferencesToCloud({ gymSetup: setup, optimizerConfig, audioMuted, appMode: appMode || undefined }, user.id).catch(console.error);
+      syncUserPreferencesToCloud({ gymSetup: setup, optimizerConfig, audioMuted, intraSessionAutoregulation, appMode: appMode || undefined }, user.id).catch(console.error);
     }
-  }, [user, optimizerConfig, audioMuted, appMode]);
+  }, [user, optimizerConfig, audioMuted, intraSessionAutoregulation, appMode]);
 
   const handleOptimizerConfigChange = useCallback(async (config: OptimizerConfig) => {
     setOptimizerConfig(config);
     if (user) {
-      syncUserPreferencesToCloud({ gymSetup, optimizerConfig: config, audioMuted, appMode: appMode || undefined }, user.id).catch(console.error);
+      syncUserPreferencesToCloud({ gymSetup, optimizerConfig: config, audioMuted, intraSessionAutoregulation, appMode: appMode || undefined }, user.id).catch(console.error);
     }
   }, [user, gymSetup, audioMuted, appMode]);
 
   const handleAudioMutedChange = useCallback(async (muted: boolean) => {
     setAudioMuted(muted);
     if (user) {
-      syncUserPreferencesToCloud({ gymSetup, optimizerConfig, audioMuted: muted, appMode: appMode || undefined }, user.id).catch(console.error);
+      syncUserPreferencesToCloud({ gymSetup, optimizerConfig, audioMuted: muted, intraSessionAutoregulation, appMode: appMode || undefined }, user.id).catch(console.error);
     }
   }, [user, gymSetup, optimizerConfig, appMode]);
+
+  const handleIntraSessionAutoregulationChange = useCallback(async (value: boolean) => {
+    setIntraSessionAutoregulation(value);
+    if (user) {
+      syncUserPreferencesToCloud({ gymSetup, optimizerConfig, audioMuted, intraSessionAutoregulation: value, appMode: appMode || undefined }, user.id).catch(console.error);
+    }
+  }, [user, gymSetup, optimizerConfig, audioMuted, appMode]);
 
   const handleDismissAlert = useCallback(async (alertId: string) => {
     const updated = [...dismissedAlertIds, alertId];
@@ -583,7 +594,7 @@ const App: React.FC = () => {
     setAppMode(mode);
     localStorage.setItem('sa_app_mode', mode);
     if (user) {
-      syncUserPreferencesToCloud({ gymSetup, optimizerConfig, audioMuted, appMode: mode }, user.id).catch(console.error);
+      syncUserPreferencesToCloud({ gymSetup, optimizerConfig, audioMuted, intraSessionAutoregulation, appMode: mode }, user.id).catch(console.error);
     }
   }, [user, gymSetup, optimizerConfig, audioMuted]);
 
@@ -785,6 +796,7 @@ const App: React.FC = () => {
                 gymSetup: { ...gymSetup, availableEquipment: data.equipment },
                 optimizerConfig,
                 audioMuted,
+                intraSessionAutoregulation,
                 appMode: appMode || undefined,
               }, user.id).catch(console.error);
               if (appMode !== 'coach') {
@@ -813,7 +825,7 @@ const App: React.FC = () => {
   const tabForView: Record<ViewState, PrimaryTab> = {
     // PLAN
     'block-wizard': 'plan', 'training-blocks': 'plan', 'custom-templates': 'plan',
-    'goals': 'plan', 'gym-setup': 'plan', 'calendar': 'plan',
+    'goals': 'plan', 'gym-setup': 'plan', 'calendar': 'plan', 'optimizer': 'plan',
     // LIFT
     'form': 'lift', 'loading': 'lift', 'result': 'lift', 'session': 'lift', 'session-recap': 'lift',
     'plate-calculator': 'lift', 'exercise-library': 'lift', 'strength-test': 'lift',
@@ -840,6 +852,7 @@ const App: React.FC = () => {
     { label: 'Calendar',         view: 'calendar',        icon: <Calendar size={16} /> },
     { label: 'Goals',            view: 'goals',           icon: <Target size={16} /> },
     { label: 'Gym Setup',        view: 'gym-setup',       icon: <Wrench size={16} /> },
+    { label: 'Optimizer',        view: 'optimizer',       icon: <Zap size={16} /> },
   ];
 
   const analyzeSubItems: { label: string; view: ViewState; icon: React.ReactNode }[] = [
@@ -1205,6 +1218,7 @@ const App: React.FC = () => {
             gymSetup={gymSetup}
             audioMuted={audioMuted}
             onAudioMutedChange={handleAudioMutedChange}
+            intraSessionAutoregulation={intraSessionAutoregulation}
             onComplete={(sets, rpe) => handleSaveSession(currentSavedWorkout.id, sets, rpe)}
             onCancel={() => setView('lift')}
           />
@@ -1382,6 +1396,18 @@ const App: React.FC = () => {
         )}
         {view === 'gym-setup' && (
           <GymSetupView gymSetup={gymSetup} onSave={handleGymSetupChange} />
+        )}
+        {view === 'optimizer' && (
+          <OptimizerView
+            config={optimizerConfig}
+            onChange={handleOptimizerConfigChange}
+            history={history}
+            liftRecords={liftRecords}
+            formData={formData}
+            trainingContext={trainingContext}
+            intraSessionAutoregulation={intraSessionAutoregulation}
+            onIntraSessionAutoregulationChange={handleIntraSessionAutoregulationChange}
+          />
         )}
         {view === 'plate-calculator' && <PlateCalculatorView gymSetup={gymSetup} />}
         {view === 'exercise-library' && <ExerciseLibraryView />}

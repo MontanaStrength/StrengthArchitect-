@@ -9,6 +9,9 @@ interface Props {
   liftRecords: LiftRecord[];
   formData: FormData;
   trainingContext?: TrainingContext | null;
+  /** When true, during a workout the app prompts for set RPE after each set and can suggest weight adjustments. */
+  intraSessionAutoregulation?: boolean;
+  onIntraSessionAutoregulationChange?: (value: boolean) => void;
 }
 
 const MUSCLE_GROUPS = Object.values(MuscleGroup);
@@ -20,7 +23,10 @@ const REP_RANGE_OPTIONS: { value: OptimizerConfig['repRangePreference']; label: 
   { value: 'high', label: 'High (12-20+)', desc: 'Endurance & metabolic' },
 ];
 
-const OptimizerView: React.FC<Props> = ({ config, onChange, history, liftRecords, formData, trainingContext }) => {
+const OptimizerView: React.FC<Props> = ({
+  config, onChange, history, liftRecords, formData, trainingContext,
+  intraSessionAutoregulation = false, onIntraSessionAutoregulationChange,
+}) => {
   const [localConfig, setLocalConfig] = useState<OptimizerConfig>({ ...config });
 
   // Live-computed recommendations based on current config + history + context
@@ -72,6 +78,27 @@ const OptimizerView: React.FC<Props> = ({ config, onChange, history, liftRecords
         Configure optimization parameters that feed into the AI workout generator. 
         The optimizer adjusts session volume and rep schemes based on your settings and training history.
       </p>
+
+      {/* During workout: intra-session autoregulation */}
+      {onIntraSessionAutoregulationChange != null && (
+        <div className="bg-neutral-900 rounded-xl p-5 border border-neutral-800">
+          <label className="flex items-center justify-between cursor-pointer">
+            <div>
+              <h3 className="text-lg font-semibold text-white">Intra-session autoregulation</h3>
+              <p className="text-sm text-neutral-400">When on, after each set you’ll be asked how it felt (RPE). The app may suggest reducing weight for remaining sets if a set was very hard (RPE 9+). When off, you just complete sets with no prompts.</p>
+            </div>
+            <div
+              className={`w-14 h-7 flex items-center rounded-full p-1 cursor-pointer transition-colors ${intraSessionAutoregulation ? 'bg-amber-500' : 'bg-neutral-700'}`}
+              onClick={() => onIntraSessionAutoregulationChange(!intraSessionAutoregulation)}
+              role="switch"
+              aria-checked={intraSessionAutoregulation}
+              aria-label="Toggle intra-session autoregulation"
+            >
+              <div className={`bg-white w-5 h-5 rounded-full shadow-md transform transition-transform ${intraSessionAutoregulation ? 'translate-x-7' : ''}`} />
+            </div>
+          </label>
+        </div>
+      )}
 
       {/* Master Toggle */}
       <div className="bg-neutral-900 rounded-xl p-5 border border-neutral-800">

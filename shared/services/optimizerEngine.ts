@@ -541,6 +541,15 @@ const readinessScalar = (readiness: string): number => {
   return 1.0;
 };
 
+/** Recovery scalar from pre-workout check-in (sleep + HRV). When sleep < 6h or HRV >15% below baseline, trim volume. */
+function recoveryScalarFromCheckIn(checkIn: FormData['preWorkoutCheckIn']): number {
+  if (!checkIn) return 1.0;
+  const { sleepHoursLastNight, hrvBaselineMs, hrvTodayMs } = checkIn;
+  if (sleepHoursLastNight != null && sleepHoursLastNight < 6) return 0.85;
+  if (hrvBaselineMs != null && hrvBaselineMs > 0 && hrvTodayMs != null && hrvTodayMs < hrvBaselineMs * 0.85) return 0.88;
+  return 1.0;
+}
+
 /** Phase-aware volume scalar (if inside a block) */
 const phaseVolumeScalar = (ctx: TrainingContext | null | undefined): number => {
   if (!ctx) return 1.0;
@@ -582,6 +591,32 @@ const computeWeeklyVolume = (history: SavedWorkout[]): Partial<Record<MuscleGrou
   }
   return vol;
 };
+
+/** Summarize last session’s per-set RPE for autoregulation and prompt. History assumed most-recent first. */
+function getLastSessionSetRPESummary(history: SavedWorkout[]): { summary: string; hadHighRPE: boolean } | null {
+  const last = history[0];
+  const sets = last?.completedSets?.filter(s => s.rpe != null && s.rpe > 0);
+  if (!sets?.length) return null;
+
+  const byExercise = new Map<string, { name: string; rpes: number[] }>();
+  for (const s of sets) {
+    const key = s.exerciseId || s.exerciseName;
+    const name = s.exerciseName || s.exerciseId || 'Exercise';
+    if (!byExercise.has(key)) byExercise.set(key, { name, rpes: [] });
+    byExercise.get(key)!.rpes.push(s.rpe!);
+  }
+
+  const parts: string[] = [];
+  let hadHighRPE = false;
+  for (const [, { name, rpes }] of byExercise) {
+    const avg = rpes.reduce((a, b) => a + b, 0) / rpes.length;
+    const highCount = rpes.filter(r => r >= 8.5).length;
+    if (highCount >= 2 || highCount / rpes.length >= 0.5) hadHighRPE = true;
+    const note = highCount >= rpes.length ? ' (all hard)' : highCount > 0 ? ` (${highCount} set(s) RPE 8.5+)` : '';
+    parts.push(`${name}: ${rpes.length} sets, avg RPE ${avg.toFixed(1)}${note}`);
+  }
+  return { summary: parts.join('; '), hadHighRPE };
+}
 
 /** Recent fatigue load (last 7d) + RPE trend (last 5 sessions) */
 const computeFatigueSignals = (history: SavedWorkout[]) => {
@@ -688,6 +723,7 @@ export function computeOptimizerRecommendations(
     * volTolScalar
     * readinessScalar(formData.readiness)
     * phaseVolumeScalar(trainingContext)
+    * recoveryScalarFromCheckIn(formData.preWorkoutCheckIn)
   );
 
   // ── 2. Fatigue dampening ───────────────────────────────
@@ -712,6 +748,14 @@ export function computeOptimizerRecommendations(
     } else if (fatigue.rpeTrendAvg <= 6.0 && fatigue.rpeTrendDirection !== 'rising') {
       sessionVolume = Math.round(sessionVolume * 1.05); // athlete is coasting — nudge up 5%
     }
+  }
+
+  // ── 2c. Last-session set-level RPE ──────────────────────
+  //   If the most recent session had many sets at RPE 8.5+, nudge volume down
+  //   so today is moderate for those movements (or overall).
+  const lastSetRPE = getLastSessionSetRPESummary(history);
+  if (lastSetRPE?.hadHighRPE) {
+    sessionVolume = Math.round(sessionVolume * 0.92); // trim 8% when last session was very hard at set level
   }
 
   // ── 3. Auto-deload override ────────────────────────────
@@ -938,10 +982,48 @@ export function computeOptimizerRecommendations(
     }
   }
 
+  // ── 11c-pre. Myo-Rep session detection (~25% of hypertrophy sessions) ──
+  //   Myo-Reps (Borge Fagerli): activation set 12-20 reps @ RPE 8, then
+  //   3-5 mini-sets of 3-5 reps with 15-20s rest. Stops when reps drop.
+  //   Equivalent hypertrophy to 3 traditional sets in ~30% of the time.
+  //   Applied to accessories/machines only — NOT barbell squat/bench/deadlift.
+  //   Triggered when: hypertrophy-focused (bias < 50), not deload, not low readiness.
+  //   Rotation: every 4th qualifying session (deterministic ~25%).
+  let myoRepScheme: OptimizerRecommendations['myoRepScheme'] | undefined;
+  const isLowReadiness = String(formData.readiness).toLowerCase().includes('low');
+  const myoRepEligible = isHypertrophyLike && !forceDeload && goalBias < 50 && !isLowReadiness;
+  const isMyoRepSession = myoRepEligible && (history.length % 4 === 0);
+
+  if (isMyoRepSession) {
+    // Myo-Rep intensity: ~55-65% 1RM (lighter than standard hypertrophy)
+    const myoIntensity = Math.round((55 + 65) / 2); // 60% midpoint
+    myoRepScheme = {
+      activationReps: [12, 15],
+      miniSetReps: [3, 5],
+      maxMiniSets: 5,
+      miniSetRestSeconds: 15,
+      intensityPct: myoIntensity,
+      description: `Myo-Rep: 12-15 activation @ RPE 8, then up to 5×3-5 with 15s rest. ~${myoIntensity}% 1RM. Accessories/machines only — compounds use straight sets.`,
+    };
+
+    // Override rep scheme and intensity for Myo-Rep session
+    repScheme = `Myo-Rep: 12-15 + up to 5×3-5 (15s rest) for accessories; straight sets for compounds`;
+    intMin = Math.min(intMin, 55);
+    intMax = Math.min(intMax, 65);
+    restRange = { min: 15, max: 20 };
+
+    // Hanley targets don't apply to Myo-Rep exercises (fewer total reps, same stimulus)
+    // but we keep Frederick — metabolic stress is very high per Myo-Rep "set"
+    fatigueScoreTarget = undefined;
+    fatigueScoreZone = undefined;
+    targetRepsPerExercise = undefined;
+  }
+
   // ── 11c. Set structure — metabolic taper OR cluster-taper hybrid ──
   //   Bias < 50:  metabolic taper (lead high-RPE + taper low-RPE)
   //   Bias ≥ 50:  cluster-taper hybrid (force-capped lead + metabolic follow-up)
   //   Both hit Hanley total reps and keep Frederick within gate.
+  //   Skipped entirely when Myo-Rep session is active.
   let taperedRepScheme: ReturnType<typeof prescribeTaperedSets> | undefined = undefined;
   let taperedHeuristic: number | undefined;
   let clusterTaperScheme: ReturnType<typeof prescribeClusterTaperSets> | undefined = undefined;
@@ -950,6 +1032,7 @@ export function computeOptimizerRecommendations(
   if (
     isHypertrophyLike &&
     !forceDeload &&
+    !isMyoRepSession &&
     targetRepsPerExercise != null &&
     metabolicLoadTarget != null
   ) {
@@ -1036,6 +1119,9 @@ export function computeOptimizerRecommendations(
     const dir = fatigue.rpeTrendDirection ? `, ${fatigue.rpeTrendDirection}` : '';
     parts.push(`RPE trend (last ${fatigue.rpeTrendSessionCount} sessions): avg ${fatigue.rpeTrendAvg.toFixed(1)}${dir}.`);
   }
+  if (lastSetRPE) {
+    parts.push(`Last session set-level RPE: ${lastSetRPE.summary}.${lastSetRPE.hadHighRPE ? ' Moderating volume today.' : ''}`);
+  }
   if (forceDeload) {
     parts.push(`AUTO-DELOAD triggered after ${config.deloadFrequencyWeeks} consecutive training weeks — volume halved, intensity capped.`);
   }
@@ -1070,6 +1156,9 @@ export function computeOptimizerRecommendations(
   if (taperedRepScheme) {
     parts.push(`Tapered sets: ${taperedRepScheme.description} — ~${taperedRepScheme.totalReps} reps, prescribed Frederick ~${Math.round(taperedRepScheme.totalFrederickLoad)} (capped), effective ~${taperedHeuristic != null ? Math.round(taperedHeuristic) : '?'} (w/ RPE drift).`);
   }
+  if (myoRepScheme) {
+    parts.push(`MYO-REP SESSION: ${myoRepScheme.description}. Hanley fatigue targets suspended for Myo-Rep exercises (fewer total reps, equivalent stimulus). Frederick metabolic load still applies.`);
+  }
 
   return {
     sessionVolume,
@@ -1096,5 +1185,7 @@ export function computeOptimizerRecommendations(
     clusterTaperScheme: clusterTaperScheme
       ? { ...clusterTaperScheme, totalFrederickHeuristic: clusterTaperHeuristic }
       : undefined,
+    lastSessionSetRPESummary: lastSetRPE?.summary,
+    myoRepScheme,
   };
 }

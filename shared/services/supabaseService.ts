@@ -524,6 +524,8 @@ export interface UserPreferences {
   rpeCalibration?: RPECalibration;
   audioMuted?: boolean;
   appMode?: string;
+  /** When true, after each set the app prompts for set RPE and can suggest weight adjustments. Default false = just complete sets without prompts. */
+  intraSessionAutoregulation?: boolean;
 }
 
 export const syncUserPreferencesToCloud = async (preferences: UserPreferences, userId: string) => {

@@ -234,7 +234,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const taperedRx = optimizerRecommendations.taperedRepScheme
         ? ` TAPERED SETS (Epley-consistent, BINDING): LEAD ${optimizerRecommendations.taperedRepScheme.leadSets}×${optimizerRecommendations.taperedRepScheme.leadReps} @ RPE ${optimizerRecommendations.taperedRepScheme.leadRPE} at ${optimizerRecommendations.taperedRepScheme.leadIntensityPct || optimizerRecommendations.intensityRange.max}% 1RM, then TAPER ${optimizerRecommendations.taperedRepScheme.taperSets}×${optimizerRecommendations.taperedRepScheme.taperReps} @ RPE ${optimizerRecommendations.taperedRepScheme.taperRPE} at SAME weight. Fewer reps = lower RPE naturally. Total ~${optimizerRecommendations.taperedRepScheme.totalReps} reps. Output lead and taper as SEPARATE exercise entries (separate cards), not combined. MUST include weightLbs AND percentOf1RM. Lead and taper use SAME weight. Round to 5 lbs.`
         : '';
-      optimizerContext = `⚡ OPTIMIZER (BINDING — DO NOT OVERRIDE WITH GENERIC DEFAULTS): ${optimizerRecommendations.sessionVolume} working sets, ${optimizerRecommendations.repScheme}, ${optimizerRecommendations.intensityRange.min}-${optimizerRecommendations.intensityRange.max}% 1RM, ${optimizerRecommendations.exerciseCount.min}-${optimizerRecommendations.exerciseCount.max} exercises. Rationale: ${optimizerRecommendations.rationale}${metLoad}${fatigueLoad}${clusterTaperRx}${taperedRx}${peakForceRx} COMPLIANCE: Every exercise must match the optimizer's sets/reps/intensity. Do NOT default to 3×10 @ 70%.`;
+      const lastSetRPEContext = optimizerRecommendations.lastSessionSetRPESummary
+        ? ` LAST SESSION SET-LEVEL RPE: ${optimizerRecommendations.lastSessionSetRPESummary}. Prefer moderating intensity or volume for exercises that were RPE 8.5+ last time.`
+        : '';
+      const myoRepRx = optimizerRecommendations.myoRepScheme
+        ? ` MYO-REP SESSION (BINDING): Accessories/machines/cables use Myo-Rep protocol. Compound barbell lifts (squat, bench, deadlift variants) use STRAIGHT SETS. MYO-REP PROTOCOL: Activation ${optimizerRecommendations.myoRepScheme.activationReps[0]}-${optimizerRecommendations.myoRepScheme.activationReps[1]} reps @ RPE 8, then up to ${optimizerRecommendations.myoRepScheme.maxMiniSets} mini-sets of ${optimizerRecommendations.myoRepScheme.miniSetReps[0]}-${optimizerRecommendations.myoRepScheme.miniSetReps[1]} reps with ${optimizerRecommendations.myoRepScheme.miniSetRestSeconds}s rest. Stop when reps drop. For Myo-Rep exercises: sets=1, reps="${optimizerRecommendations.myoRepScheme.activationReps[0]}-${optimizerRecommendations.myoRepScheme.activationReps[1]} + up to ${optimizerRecommendations.myoRepScheme.maxMiniSets}x${optimizerRecommendations.myoRepScheme.miniSetReps[0]}-${optimizerRecommendations.myoRepScheme.miniSetReps[1]}", restSeconds=${optimizerRecommendations.myoRepScheme.miniSetRestSeconds}, rpeTarget=8, setProtocol="myo-reps". For compounds: setProtocol="straight", normal sets/reps/rest. Safe for Myo-Reps: leg press, hack squat, Smith machine, cables, machines, isolation. NOT safe: barbell squat, deadlift, bench press, barbell row. 1 Myo-Rep cluster ≈ 2-3 traditional sets.`
+        : '';
+      optimizerContext = `⚡ OPTIMIZER (BINDING — DO NOT OVERRIDE WITH GENERIC DEFAULTS): ${optimizerRecommendations.sessionVolume} working sets, ${optimizerRecommendations.repScheme}, ${optimizerRecommendations.intensityRange.min}-${optimizerRecommendations.intensityRange.max}% 1RM, ${optimizerRecommendations.exerciseCount.min}-${optimizerRecommendations.exerciseCount.max} exercises. Rationale: ${optimizerRecommendations.rationale}${lastSetRPEContext}${metLoad}${fatigueLoad}${clusterTaperRx}${taperedRx}${peakForceRx}${myoRepRx} COMPLIANCE: Every exercise must match the optimizer's sets/reps/intensity. Do NOT default to 3×10 @ 70%.`;
     }
 
     let volumeToleranceContext = '';
@@ -265,17 +271,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     let checkInContext = '';
     if (data.preWorkoutCheckIn) {
-      const { mood, soreness, nutrition } = data.preWorkoutCheckIn;
+      const { mood, soreness, nutrition, sleepHoursLastNight, hrvBaselineMs, hrvTodayMs } = data.preWorkoutCheckIn;
       const parts: string[] = [];
       if (mood) parts.push(`Mood: ${mood}`);
       if (soreness) parts.push(`Soreness: ${soreness}`);
       if (nutrition) parts.push(`Nutrition: ${nutrition}`);
+      if (sleepHoursLastNight != null) parts.push(`Sleep: ${sleepHoursLastNight}h`);
+      if (hrvBaselineMs != null) parts.push(`HRV baseline: ${hrvBaselineMs} ms`);
+      if (hrvTodayMs != null) parts.push(`HRV today: ${hrvTodayMs} ms`);
       if (parts.length > 0) {
         const adj: string[] = [];
         if (soreness === 'severe') adj.push('Avoid heavy loading on sore muscles. Reduce volume 30-40%.');
         else if (soreness === 'moderate') adj.push('Reduce intensity on sore areas by 5-10%.');
         if (mood === 'poor') adj.push('Keep session simple. Compounds only.');
         if (nutrition === 'poor') adj.push('Reduce volume 15-20%. Avoid high-rep sets above RPE 8.');
+        if (sleepHoursLastNight != null && sleepHoursLastNight < 6) adj.push('Sleep deficit: reduce volume 15-20%, avoid peak loads.');
+        const hrvBelowBaseline = hrvBaselineMs != null && hrvBaselineMs > 0 && hrvTodayMs != null && hrvTodayMs < hrvBaselineMs * 0.85;
+        if (hrvBelowBaseline) adj.push('HRV below baseline: moderate volume, avoid maximal efforts.');
         checkInContext = `\nCHECK-IN: ${parts.join(' · ')}. ${adj.length > 0 ? adj.join(' ') : 'Good condition — proceed as prescribed.'}`;
       }
     }
@@ -323,6 +335,7 @@ FALLBACK DEFAULTS (NSCA/ACSM) — use ONLY where the OPTIMIZER does not specify.
           rpeTarget: { type: Type.NUMBER }, rirTarget: { type: Type.INTEGER }, restSeconds: { type: Type.INTEGER },
           tempo: { type: Type.STRING }, supersetGroup: { type: Type.STRING }, notes: { type: Type.STRING },
           coachingCue: { type: Type.STRING }, isWarmupSet: { type: Type.BOOLEAN },
+          setProtocol: { type: Type.STRING },
         }, required: ['exerciseId', 'exerciseName', 'sets', 'reps', 'restSeconds'] as const } }
       },
       required: ['archetypeId', 'title', 'exercises', 'totalDurationMin', 'focus', 'summary', 'whyThisWorkout'] as const

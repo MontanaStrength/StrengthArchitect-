@@ -7,7 +7,7 @@ import WorkoutCard from './WorkoutCard';
 import FeedbackSection from './FeedbackSection';
 import LoadingView from './LoadingView';
 import { workoutToCsv, workoutToClipboardData, workoutExportFilename } from '../shared/utils/workoutToSheets';
-import { Dumbbell, Zap, RefreshCw, Layers, FileSpreadsheet, Download, Copy, Check } from 'lucide-react';
+import { Dumbbell, Zap, RefreshCw, Layers, FileSpreadsheet, Download, Copy, Check, ChevronDown, ChevronUp, Moon, Activity } from 'lucide-react';
 
 interface Props {
   activeBlock: TrainingBlock | null;
@@ -73,6 +73,18 @@ const LiftView: React.FC<Props> = ({
 }) => {
   const [copied, setCopied] = useState(false);
   const [overrideRestDay, setOverrideRestDay] = useState(false);
+  const [showRecoveryDetails, setShowRecoveryDetails] = useState(false);
+
+  const checkIn = preWorkoutCheckIn ?? {};
+  const updateCheckIn = (updates: Partial<PreWorkoutCheckIn>) => {
+    onCheckInChange({ ...checkIn, ...updates });
+  };
+
+  // HRV vs baseline: only when both provided; typical RMSSD 20–200 ms
+  const hrvVsBaseline =
+    checkIn.hrvBaselineMs != null && checkIn.hrvBaselineMs > 0 && checkIn.hrvTodayMs != null && checkIn.hrvTodayMs >= 0
+      ? (checkIn.hrvTodayMs - checkIn.hrvBaselineMs) / checkIn.hrvBaselineMs
+      : null;
 
   const displayName = (isCoachMode && clientName) ? clientName : null;
   const readinessLabel = displayName ? `How is ${displayName} feeling?` : 'How are you feeling?';
@@ -323,6 +335,101 @@ const LiftView: React.FC<Props> = ({
             );
           })}
         </div>
+      </div>
+
+      {/* Recovery details (sleep + HRV) — optional, expandable */}
+      <div className="rounded-card border border-sa-surface2 bg-sa-surface1 overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setShowRecoveryDetails(!showRecoveryDetails)}
+          className="w-full flex items-center justify-between gap-2 px-4 py-3 text-left text-sm font-medium text-sa-textSecondary hover:bg-sa-surface2 transition-colors"
+        >
+          <span className="flex items-center gap-2">
+            <Moon size={16} className="text-sa-textMuted" />
+            Recovery details (sleep & HRV)
+          </span>
+          {showRecoveryDetails ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        </button>
+        {showRecoveryDetails && (
+          <div className="px-4 pb-4 pt-0 space-y-4 border-t border-sa-surface2">
+            {/* Sleep: 0–12 h, step 0.5 */}
+            <div>
+              <label className="block text-xs font-medium text-sa-textMuted mb-1.5">Sleep last night (hours)</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={0}
+                  max={12}
+                  step={0.5}
+                  placeholder="e.g. 7"
+                  value={checkIn.sleepHoursLastNight ?? ''}
+                  onChange={(e) => {
+                    const v = e.target.value === '' ? undefined : parseFloat(e.target.value);
+                    updateCheckIn({
+                      sleepHoursLastNight: v != null && !Number.isNaN(v) ? Math.max(0, Math.min(12, v)) : undefined,
+                    });
+                  }}
+                  className="w-24 rounded-lg border border-sa-surface3 bg-sa-surface2 px-3 py-2 text-sm text-white placeholder:text-sa-textMuted focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/40"
+                />
+                <span className="text-xs text-sa-textMuted">0–12 h (optional)</span>
+              </div>
+            </div>
+            {/* HRV: baseline vs today (RMSSD in ms, typical 20–200) */}
+            <div>
+              <label className="block text-xs font-medium text-sa-textMuted mb-1.5 flex items-center gap-1.5">
+                <Activity size={14} />
+                HRV (e.g. RMSSD from watch, ms)
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <span className="block text-[10px] text-sa-textMuted mb-1">Baseline (your typical)</span>
+                  <input
+                    type="number"
+                    min={10}
+                    max={300}
+                    step={1}
+                    placeholder="e.g. 55"
+                    value={checkIn.hrvBaselineMs ?? ''}
+                    onChange={(e) => {
+                      const v = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
+                      updateCheckIn({
+                        hrvBaselineMs: v != null && !Number.isNaN(v) ? Math.max(10, Math.min(300, v)) : undefined,
+                      });
+                    }}
+                    className="w-full rounded-lg border border-sa-surface3 bg-sa-surface2 px-3 py-2 text-sm text-white placeholder:text-sa-textMuted focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/40"
+                  />
+                </div>
+                <div>
+                  <span className="block text-[10px] text-sa-textMuted mb-1">Today (this morning)</span>
+                  <input
+                    type="number"
+                    min={10}
+                    max={300}
+                    step={1}
+                    placeholder="e.g. 48"
+                    value={checkIn.hrvTodayMs ?? ''}
+                    onChange={(e) => {
+                      const v = e.target.value === '' ? undefined : parseInt(e.target.value, 10);
+                      updateCheckIn({
+                        hrvTodayMs: v != null && !Number.isNaN(v) ? Math.max(10, Math.min(300, v)) : undefined,
+                      });
+                    }}
+                    className="w-full rounded-lg border border-sa-surface3 bg-sa-surface2 px-3 py-2 text-sm text-white placeholder:text-sa-textMuted focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500/40"
+                  />
+                </div>
+              </div>
+              {hrvVsBaseline != null && (
+                <p className="mt-2 text-xs text-sa-textSecondary">
+                  {hrvVsBaseline < -0.15
+                    ? `Today ${Math.round(hrvVsBaseline * 100)}% vs baseline — consider moderating volume.`
+                    : hrvVsBaseline < 0
+                      ? `Today slightly below baseline (${Math.round(hrvVsBaseline * 100)}%).`
+                      : 'Today at or above baseline — good to go.'}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Error */}

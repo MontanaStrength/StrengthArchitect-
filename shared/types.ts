@@ -84,6 +84,8 @@ export interface ExerciseBlock {
   notes?: string;
   coachingCue?: string;
   isWarmupSet?: boolean;
+  /** Set protocol: 'straight' (default) or 'myo-reps' (activation + mini-sets). */
+  setProtocol?: 'straight' | 'myo-reps';
 }
 
 export interface StrengthWorkoutPlan {
@@ -235,6 +237,12 @@ export interface PreWorkoutCheckIn {
   mood?: MoodLevel;
   soreness?: SorenessLevel;
   nutrition?: NutritionQuality;
+  /** Hours slept last night (0–12). Optional; used for readiness/volume scaling. */
+  sleepHoursLastNight?: number;
+  /** Typical resting HRV in ms (e.g. RMSSD). Optional; compare to today for recovery signal. */
+  hrvBaselineMs?: number;
+  /** This morning's HRV in ms. Optional; when below baseline, session can be moderated. */
+  hrvTodayMs?: number;
 }
 
 export interface FormData {
@@ -323,6 +331,17 @@ export interface OptimizerRecommendations {
     totalFrederickLoad: number;
     description: string;
     totalFrederickHeuristic?: number;
+  };
+  /** Last session’s per-set RPE summary for prompt/autoregulation (e.g. "Bench: 4 sets avg RPE 8.8; Squat: 3 sets avg RPE 7.2"). */
+  lastSessionSetRPESummary?: string;
+  /** Myo-Rep session: activation set + mini-sets protocol for hypertrophy-focused sessions (~25% of hyp sessions). */
+  myoRepScheme?: {
+    activationReps: [number, number]; // e.g. [12, 15]
+    miniSetReps: [number, number];    // e.g. [3, 5]
+    maxMiniSets: number;              // typically 5
+    miniSetRestSeconds: number;       // 15–20
+    intensityPct: number;             // ~55–65% 1RM
+    description: string;              // human-readable summary
   };
 }
 

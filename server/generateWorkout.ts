@@ -243,6 +243,7 @@ export const generateWorkoutServer = async (
     - INTENSITY RANGE: ${optimizerRecommendations.intensityRange.min}–${optimizerRecommendations.intensityRange.max}% 1RM
     - EXERCISE COUNT: ${optimizerRecommendations.exerciseCount.min}–${optimizerRecommendations.exerciseCount.max} exercises
     - Optimizer rationale: ${optimizerRecommendations.rationale}
+    ${optimizerRecommendations.lastSessionSetRPESummary ? `- LAST SESSION SET-LEVEL RPE: ${optimizerRecommendations.lastSessionSetRPESummary}. Prefer moderating intensity or volume for exercises that were RPE 8.5+ last time.` : ''}
     ${optimizerRecommendations.muscleGroupPriorities ? `- Muscle group priorities: ${Object.entries(optimizerRecommendations.muscleGroupPriorities).map(([mg, p]) => `${mg}: ${p}`).join(', ')}` : ''}
     ${optimizerRecommendations.suggestedFocus ? `- Suggested session focus: ${optimizerRecommendations.suggestedFocus}` : ''}
     ${optimizerRecommendations.metabolicLoadTarget ? `
@@ -278,6 +279,28 @@ export const generateWorkoutServer = async (
     - Peak force drops after rep ${optimizerRecommendations.peakForceDropRep}
     - REQUIRED set structure: ${optimizerRecommendations.strengthSetDivision.sets} sets × ${optimizerRecommendations.strengthSetDivision.repsPerSet} reps
     - Cap ALL working sets at ${optimizerRecommendations.peakForceDropRep} reps maximum. No grinding past force drop-off.` : ''}
+    ${optimizerRecommendations.myoRepScheme ? `
+    ### MYO-REP SESSION (Borge Fagerli Protocol) — BINDING
+    This is a Myo-Rep hypertrophy session. ACCESSORY and MACHINE exercises use the Myo-Rep protocol.
+    COMPOUND BARBELL LIFTS (squat, bench press, deadlift, and their close variants) use STRAIGHT SETS — NOT Myo-Reps.
+
+    MYO-REP PROTOCOL (for accessories/machines/cables/isolation):
+    - ACTIVATION SET: ${optimizerRecommendations.myoRepScheme.activationReps[0]}-${optimizerRecommendations.myoRepScheme.activationReps[1]} reps @ RPE 8 (1-2 RIR). Use ~${optimizerRecommendations.myoRepScheme.intensityPct}% 1RM.
+    - REST: ${optimizerRecommendations.myoRepScheme.miniSetRestSeconds} seconds (3-5 deep breaths) between activation and first mini-set, and between each mini-set.
+    - MINI-SETS: ${optimizerRecommendations.myoRepScheme.miniSetReps[0]}-${optimizerRecommendations.myoRepScheme.miniSetReps[1]} reps each, SAME weight. Up to ${optimizerRecommendations.myoRepScheme.maxMiniSets} mini-sets.
+    - STOPPING: Stop when reps drop below first mini-set count, or after ${optimizerRecommendations.myoRepScheme.maxMiniSets} mini-sets.
+
+    FORMAT RULES:
+    - For Myo-Rep exercises: set reps to "${optimizerRecommendations.myoRepScheme.activationReps[0]}-${optimizerRecommendations.myoRepScheme.activationReps[1]} + up to ${optimizerRecommendations.myoRepScheme.maxMiniSets}x${optimizerRecommendations.myoRepScheme.miniSetReps[0]}-${optimizerRecommendations.myoRepScheme.miniSetReps[1]}", sets to 1 (it's one Myo-Rep cluster), restSeconds to ${optimizerRecommendations.myoRepScheme.miniSetRestSeconds}, rpeTarget to 8, and setProtocol to "myo-reps".
+    - For compound barbell lifts: use standard straight sets (3-5 sets × 6-10 reps, normal rest). Set setProtocol to "straight".
+    - Include notes on Myo-Rep exercises: "Myo-Rep: activation to RPE 8, then mini-sets of ${optimizerRecommendations.myoRepScheme.miniSetReps[0]}-${optimizerRecommendations.myoRepScheme.miniSetReps[1]} reps with ${optimizerRecommendations.myoRepScheme.miniSetRestSeconds}s rest. Stop when reps drop."
+
+    EXERCISE SELECTION FOR MYO-REPS (safe under fatigue):
+    - YES: Leg press, hack squat, Smith machine bench/press, cable rows, lat pulldown, leg extension, leg curl, all machines, all cable work, all dumbbell isolation, lateral raises, curls, tricep work, face pulls.
+    - NO: Free-barbell back squat, front squat, conventional/sumo deadlift, bench press, barbell bent-over row (technique risk under accumulated fatigue).
+    - If the session includes a main compound barbell lift, prescribe it with STRAIGHT SETS first, then fill remaining exercises with Myo-Rep protocol.
+
+    1 Myo-Rep cluster ≈ 2-3 traditional sets of stimulus. Plan exercise count accordingly (more exercises fit in the same time).` : ''}
 
     COMPLIANCE CHECK: Before finalizing, verify that EVERY exercise in the output
     matches the optimizer's prescribed sets/reps/intensity. If the optimizer says
@@ -373,17 +396,23 @@ export const generateWorkoutServer = async (
   // ===== PRE-WORKOUT CHECK-IN INTEGRATION =====
   let checkInContext = '';
   if (data.preWorkoutCheckIn) {
-    const { mood, soreness, nutrition } = data.preWorkoutCheckIn;
+    const { mood, soreness, nutrition, sleepHoursLastNight, hrvBaselineMs, hrvTodayMs } = data.preWorkoutCheckIn;
     const parts: string[] = [];
     if (mood) parts.push(`Mood: ${mood}`);
     if (soreness) parts.push(`Soreness: ${soreness}`);
     if (nutrition) parts.push(`Nutrition: ${nutrition}`);
+    if (sleepHoursLastNight != null) parts.push(`Sleep last night: ${sleepHoursLastNight}h`);
+    if (hrvBaselineMs != null) parts.push(`HRV baseline: ${hrvBaselineMs} ms`);
+    if (hrvTodayMs != null) parts.push(`HRV today: ${hrvTodayMs} ms`);
     if (parts.length > 0) {
       const adjustments: string[] = [];
       if (soreness === 'severe') adjustments.push('Avoid heavy loading on sore muscle groups. Reduce volume 30-40%. Consider movement quality focus.');
       else if (soreness === 'moderate') adjustments.push('Reduce intensity on sore areas by 5-10%. Prioritize non-sore movement patterns.');
       if (mood === 'poor') adjustments.push('Keep session simple and achievable. Avoid complex techniques. Focus on compounds only.');
       if (nutrition === 'poor') adjustments.push('Reduce session volume 15-20%. Glycogen may be depleted — avoid high-rep sets above RPE 8.');
+      if (sleepHoursLastNight != null && sleepHoursLastNight < 6) adjustments.push('Sleep deficit (<6h): reduce volume 15-20%, avoid peak loads; prioritize movement quality.');
+      const hrvBelowBaseline = hrvBaselineMs != null && hrvBaselineMs > 0 && hrvTodayMs != null && hrvTodayMs < hrvBaselineMs * 0.85;
+      if (hrvBelowBaseline) adjustments.push('HRV significantly below baseline: moderate volume, avoid maximal efforts; keep intensity in RPE 7-8.5 range.');
 
       checkInContext = `
     ### PRE-WORKOUT CHECK-IN
@@ -577,6 +606,7 @@ export const generateWorkoutServer = async (
             notes: { type: Type.STRING },
             coachingCue: { type: Type.STRING },
             isWarmupSet: { type: Type.BOOLEAN },
+            setProtocol: { type: Type.STRING },
           },
           required: ['exerciseId', 'exerciseName', 'sets', 'reps', 'restSeconds'] as const
         }
