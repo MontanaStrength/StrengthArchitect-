@@ -411,7 +411,7 @@ const App: React.FC = () => {
       const bias = activeBlock?.goalBias ?? 50;
       const biasGoal: typeof formData.trainingGoalFocus =
         bias < 30 ? 'hypertrophy' :
-        bias > 65 ? 'strength' : 'general';
+        bias > 64 ? 'strength' : 'general';
       // Resolve session structure: block setting > client/form setting > default
       const resolvedSessionStructure = activeBlock?.sessionStructure || formData.sessionStructure || undefined;
       const biasedFormData = { ...formData, trainingGoalFocus: biasGoal, sessionStructure: resolvedSessionStructure };

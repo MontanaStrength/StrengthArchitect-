@@ -497,7 +497,7 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
                 <span className={`text-xs font-mono ${goalBias < 30 ? 'text-amber-400 font-bold' : 'text-gray-500'}`}>{100 - goalBias}% Hypertrophy</span>
                 <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                   goalBias < 30 ? 'bg-purple-500/20 text-purple-300' :
-                  goalBias > 65 ? 'bg-red-500/20 text-red-300' :
+                  goalBias > 64 ? 'bg-red-500/20 text-red-300' :
                   'bg-amber-500/20 text-amber-300'
                 }`}>
                   {goalBias < 20 ? 'Size' :
@@ -506,7 +506,7 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
                    goalBias < 80 ? 'Strength + Size' :
                    'Strength'}
                 </span>
-                <span className={`text-xs font-mono ${goalBias > 65 ? 'text-amber-400 font-bold' : 'text-gray-500'}`}>{goalBias}% Strength</span>
+                <span className={`text-xs font-mono ${goalBias > 64 ? 'text-amber-400 font-bold' : 'text-gray-500'}`}>{goalBias}% Strength</span>
               </div>
               <input
                 type="range"

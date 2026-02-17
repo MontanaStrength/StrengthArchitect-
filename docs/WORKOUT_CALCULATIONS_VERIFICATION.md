@@ -92,8 +92,8 @@ The **Block Focus** slider (0 = hypertrophy, 100 = strength) sets `goalBias` on 
 ### Slider to goal mapping (`App.tsx`)
 
 - **Bias < 30** → `trainingGoalFocus = 'hypertrophy'`
-- **Bias > 65** → `trainingGoalFocus = 'strength'`
-- **30 <= bias <= 65** → `trainingGoalFocus = 'general'`
+- **Bias > 64** → `trainingGoalFocus = 'strength'`
+- **30 <= bias <= 64** → `trainingGoalFocus = 'general'`
 
 The numeric bias value is also passed directly to the AI as context (e.g. "Strength-biased (75/100)") and to the optimizer to select set structure.
 
@@ -105,18 +105,18 @@ The optimizer uses `effectiveGoal` plus the raw `goalBias` value to decide **wha
 |-------------|---------------|---------------|-------------|
 | **0-29** | hypertrophy | **Metabolic taper** | Frederick (618-989) + Hanley. Lead sets at high metabolic load (RPE 8), taper sets at lower RPE. Intensity from Epley (e.g. 10 @ RPE 8 = ~71%). |
 | **30-49** | general | **Metabolic taper** | Same taper structure, general targets: Frederick 495-865, Hanley 400-550. Mid rep typical = 8. |
-| **50-65** | general | **Cluster-Taper hybrid** | Same Hanley + Frederick targets as general, but sets split into a **force block** (peak-force capped, 2.5-3 min rest) then a **metabolic block** (past force drop, ~90 s rest). Same weight, intensity 68-78%. See details below. |
-| **66-100** | strength | **Peak force** | Hanley prescribes total reps, divided by peak-force drop-off (e.g. 4x5 @ 85%, 3-5 min rest). No taper. Intensity 80-92%. |
+| **50-64** | general | **Cluster-Taper hybrid** | Same Hanley + Frederick targets as general, but sets split into a **force block** (peak-force capped, 2.5-3 min rest) then a **metabolic block** (past force drop, ~90 s rest). Same weight, intensity 68-78%. See details below. |
+| **65-100** | strength | **Peak force** | Hanley prescribes total reps, divided by peak-force drop-off (e.g. 4x5 @ 85%, 3-5 min rest). No taper. Intensity 80-92%. |
 
 So there are **four** set-structure modes:
 
 - **Metabolic taper** (bias 0-49): Frederick + Hanley drive volume; lead sets at high metabolic load, taper at lower RPE.
-- **Cluster-Taper hybrid** (bias 50-65): Force block (quality reps within peak-force zone) + metabolic block (pump sets past the force drop). Both at the same weight.
-- **Peak force** (bias 66-100): Pure peak-force set division. No metabolic targeting.
+- **Cluster-Taper hybrid** (bias 50-64): Force block (quality reps within peak-force zone) + metabolic block (pump sets past the force drop). Both at the same weight.
+- **Peak force** (bias 65-100): Pure peak-force set division. No metabolic targeting.
 
-### Cluster-Taper hybrid (bias 50-65)
+### Cluster-Taper hybrid (bias 50-64)
 
-When the slider is in the 50-65 range, each compound exercise gets two blocks at the **same weight**:
+When the slider is in the 50-64 range, each compound exercise gets two blocks at the **same weight**:
 
 1. **Force block** (first): 2-3 sets at the peak-force drop rep count. Every rep is explosive, within >= 95% peak force. RPE ~4-5. Rest 2.5-3 min.
 2. **Metabolic block** (second): reps go past the force drop-off. RPE ~6-7. Rest ~90 s.
@@ -160,7 +160,7 @@ As the slider moves from hypertrophy to strength:
 - **Rest increases**: ~1-2 min -> ~1.5-2.5 min -> 3-5 min.
 - **Volume multiplier**: slightly higher in hypertrophy (1.15), slightly lower in strength (0.85).
 
-The **switch points** are at bias **30** (hypertrophy -> general), **50** (metabolic taper -> cluster-taper hybrid), and **65** (general -> strength/peak force).
+The **switch points** are at bias **30** (hypertrophy -> general), **50** (metabolic taper -> cluster-taper hybrid), and **64** (general -> strength/peak force).
 
 ---
 
