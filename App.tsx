@@ -365,7 +365,6 @@ const App: React.FC = () => {
       ? phases.reduce((s, p) => s + p.weekCount, 0)
       : (activeBlock.lengthWeeks ?? 8);
     const weekInBlock = Math.min(Math.max(elapsedWeeks + 1, 1), totalBlockWeeks);
-    const isEndOfBlock = totalBlockWeeks >= 2 && weekInBlock >= totalBlockWeeks - 1;
 
     let currentPhase: TrainingBlockPhase | null = null;
     let weekInPhase = 1;
@@ -384,21 +383,14 @@ const App: React.FC = () => {
       }
     }
 
-    // Bias-based block with no explicit phases: derive effective phase (last 2 weeks = Peaking)
-    if (!currentPhase && totalBlockWeeks >= 2) {
+    // Bias-based block with no explicit phases: derive one effective phase for the whole block from goalBias
+    if (!currentPhase && totalBlockWeeks >= 1) {
       const bias = activeBlock.goalBias ?? 50;
-      if (isEndOfBlock) {
-        const peaking = PHASE_PRESETS[TrainingPhase.PEAKING];
-        currentPhase = { ...peaking, weekCount: 2, sessionsPerWeek: 3, splitPattern: 'full-body', description: peaking.description };
-        weekInPhase = weekInBlock - (totalBlockWeeks - 2);
-        totalWeeksInPhase = 2;
-      } else {
-        const phaseType = bias < 40 ? TrainingPhase.HYPERTROPHY : bias < 70 ? TrainingPhase.ACCUMULATION : TrainingPhase.STRENGTH;
-        const preset = PHASE_PRESETS[phaseType];
-        currentPhase = { ...preset, weekCount: totalBlockWeeks - 2, sessionsPerWeek: 4, splitPattern: 'upper-lower', description: preset.description };
-        weekInPhase = weekInBlock;
-        totalWeeksInPhase = totalBlockWeeks - 2;
-      }
+      const phaseType = bias < 40 ? TrainingPhase.HYPERTROPHY : bias < 70 ? TrainingPhase.ACCUMULATION : TrainingPhase.STRENGTH;
+      const preset = PHASE_PRESETS[phaseType];
+      currentPhase = { ...preset, weekCount: totalBlockWeeks, sessionsPerWeek: 4, splitPattern: 'upper-lower', description: preset.description };
+      weekInPhase = weekInBlock;
+      totalWeeksInPhase = totalBlockWeeks;
     }
 
     if (!currentPhase) return null;
@@ -414,7 +406,6 @@ const App: React.FC = () => {
       goalEvent: activeBlock.goalEvent,
       weekInBlock,
       totalBlockWeeks,
-      isEndOfBlock,
     };
   }, [trainingBlocks]);
 

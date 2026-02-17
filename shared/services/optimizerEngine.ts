@@ -557,8 +557,6 @@ function recoveryScalarFromCheckIn(checkIn: FormData['preWorkoutCheckIn']): numb
 const phaseVolumeScalar = (ctx: TrainingContext | null | undefined): number => {
   if (!ctx) return 1.0;
   const phase = ctx.phaseName.toLowerCase();
-  // End-of-block override: last 2 weeks get peaking-style volume even in hypertrophy blocks
-  if (ctx.isEndOfBlock && (phase.includes('hypertrophy') || phase.includes('accumulation'))) return 0.65;
   if (phase.includes('deload') || phase.includes('taper'))         return 0.50;
   if (phase.includes('peak'))                                      return 0.65;
   if (phase.includes('intensif'))                                  return 0.85;
@@ -571,8 +569,6 @@ const phaseVolumeScalar = (ctx: TrainingContext | null | undefined): number => {
 const phaseIntensityShift = (ctx: TrainingContext | null | undefined): number => {
   if (!ctx) return 0;
   const phase = ctx.phaseName.toLowerCase();
-  // End-of-block: last 2 weeks get peaking-style intensity even in hypertrophy blocks
-  if (ctx.isEndOfBlock && (phase.includes('hypertrophy') || phase.includes('accumulation'))) return +5;
   if (phase.includes('deload') || phase.includes('taper')) return -10;
   if (phase.includes('peak'))                              return +5;
   if (phase.includes('intensif'))                          return +5;
@@ -872,10 +868,7 @@ export function computeOptimizerRecommendations(
   if (trainingContext) {
     const phase = trainingContext.phaseName.toLowerCase();
     const balancedBias = goalBias >= 44 && goalBias <= 64;
-    // End-of-block: last 2 weeks get peak-force emphasis even in hypertrophy blocks
-    if (trainingContext.isEndOfBlock && (phase.includes('hypertrophy') || phase.includes('accumulation'))) {
-      suggestedFocus = 'strength';
-    } else if ((phase.includes('strength') || phase.includes('intensif')) && !balancedBias) suggestedFocus = 'strength';
+    if ((phase.includes('strength') || phase.includes('intensif')) && !balancedBias) suggestedFocus = 'strength';
     else if (phase.includes('hypertrophy') || phase.includes('accumulation')) suggestedFocus = 'hypertrophy';
     else if (phase.includes('power') || phase.includes('peak')) suggestedFocus = 'power';
   }
@@ -1145,9 +1138,6 @@ export function computeOptimizerRecommendations(
   }
   if (trainingContext) {
     parts.push(`Active block "${trainingContext.blockName}", phase: ${trainingContext.phaseName} (wk ${trainingContext.weekInPhase}/${trainingContext.totalWeeksInPhase}).`);
-    if (trainingContext.isEndOfBlock) {
-      parts.push('End of block (final 2 weeks): include peak-force sessions (heavy singles, cluster sets, or higher intensity) to realize strength; do not only prescribe hypertrophy work.');
-    }
   }
   const underMuscles = Object.entries(muscleGroupPriorities)
     .filter(([, p]) => p === 'increase')
