@@ -85,6 +85,85 @@ The base Frederick formula treats each set in isolation: **no set-to-set fatigue
    - 230 lbs: 45 + 45 + 2.5 per side (230 lbs).  
    - 185 lbs: 45 + 25 per side (185 lbs).
 
+## Block Focus slider: how it affects workouts
+
+The **Block Focus** slider (0 = hypertrophy, 100 = strength) sets `goalBias` on the active training block. When generating a workout, that value is mapped to a **training goal** that drives the optimizer and prompts.
+
+### Slider to goal mapping (`App.tsx`)
+
+- **Bias < 30** → `trainingGoalFocus = 'hypertrophy'`
+- **Bias > 70** → `trainingGoalFocus = 'strength'`
+- **30 <= bias <= 70** → `trainingGoalFocus = 'general'`
+
+The numeric bias value is also passed directly to the AI as context (e.g. "Strength-biased (75/100)") and to the optimizer to select set structure.
+
+### Set structure across the slider (metabolic taper / cluster-taper / peak force)
+
+The optimizer uses `effectiveGoal` plus the raw `goalBias` value to decide **what** to optimize and **how** to structure sets:
+
+| Slider zone | effectiveGoal | Set structure | Description |
+|-------------|---------------|---------------|-------------|
+| **0-29** | hypertrophy | **Metabolic taper** | Frederick (618-989) + Hanley. Lead sets at high metabolic load (RPE 8), taper sets at lower RPE. Intensity from Epley (e.g. 10 @ RPE 8 = ~71%). |
+| **30-49** | general | **Metabolic taper** | Same taper structure, general targets: Frederick 495-865, Hanley 400-550. Mid rep typical = 8. |
+| **50-70** | general | **Cluster-Taper hybrid** | Same Hanley + Frederick targets as general, but sets split into a **force block** (peak-force capped, 2.5-3 min rest) then a **metabolic block** (past force drop, ~90 s rest). Same weight, intensity 68-78%. See details below. |
+| **71-100** | strength | **Peak force** | Hanley prescribes total reps, divided by peak-force drop-off (e.g. 4x5 @ 85%, 3-5 min rest). No taper. Intensity 80-92%. |
+
+So there are **four** set-structure modes:
+
+- **Metabolic taper** (bias 0-49): Frederick + Hanley drive volume; lead sets at high metabolic load, taper at lower RPE.
+- **Cluster-Taper hybrid** (bias 50-70): Force block (quality reps within peak-force zone) + metabolic block (pump sets past the force drop). Both at the same weight.
+- **Peak force** (bias 71-100): Pure peak-force set division. No metabolic targeting.
+
+### Cluster-Taper hybrid (bias 50-70)
+
+When the slider is in the 50-70 range, each compound exercise gets two blocks at the **same weight**:
+
+1. **Force block** (first): 2-3 sets at the peak-force drop rep count. Every rep is explosive, within >= 95% peak force. RPE ~4-5. Rest 2.5-3 min.
+2. **Metabolic block** (second): reps go past the force drop-off. RPE ~6-7. Rest ~90 s.
+
+The solver picks intensity in the **68-78%** band. Below 68% peak-force-capped sets are too easy (RPE ~2-3) for Frederick to be met; above 78% it's pure-strength territory.
+
+**Example at 70% 1RM (bias 55):**
+
+| Block | Sets x Reps | RPE | Frederick/set | Rest |
+|-------|-------------|-----|---------------|------|
+| Force | 3 x 7 | ~4.1 | ~80 | 2.5 min |
+| Metabolic | 3 x 10 | ~7.1 | ~170 | 1.5 min |
+| **Total** | **6 sets, ~51 reps** | | **~750** (general target 495-865) | |
+
+**Example at 73% 1RM (bias 60):**
+
+| Block | Sets x Reps | RPE | Frederick/set | Rest |
+|-------|-------------|-----|---------------|------|
+| Force | 3 x 6 | ~4.5 | ~85 | 3 min |
+| Metabolic | 3 x 9 | ~7.0 | ~155 | 1.5 min |
+| **Total** | **6 sets, ~45 reps** | | **~720** | |
+
+This is analogous to **contrast training** ("heavy-then-pump"): the force block provides high-quality mechanical tension, the metabolic block accumulates metabolic stress. The AI outputs force and metabolic blocks as **separate exercise cards**.
+
+Implementation: `optimizerEngine.ts` -> `prescribeClusterTaperSets()`, heuristic fatigue via `accruedFatigueModel.ts` -> `clusterTaperFrederickTotals()`.
+
+### Intensity, rest, and volume across the slider
+
+From `GOAL_PROFILES` in `optimizerEngine.ts`:
+
+| Goal | Intensity (% 1RM) | Rep scheme | Rest | Volume multiplier |
+|------|-------------------|------------|------|-------------------|
+| hypertrophy | 60-75 | 3-4 sets x 8-12 reps | 60-120 s | 1.15 |
+| general | 65-80 | 3-4 sets x 6-10 reps | 90-150 s | 1.0 |
+| strength | 80-92 | 4-6 sets x 3-5 reps | 180-300 s | 0.85 |
+
+As the slider moves from hypertrophy to strength:
+
+- **Intensity increases**: 60-75% -> 65-80% -> 80-92%.
+- **Reps per set decrease**: 8-12 -> 6-10 -> 3-5.
+- **Rest increases**: ~1-2 min -> ~1.5-2.5 min -> 3-5 min.
+- **Volume multiplier**: slightly higher in hypertrophy (1.15), slightly lower in strength (0.85).
+
+The **switch points** are at bias **30** (hypertrophy -> general), **50** (metabolic taper -> cluster-taper hybrid), and **70** (general -> strength/peak force).
+
+---
+
 ## Run the verification script
 
 Uses the same logic as the app and prints the above checks:

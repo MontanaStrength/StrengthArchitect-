@@ -424,6 +424,7 @@ const App: React.FC = () => {
         history,
         trainingContext,
         volTol,
+        bias,
       );
 
       const plan = await generateWorkout(biasedFormData, history, trainingContext, optimizerRecs, exercisePrefs, bias, volTol, safeSwap);

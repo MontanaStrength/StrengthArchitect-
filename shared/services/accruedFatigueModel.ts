@@ -105,3 +105,30 @@ export function taperedFrederickTotals(
   );
   return { totalNoFatigue: tapered.totalFrederickLoad, totalHeuristic: heuristicTotal };
 }
+
+export interface ClusterTaperPrescription {
+  forceBlock: { sets: number; reps: number; rpe: number };
+  metabolicBlock: { sets: number; reps: number; rpe: number };
+  intensityPct: number;
+  totalFrederickLoad: number;
+}
+
+/**
+ * Heuristic Frederick total for a cluster-taper prescription.
+ * Force block sets come first, then metabolic block sets.
+ * RPE drift applies across the entire sequence (set index 0-based).
+ */
+export function clusterTaperFrederickTotals(
+  scheme: ClusterTaperPrescription,
+  calculateSetMetabolicLoad: (intensityPct: number, reps: number, rpe: number) => number,
+): { totalNoFatigue: number; totalHeuristic: number } {
+  const sets: Array<{ intensityPct: number; reps: number; rpe: number }> = [];
+  for (let i = 0; i < scheme.forceBlock.sets; i++) {
+    sets.push({ intensityPct: scheme.intensityPct, reps: scheme.forceBlock.reps, rpe: scheme.forceBlock.rpe });
+  }
+  for (let i = 0; i < scheme.metabolicBlock.sets; i++) {
+    sets.push({ intensityPct: scheme.intensityPct, reps: scheme.metabolicBlock.reps, rpe: scheme.metabolicBlock.rpe });
+  }
+  const result = calculateSessionMetabolicLoadWithFatigue(sets, 0, 'heuristic', calculateSetMetabolicLoad);
+  return { totalNoFatigue: scheme.totalFrederickLoad, totalHeuristic: result.totalLoad };
+}

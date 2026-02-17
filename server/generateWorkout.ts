@@ -256,6 +256,14 @@ export const generateWorkoutServer = async (
     ### VOLUME STRESS PRESCRIPTION (Hanley Fatigue Metric) — PER EXERCISE
     - Prescribed total reps per exercise: ${optimizerRecommendations.targetRepsPerExercise || 'N/A'}
     BINDING: EACH EXERCISE should have approximately ${optimizerRecommendations.targetRepsPerExercise} total working reps. Structure sets × reps to hit this number.` : ''}
+    ${optimizerRecommendations.clusterTaperScheme ? `
+    ### CLUSTER-TAPER HYBRID (Force + Metabolic) — BINDING
+    Use this exact structure for EACH main compound exercise:
+    - FORCE BLOCK: ${optimizerRecommendations.clusterTaperScheme.forceBlock.sets} sets × ${optimizerRecommendations.clusterTaperScheme.forceBlock.reps} reps @ RPE ${optimizerRecommendations.clusterTaperScheme.forceBlock.rpe} → ${optimizerRecommendations.clusterTaperScheme.intensityPct}% 1RM. Rest ${Math.round(optimizerRecommendations.clusterTaperScheme.forceRestSeconds / 60)}–${Math.round(optimizerRecommendations.clusterTaperScheme.forceRestSeconds / 60) + 1} min between sets. Every rep should be explosive and high quality — these sets stay within the peak-force zone.
+    - METABOLIC BLOCK: ${optimizerRecommendations.clusterTaperScheme.metabolicBlock.sets} sets × ${optimizerRecommendations.clusterTaperScheme.metabolicBlock.reps} reps @ RPE ${optimizerRecommendations.clusterTaperScheme.metabolicBlock.rpe} → SAME weight (${optimizerRecommendations.clusterTaperScheme.intensityPct}% 1RM). Rest ${Math.round(optimizerRecommendations.clusterTaperScheme.metabolicRestSeconds / 60)}–${Math.round(optimizerRecommendations.clusterTaperScheme.metabolicRestSeconds / 60) + 1} min. These sets go past the force drop-off to accumulate metabolic stimulus.
+    Total ~${optimizerRecommendations.clusterTaperScheme.totalReps} reps per exercise, Frederick load ~${Math.round(optimizerRecommendations.clusterTaperScheme.totalFrederickLoad)}.
+    IMPORTANT: Output force block and metabolic block as SEPARATE exercise entries (separate cards). For example, for Barbell Back Squat output TWO entries: one "Barbell Back Squat" with ${optimizerRecommendations.clusterTaperScheme.forceBlock.sets} sets × ${optimizerRecommendations.clusterTaperScheme.forceBlock.reps} reps, then another "Barbell Back Squat" with ${optimizerRecommendations.clusterTaperScheme.metabolicBlock.sets} sets × ${optimizerRecommendations.clusterTaperScheme.metabolicBlock.reps} reps. Do NOT combine into a single entry.
+    WEIGHT REQUIRED: You MUST include weightLbs and percentOf1RM for every exercise. Both blocks use the SAME weight (${optimizerRecommendations.clusterTaperScheme.intensityPct}% 1RM). Round to nearest 5 lbs.` : ''}
     ${optimizerRecommendations.taperedRepScheme ? `
     ### TAPERED SETS (Epley-consistent RPEs) — BINDING
     Use this exact structure for EACH main compound exercise:

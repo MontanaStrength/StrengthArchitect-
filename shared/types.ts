@@ -312,6 +312,18 @@ export interface OptimizerRecommendations {
     /** Fatigue-aware Frederick total (effective RPE = prescribed + 0.15 per set). */
     totalFrederickHeuristic?: number;
   };
+  // Cluster-Taper hybrid (bias ≥ 50): force-capped lead sets + metabolic follow-up sets
+  clusterTaperScheme?: {
+    forceBlock: { sets: number; reps: number; rpe: number };
+    metabolicBlock: { sets: number; reps: number; rpe: number };
+    intensityPct: number;        // single intensity for both blocks (same weight)
+    forceRestSeconds: number;    // rest between force-block sets (~150s)
+    metabolicRestSeconds: number; // rest between metabolic-block sets (~90s)
+    totalReps: number;
+    totalFrederickLoad: number;
+    description: string;
+    totalFrederickHeuristic?: number;
+  };
 }
 
 export const DEFAULT_OPTIMIZER_CONFIG: OptimizerConfig = {

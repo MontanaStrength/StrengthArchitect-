@@ -23,7 +23,7 @@ import {
   ReadinessLevel,
   SESSION_STRUCTURE_PRESETS,
 } from '../types';
-import { taperedFrederickTotals } from './accruedFatigueModel';
+import { taperedFrederickTotals, clusterTaperFrederickTotals } from './accruedFatigueModel';
 
 // Re-use the same TrainingContext shape from gemini service
 export interface TrainingContext {
@@ -266,6 +266,107 @@ function prescribeTaperedSets(
               description: `${leadSets}×${leadReps} @ RPE ${leadRPE} (${leadIntensity}%), then ${taperSets}×${taperReps} @ RPE ${taperRPE} (same weight)`,
             };
           }
+        }
+      }
+    }
+  }
+  return null;
+}
+
+// ── Cluster-Taper Hybrid Solver ──────────────────────────────
+//   For bias ≥ 50 (upper-general zone): combines peak-force quality
+//   with metabolic volume. Same weight for both blocks.
+//
+//   Force block:  reps capped at peak-force drop-off → every rep is
+//                 a quality rep at ≥ 95% peak force.  2-3 sets,
+//                 moderate rest (2.5 min).
+//   Metabolic block: reps go PAST the force drop-off → provides the
+//                 metabolic stimulus (like a controlled pump).  Rest
+//                 ~90 s.  RPE ≥ 6 via Epley.
+//
+//   Viable intensity range: ~68-78 % 1RM.  Below 68, peak-force-
+//   capped sets are so submaximal that Frederick can't be met.
+//   Above 78, you're effectively in pure-strength territory.
+
+function prescribeClusterTaperSets(
+  targetReps: number,
+  intMin: number,
+  intMax: number,
+): {
+  forceBlock: { sets: number; reps: number; rpe: number };
+  metabolicBlock: { sets: number; reps: number; rpe: number };
+  intensityPct: number;
+  forceRestSeconds: number;
+  metabolicRestSeconds: number;
+  totalReps: number;
+  totalFrederickLoad: number;
+  description: string;
+} | null {
+  const gate = 1600; // same Frederick ceiling as tapered sets
+
+  // Viable hybrid range — clamp to the goal profile's intensity band
+  const lo = Math.max(68, intMin);
+  const hi = Math.min(78, intMax);
+  if (lo > hi) return null; // profile doesn't overlap the hybrid zone
+
+  // Build candidate intensities, preferring the centre of the viable band
+  const intensities: number[] = [];
+  for (let i = lo; i <= hi; i++) intensities.push(i);
+  const mid = (lo + hi) / 2;
+  intensities.sort((a, b) => Math.abs(a - mid) - Math.abs(b - mid));
+
+  const forceSetOptions = [3, 2];
+  const metabRepsOptions = [10, 9, 8];
+
+  for (const intensity of intensities) {
+    const forceReps = estimatePeakForceDropRep(intensity);
+
+    for (const forceSets of forceSetOptions) {
+      const forceTotal = forceSets * forceReps;
+      const remaining = targetReps - forceTotal;
+      if (remaining < 4) continue;
+
+      for (const metabReps of metabRepsOptions) {
+        // Metabolic block must use MORE reps per set (past force drop)
+        if (metabReps <= forceReps) continue;
+
+        const metabSets = Math.max(1, Math.round(remaining / metabReps));
+        const totalReps = forceTotal + metabSets * metabReps;
+        if (Math.abs(totalReps - targetReps) > 10) continue;
+
+        // Epley-derived RPEs at the chosen intensity
+        const forceRPE = rpeAtIntensity(forceReps, intensity);
+        const metabRPE = rpeAtIntensity(metabReps, intensity);
+        if (metabRPE < 6) continue; // metabolic block needs real effort
+
+        // Frederick loads
+        const forceFredPerSet = calculateSetMetabolicLoad(intensity, forceReps, forceRPE);
+        const metabFredPerSet = calculateSetMetabolicLoad(intensity, metabReps, metabRPE);
+        const totalFrederick = forceSets * forceFredPerSet + metabSets * metabFredPerSet;
+
+        if (totalFrederick <= gate) {
+          // Rest: force block gets moderate neural recovery; metabolic block gets hypertrophy rest
+          const forceRest = intensity >= 74 ? 180 : 150;
+          const metabRest = 90;
+
+          return {
+            forceBlock: {
+              sets: forceSets,
+              reps: forceReps,
+              rpe: Math.round(forceRPE * 10) / 10,
+            },
+            metabolicBlock: {
+              sets: metabSets,
+              reps: metabReps,
+              rpe: Math.round(metabRPE * 10) / 10,
+            },
+            intensityPct: intensity,
+            forceRestSeconds: forceRest,
+            metabolicRestSeconds: metabRest,
+            totalReps,
+            totalFrederickLoad: Math.round(totalFrederick * 100) / 100,
+            description: `Force: ${forceSets}×${forceReps} @ RPE ${Math.round(forceRPE * 10) / 10}, Metabolic: ${metabSets}×${metabReps} @ RPE ${Math.round(metabRPE * 10) / 10} (all @ ${intensity}% 1RM, same weight)`,
+          };
         }
       }
     }
@@ -559,6 +660,7 @@ export function computeOptimizerRecommendations(
   history: SavedWorkout[],
   trainingContext?: TrainingContext | null,
   volumeTolerance: number = 3,
+  goalBias: number = 50,
 ): OptimizerRecommendations {
   const goal = formData.trainingGoalFocus as TrainingGoalFocus;
   const profile = GOAL_PROFILES[goal] || GOAL_PROFILES['general'];
@@ -836,10 +938,14 @@ export function computeOptimizerRecommendations(
     }
   }
 
-  // ── 11c. Tapered sets (hypertrophy) — Frederick + Hanley ──
-  //   Prescribe lead high-metabolic sets, then taper (fewer reps/set, lower RPE)
-  //   so total Frederick load stays in zone while hitting Hanley total reps.
+  // ── 11c. Set structure — metabolic taper OR cluster-taper hybrid ──
+  //   Bias < 50:  metabolic taper (lead high-RPE + taper low-RPE)
+  //   Bias ≥ 50:  cluster-taper hybrid (force-capped lead + metabolic follow-up)
+  //   Both hit Hanley total reps and keep Frederick within gate.
   let taperedRepScheme: ReturnType<typeof prescribeTaperedSets> | undefined = undefined;
+  let taperedHeuristic: number | undefined;
+  let clusterTaperScheme: ReturnType<typeof prescribeClusterTaperSets> | undefined = undefined;
+  let clusterTaperHeuristic: number | undefined;
 
   if (
     isHypertrophyLike &&
@@ -848,21 +954,45 @@ export function computeOptimizerRecommendations(
     metabolicLoadTarget != null
   ) {
     const midIntensity = (intMin + intMax) / 2;
-    taperedRepScheme = prescribeTaperedSets(
-      targetRepsPerExercise,
-      midIntensity,
-      metabolicLoadTarget.max,
-    );
-    if (taperedRepScheme) {
-      const epleyIntensity = taperedRepScheme.leadIntensityPct || midIntensity;
-      const { totalHeuristic } = taperedFrederickTotals(taperedRepScheme, epleyIntensity, calculateSetMetabolicLoad);
-      Object.assign(taperedRepScheme, { totalFrederickHeuristic: Math.round(totalHeuristic * 100) / 100 });
-      repScheme = `Tapered: ${taperedRepScheme.description} (~${taperedRepScheme.totalReps} reps, Frederick ~${Math.round(taperedRepScheme.totalFrederickLoad)})`;
 
-      // Override intensity range to the Epley-derived value (lead and taper use same weight)
-      if (taperedRepScheme.leadIntensityPct) {
-        intMin = Math.max(intMin, taperedRepScheme.leadIntensityPct - 3);
-        intMax = taperedRepScheme.leadIntensityPct;
+    if (goalBias >= 50) {
+      // ── Cluster-Taper hybrid (bias ≥ 50) ──
+      clusterTaperScheme = prescribeClusterTaperSets(
+        targetRepsPerExercise,
+        intMin,
+        intMax,
+      ) ?? undefined;
+
+      if (clusterTaperScheme) {
+        const { totalHeuristic } = clusterTaperFrederickTotals(clusterTaperScheme, calculateSetMetabolicLoad);
+        clusterTaperHeuristic = Math.round(totalHeuristic * 100) / 100;
+
+        repScheme = `Cluster-Taper: ${clusterTaperScheme.description} (~${clusterTaperScheme.totalReps} reps, Frederick ~${Math.round(clusterTaperScheme.totalFrederickLoad)})`;
+
+        // Override intensity range to the hybrid intensity
+        intMin = Math.max(intMin, clusterTaperScheme.intensityPct - 3);
+        intMax = clusterTaperScheme.intensityPct;
+      }
+    }
+
+    // ── Metabolic taper (bias < 50, or cluster-taper fallback) ──
+    if (!clusterTaperScheme) {
+      taperedRepScheme = prescribeTaperedSets(
+        targetRepsPerExercise,
+        midIntensity,
+        metabolicLoadTarget.max,
+      );
+      if (taperedRepScheme) {
+        const epleyIntensity = taperedRepScheme.leadIntensityPct || midIntensity;
+        const { totalHeuristic } = taperedFrederickTotals(taperedRepScheme, epleyIntensity, calculateSetMetabolicLoad);
+        taperedHeuristic = Math.round(totalHeuristic * 100) / 100;
+        repScheme = `Tapered: ${taperedRepScheme.description} (~${taperedRepScheme.totalReps} reps, Frederick ~${Math.round(taperedRepScheme.totalFrederickLoad)})`;
+
+        // Override intensity range to the Epley-derived value (lead and taper use same weight)
+        if (taperedRepScheme.leadIntensityPct) {
+          intMin = Math.max(intMin, taperedRepScheme.leadIntensityPct - 3);
+          intMax = taperedRepScheme.leadIntensityPct;
+        }
       }
     }
   }
@@ -932,8 +1062,13 @@ export function computeOptimizerRecommendations(
   if (peakForceDropRep && strengthSetDivision) {
     parts.push(`Peak force drops after rep ${peakForceDropRep} at ~${Math.round((intMin + intMax) / 2)}%. Strength prescription: ${strengthSetDivision.sets}×${strengthSetDivision.repsPerSet} with ${Math.round(strengthSetDivision.restSeconds / 60)}+ min rest.`);
   }
+  if (clusterTaperScheme) {
+    const fb = clusterTaperScheme.forceBlock;
+    const mb = clusterTaperScheme.metabolicBlock;
+    parts.push(`Cluster-Taper hybrid: Force ${fb.sets}×${fb.reps} @ RPE ${fb.rpe} (peak-force capped, ${Math.round(clusterTaperScheme.forceRestSeconds / 60)}+ min rest), then Metabolic ${mb.sets}×${mb.reps} @ RPE ${mb.rpe} (${Math.round(clusterTaperScheme.metabolicRestSeconds / 60)}.5 min rest). All @ ${clusterTaperScheme.intensityPct}% 1RM (same weight). ~${clusterTaperScheme.totalReps} reps, Frederick ~${Math.round(clusterTaperScheme.totalFrederickLoad)}, effective ~${clusterTaperHeuristic != null ? Math.round(clusterTaperHeuristic) : '?'} (w/ RPE drift).`);
+  }
   if (taperedRepScheme) {
-    parts.push(`Tapered sets: ${taperedRepScheme.description} — ~${taperedRepScheme.totalReps} reps, prescribed Frederick ~${Math.round(taperedRepScheme.totalFrederickLoad)} (capped), effective ~${taperedRepScheme.totalFrederickHeuristic != null ? Math.round(taperedRepScheme.totalFrederickHeuristic) : '?'} (w/ RPE drift).`);
+    parts.push(`Tapered sets: ${taperedRepScheme.description} — ~${taperedRepScheme.totalReps} reps, prescribed Frederick ~${Math.round(taperedRepScheme.totalFrederickLoad)} (capped), effective ~${taperedHeuristic != null ? Math.round(taperedHeuristic) : '?'} (w/ RPE drift).`);
   }
 
   return {
@@ -955,6 +1090,11 @@ export function computeOptimizerRecommendations(
     targetRepsPerExercise,
     peakForceDropRep,
     strengthSetDivision,
-    taperedRepScheme: taperedRepScheme ?? undefined,
+    taperedRepScheme: taperedRepScheme
+      ? { ...taperedRepScheme, totalFrederickHeuristic: taperedHeuristic }
+      : undefined,
+    clusterTaperScheme: clusterTaperScheme
+      ? { ...clusterTaperScheme, totalFrederickHeuristic: clusterTaperHeuristic }
+      : undefined,
   };
 }
