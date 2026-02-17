@@ -307,8 +307,9 @@ export interface OptimizerRecommendations {
     taperRPE: number;
     totalReps: number;
     totalFrederickLoad: number;
-    description: string; // e.g. "2×10 @ RPE 8, then 8×7 @ RPE 6"
-    /** Fatigue-aware Frederick total (effective RPE = prescribed + 0.35 per set). Used for cap and display. */
+    leadIntensityPct?: number; // Epley-derived %1RM for lead sets
+    description: string; // e.g. "2×10 @ RPE 8 (71%), then 6×7 @ RPE 4.7 (same weight)"
+    /** Fatigue-aware Frederick total (effective RPE = prescribed + 0.15 per set). */
     totalFrederickHeuristic?: number;
   };
 }

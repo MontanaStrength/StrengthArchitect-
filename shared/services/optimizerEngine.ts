@@ -101,6 +101,27 @@ const REP_PREF_MAP: Record<string, { scheme: string; intensityShift: [number, nu
 
 // ─── HELPERS ─────────────────────────────────────────────────
 
+// ── Epley-based RPE ↔ Intensity helpers ──────────────────────
+//   Epley: 1RM = weight × (1 + reps/30)
+//   Rearranged: maxReps at %1RM = 30 × (100/pct - 1)
+//   RPE = 10 - RIR, where RIR = maxReps - actualReps
+
+/** Derive %1RM needed to achieve a target RPE at a given rep count (Epley inverse). */
+export const intensityForRPE = (reps: number, targetRPE: number): number => {
+  const rir = Math.max(0, 10 - targetRPE);
+  const effectiveMaxReps = reps + rir;
+  return Math.round(100 / (1 + effectiveMaxReps / 30));
+};
+
+/** Derive the Epley-consistent RPE for a given rep count at a given %1RM. */
+export const rpeAtIntensity = (reps: number, intensityPct: number): number => {
+  if (intensityPct >= 100) return 10;
+  const maxReps = 30 * (100 / intensityPct - 1);
+  const rir = Math.max(0, maxReps - reps);
+  const rpe = 10 - rir;
+  return Math.min(10, Math.max(1, Math.round(rpe * 10) / 10));
+};
+
 // ── Frederick Metabolic Stress Formula ───────────────────────
 //   Load_set = Intensity × Σ(i=1→reps) e^(-0.215 × (RIR + reps - i))
 //   Where: Intensity = %1RM, RIR = 10 - RPE
@@ -171,19 +192,21 @@ const prescribeHypertrophySets = (
 };
 
 /**
- * Tapered-set prescription for hypertrophy: a few high-metabolic sets first,
- * then taper (fewer reps per set and/or lower RPE) so total Frederick load
- * stays in the target zone while hitting Hanley's total rep target.
- * Returns a scheme like "2×10 @ RPE 8, then 8×7 @ RPE 6" with totalReps and totalFrederickLoad.
+ * Tapered-set prescription for hypertrophy (Epley-consistent RPEs):
+ *   1. Lead sets: RPE 7.5-9 target → Epley derives the correct intensity.
+ *   2. Taper sets: SAME intensity, fewer reps → Epley derives the actual RPE.
+ *   3. All RPEs are physiologically real, not hardcoded.
+ *   4. Hits Hanley total reps, stays within Frederick gate (1600).
  */
 function prescribeTaperedSets(
   targetReps: number,
-  intensityPct: number,
-  frederickCap: number, // e.g. 989 — total load per exercise should not exceed
+  _intensityPctHint: number,  // ignored — we derive intensity from Epley
+  _frederickCap: number,      // ignored — we use taperedFrederickGate
 ): {
   leadSets: number;
   leadReps: number;
   leadRPE: number;
+  leadIntensityPct: number;
   taperSets: number;
   taperReps: number;
   taperRPE: number;
@@ -191,47 +214,56 @@ function prescribeTaperedSets(
   totalFrederickLoad: number;
   description: string;
 } | null {
-  const leadRPE = 8;
-  const leadRepsOptions = [10, 9, 8];
-  const taperRepsOptions = [7, 6, 5, 8];
-  // RPE 6 minimum for taper — below that the weight is too light for useful stimulus.
-  // Prefer RPE 7 (meaningful back-off), fall back to RPE 6.
-  const taperRPEOptions = [7, 6] as const;
-
-  // Frederick gate for tapered sessions: 1500 (not the uniform-set cap of 989).
-  // With 9-11 tapered sets, totals naturally run 1200-1700 at meaningful taper RPE.
-  // 1500 keeps taper RPE at 6-7 (useful stimulus) without runaway accumulation.
   const taperedFrederickGate = 1600;
 
-  for (const leadReps of leadRepsOptions) {
-    const loadPerLeadSet = calculateSetMetabolicLoad(intensityPct, leadReps, leadRPE);
-    for (let leadSets = 2; leadSets <= 3; leadSets++) {
-      const leadLoad = leadSets * loadPerLeadSet;
-      const leadRepsTotal = leadSets * leadReps;
-      const remainingReps = targetReps - leadRepsTotal;
-      if (remainingReps < 4) continue;
+  // Lead options: RPE targets 8, 8.5, 7.5 (prefer 8); rep counts 10, 9, 8
+  const leadRPEOptions = [8, 8.5, 7.5];
+  const leadRepsOptions = [10, 9, 8];
+  const leadSetsOptions = [2, 3];
+  // Taper: fewer reps at same intensity — RPE naturally drops via Epley
+  const taperRepsOptions = [8, 7, 6, 5];
 
-      for (const taperReps of taperRepsOptions) {
-        const taperSets = Math.max(1, Math.round(remainingReps / taperReps));
-        const actualTaperReps = taperSets * taperReps;
-        const totalReps = leadRepsTotal + actualTaperReps;
-        if (Math.abs(totalReps - targetReps) > 10) continue;
+  for (const leadRPE of leadRPEOptions) {
+    for (const leadReps of leadRepsOptions) {
+      // Derive intensity from lead RPE + reps (Epley)
+      const leadIntensity = intensityForRPE(leadReps, leadRPE);
+      if (leadIntensity < 55 || leadIntensity > 85) continue; // sanity check
 
-        for (const taperRPE of taperRPEOptions) {
-          const loadPerTaperSet = calculateSetMetabolicLoad(intensityPct, taperReps, taperRPE);
+      const loadPerLeadSet = calculateSetMetabolicLoad(leadIntensity, leadReps, leadRPE);
+
+      for (const leadSets of leadSetsOptions) {
+        const leadLoad = leadSets * loadPerLeadSet;
+        const leadRepsTotal = leadSets * leadReps;
+        const remainingReps = targetReps - leadRepsTotal;
+        if (remainingReps < 4) continue;
+
+        for (const taperReps of taperRepsOptions) {
+          if (taperReps >= leadReps) continue; // taper must use fewer reps
+          const taperSets = Math.max(1, Math.round(remainingReps / taperReps));
+          const actualTaperReps = taperSets * taperReps;
+          const totalReps = leadRepsTotal + actualTaperReps;
+          if (Math.abs(totalReps - targetReps) > 10) continue;
+
+          // Derive taper RPE from Epley at same intensity but fewer reps
+          const taperRPE = rpeAtIntensity(taperReps, leadIntensity);
+          if (taperRPE < 1) continue;
+
+          const loadPerTaperSet = calculateSetMetabolicLoad(leadIntensity, taperReps, taperRPE);
           const taperLoad = taperSets * loadPerTaperSet;
           const totalFrederickLoad = leadLoad + taperLoad;
+
           if (totalFrederickLoad <= taperedFrederickGate) {
             return {
               leadSets,
               leadReps,
               leadRPE,
+              leadIntensityPct: leadIntensity,
               taperSets,
               taperReps,
               taperRPE,
               totalReps,
               totalFrederickLoad: Math.round(totalFrederickLoad * 100) / 100,
-              description: `${leadSets}×${leadReps} @ RPE ${leadRPE}, then ${taperSets}×${taperReps} @ RPE ${taperRPE}`,
+              description: `${leadSets}×${leadReps} @ RPE ${leadRPE} (${leadIntensity}%), then ${taperSets}×${taperReps} @ RPE ${taperRPE} (same weight)`,
             };
           }
         }
@@ -822,20 +854,15 @@ export function computeOptimizerRecommendations(
       metabolicLoadTarget.max,
     );
     if (taperedRepScheme) {
-      const { totalHeuristic } = taperedFrederickTotals(taperedRepScheme, midIntensity, calculateSetMetabolicLoad);
+      const epleyIntensity = taperedRepScheme.leadIntensityPct || midIntensity;
+      const { totalHeuristic } = taperedFrederickTotals(taperedRepScheme, epleyIntensity, calculateSetMetabolicLoad);
       Object.assign(taperedRepScheme, { totalFrederickHeuristic: Math.round(totalHeuristic * 100) / 100 });
-      repScheme = `Tapered: ${taperedRepScheme.description} (Frederick ~${Math.round(taperedRepScheme.totalFrederickLoad)}, effective ~${Math.round(totalHeuristic)} w/ fatigue drift, ~${taperedRepScheme.totalReps} reps)`;
+      repScheme = `Tapered: ${taperedRepScheme.description} (~${taperedRepScheme.totalReps} reps, Frederick ~${Math.round(taperedRepScheme.totalFrederickLoad)})`;
 
-      // Clamp intensity so weight is achievable at prescribed reps + RPE.
-      // Standard RPE chart: max %1RM ≈ (reps + RIR) → e1RM lookup.
-      // For lead sets (e.g. 10 reps @ RPE 8 = 2 RIR → ~12RM ≈ 69%):
-      const leadRIR = 10 - taperedRepScheme.leadRPE;
-      const effectiveMaxReps = taperedRepScheme.leadReps + leadRIR;
-      // Epley inverse: %1RM = 1 / (1 + reps/30)
-      const maxPctForLead = Math.round(100 / (1 + effectiveMaxReps / 30));
-      if (intMax > maxPctForLead) {
-        intMax = maxPctForLead;
-        intMin = Math.min(intMin, intMax - 5);
+      // Override intensity range to the Epley-derived value (lead and taper use same weight)
+      if (taperedRepScheme.leadIntensityPct) {
+        intMin = Math.max(intMin, taperedRepScheme.leadIntensityPct - 3);
+        intMax = taperedRepScheme.leadIntensityPct;
       }
     }
   }
