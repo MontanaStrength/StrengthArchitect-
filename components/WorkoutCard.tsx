@@ -260,6 +260,11 @@ const ExerciseRow: React.FC<{
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h4 className="text-base font-bold text-white leading-snug">{exercise.exerciseName}</h4>
+            {exercise.setProtocol === 'myo-reps' && (
+              <span className="text-[10px] font-bold bg-purple-500/80 text-white px-1.5 py-0.5 rounded tracking-wide uppercase">
+                Myo-Rep
+              </span>
+            )}
             {hasSwap && (
               <button
                 onClick={(e) => { e.stopPropagation(); onToggleSwap(); }}
@@ -367,9 +372,12 @@ const ExerciseRow: React.FC<{
           {/* Rest period */}
           {exercise.restSeconds > 0 && (
             <p className="text-xs text-gray-500 mt-1.5">
-              Rest {exercise.restSeconds >= 60
-                ? `${Math.floor(exercise.restSeconds / 60)}:${String(exercise.restSeconds % 60).padStart(2, '0')}`
-                : `${exercise.restSeconds}s`
+              {exercise.setProtocol === 'myo-reps'
+                ? `${exercise.restSeconds}s between mini-sets`
+                : `Rest ${exercise.restSeconds >= 60
+                    ? `${Math.floor(exercise.restSeconds / 60)}:${String(exercise.restSeconds % 60).padStart(2, '0')}`
+                    : `${exercise.restSeconds}s`
+                  }`
               }
             </p>
           )}

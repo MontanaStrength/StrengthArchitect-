@@ -10,6 +10,8 @@ interface Props {
   gymSetup?: GymSetup;
   audioMuted?: boolean;
   onAudioMutedChange?: (muted: boolean) => void;
+  /** When true, after each set the app prompts for set RPE and may suggest reducing weight for remaining sets. */
+  intraSessionAutoregulation?: boolean;
   onComplete: (sets: CompletedSet[], sessionRPE: number) => void;
   onCancel: () => void;
 }
@@ -24,27 +26,67 @@ interface SetEntry {
   actualWeight: number;
   rpe?: number;
   completed: boolean;
+  /** Myo-Rep role: 'activation' for the initial high-rep set, 'mini' for follow-up mini-sets */
+  myoRepRole?: 'activation' | 'mini';
 }
 
-const WorkoutSession: React.FC<Props> = ({ workout, gymSetup, audioMuted, onAudioMutedChange, onComplete, onCancel }) => {
+const WorkoutSession: React.FC<Props> = ({
+  workout, gymSetup, audioMuted, onAudioMutedChange,
+  intraSessionAutoregulation = false,
+  onComplete, onCancel,
+}) => {
   const barWeight = gymSetup?.barbellWeightLbs || 45;
 
   // Build flat list of all sets from exercises
+  // Myo-Rep exercises expand into 1 activation set + up to 5 mini-sets
   const allSets = React.useMemo(() => {
     const sets: SetEntry[] = [];
     for (const ex of workout.exercises) {
-      for (let s = 1; s <= ex.sets; s++) {
+      if (ex.setProtocol === 'myo-reps') {
+        // Activation set: use the reps field (e.g. "12-15 + up to 5x3-5")
+        // Extract just the activation portion for the target
+        const activationTarget = ex.reps.split('+')[0]?.trim() || ex.reps;
         sets.push({
           exerciseId: ex.exerciseId,
           exerciseName: ex.exerciseName,
-          setNumber: s,
-          targetReps: ex.reps,
+          setNumber: 1,
+          targetReps: activationTarget,
           targetWeight: ex.weightLbs || 0,
           actualReps: 0,
           actualWeight: ex.weightLbs || 0,
           rpe: undefined,
           completed: false,
+          myoRepRole: 'activation',
         });
+        // Mini-sets: 5 slots (user can finish early if reps drop)
+        for (let m = 1; m <= 5; m++) {
+          sets.push({
+            exerciseId: ex.exerciseId,
+            exerciseName: ex.exerciseName,
+            setNumber: m + 1,
+            targetReps: '3-5',
+            targetWeight: ex.weightLbs || 0,
+            actualReps: 0,
+            actualWeight: ex.weightLbs || 0,
+            rpe: undefined,
+            completed: false,
+            myoRepRole: 'mini',
+          });
+        }
+      } else {
+        for (let s = 1; s <= ex.sets; s++) {
+          sets.push({
+            exerciseId: ex.exerciseId,
+            exerciseName: ex.exerciseName,
+            setNumber: s,
+            targetReps: ex.reps,
+            targetWeight: ex.weightLbs || 0,
+            actualReps: 0,
+            actualWeight: ex.weightLbs || 0,
+            rpe: undefined,
+            completed: false,
+          });
+        }
       }
     }
     return sets;
@@ -59,6 +101,8 @@ const WorkoutSession: React.FC<Props> = ({ workout, gymSetup, audioMuted, onAudi
   const [showFinish, setShowFinish] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showFinishEarlyConfirm, setShowFinishEarlyConfirm] = useState(false);
+  const [showSetRPEPrompt, setShowSetRPEPrompt] = useState(false);
+  const [autoregSuggestion, setAutoregSuggestion] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const muted = audioMuted ?? false;
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -110,6 +154,21 @@ const WorkoutSession: React.FC<Props> = ({ workout, gymSetup, audioMuted, onAudi
     return workout.exercises.find(e => e.exerciseId === currentSet.exerciseId);
   };
 
+  const proceedAfterSetComplete = useCallback(() => {
+    const currentSet = sets[currentSetIndex];
+    const exercise = currentSet ? workout.exercises.find(e => e.exerciseId === currentSet.exerciseId) : undefined;
+    if (exercise && currentSetIndex < sets.length - 1) {
+      setRestTimeRemaining(exercise.restSeconds || 90);
+      setRestTimerActive(true);
+      if (!muted) playBeep(440, 'sine', 0.15);
+    }
+    if (currentSetIndex < sets.length - 1) {
+      setCurrentSetIndex(prev => prev + 1);
+    } else {
+      setShowFinish(true);
+    }
+  }, [currentSetIndex, sets, sets.length, muted, workout.exercises]);
+
   const handleCompleteSet = useCallback(() => {
     const updated = [...sets];
     const current = updated[currentSetIndex];
@@ -117,27 +176,42 @@ const WorkoutSession: React.FC<Props> = ({ workout, gymSetup, audioMuted, onAudi
 
     current.completed = true;
     if (current.actualReps === 0) {
-      // Default to target reps
       const targetNum = parseInt(current.targetReps) || 5;
       current.actualReps = targetNum;
     }
     setSets(updated);
 
-    // Start rest timer
-    const exercise = getCurrentExercise();
-    if (exercise && currentSetIndex < sets.length - 1) {
-      setRestTimeRemaining(exercise.restSeconds || 90);
-      setRestTimerActive(true);
-      if (!muted) playBeep(440, 'sine', 0.15);
+    if (!intraSessionAutoregulation) {
+      proceedAfterSetComplete();
+      return;
     }
+    setShowSetRPEPrompt(true);
+  }, [currentSetIndex, sets, muted, intraSessionAutoregulation, proceedAfterSetComplete]);
 
-    // Move to next set
-    if (currentSetIndex < sets.length - 1) {
-      setCurrentSetIndex(currentSetIndex + 1);
-    } else {
-      setShowFinish(true);
+  const handleSetRPE = useCallback((rpe: number) => {
+    const updated = [...sets];
+    const current = updated[currentSetIndex];
+    if (current) {
+      current.rpe = rpe;
+      setSets(updated);
     }
-  }, [currentSetIndex, sets, muted]);
+    setShowSetRPEPrompt(false);
+    if (rpe >= 8.5) {
+      setAutoregSuggestion(`That was heavy (RPE ${rpe}) — consider reducing weight by ~5% for remaining sets of ${current?.exerciseName ?? 'this exercise'}.`);
+    } else {
+      proceedAfterSetComplete();
+    }
+  }, [currentSetIndex, sets, proceedAfterSetComplete]);
+
+  const handleSkipSetRPE = useCallback(() => {
+    setShowSetRPEPrompt(false);
+    proceedAfterSetComplete();
+  }, [proceedAfterSetComplete]);
+
+  const handleDismissAutoregSuggestion = useCallback(() => {
+    setAutoregSuggestion(null);
+    proceedAfterSetComplete();
+  }, [proceedAfterSetComplete]);
 
   const handleFinish = () => {
     const completedSets: CompletedSet[] = sets
@@ -254,13 +328,64 @@ const WorkoutSession: React.FC<Props> = ({ workout, gymSetup, audioMuted, onAudi
         </div>
       )}
 
-      {/* Current Set */}
-      {currentSet && (
+      {/* Intra-session: Set RPE prompt (after completing a set) */}
+      {showSetRPEPrompt && currentSet && (
+        <div className="bg-amber-950/50 border border-amber-700 rounded-xl p-5">
+          <p className="text-amber-200 text-sm font-semibold mb-3">How did that set feel?</p>
+          <div className="flex flex-wrap gap-2 mb-3">
+            {[6, 7, 8, 9, 10].map(n => (
+              <button
+                key={n}
+                onClick={() => handleSetRPE(n)}
+                className="w-12 h-12 rounded-lg bg-neutral-800 hover:bg-amber-600 text-white font-bold text-sm transition-all"
+              >
+                {n}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={handleSkipSetRPE}
+            className="text-gray-400 hover:text-white text-sm"
+          >
+            Skip
+          </button>
+        </div>
+      )}
+
+      {/* Intra-session: Suggestion (e.g. reduce weight for remaining sets) */}
+      {autoregSuggestion && (
+        <div className="bg-amber-950/50 border border-amber-600 rounded-xl p-5">
+          <p className="text-amber-100 text-sm mb-3">{autoregSuggestion}</p>
+          <button
+            onClick={handleDismissAutoregSuggestion}
+            className="w-full py-2 bg-amber-600 hover:bg-amber-500 text-black font-semibold rounded-lg text-sm"
+          >
+            Got it
+          </button>
+        </div>
+      )}
+
+      {/* Current Set (hidden while autoreg RPE prompt or suggestion is shown) */}
+      {currentSet && !showSetRPEPrompt && !autoregSuggestion && (
         <div className="bg-neutral-900 border border-neutral-800 rounded-xl p-4 space-y-3">
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="text-lg font-bold text-white">{currentSet.exerciseName}</h3>
-              <p className="text-sm text-gray-400">Set {currentSet.setNumber} • Target: {currentSet.targetReps} reps</p>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-bold text-white">{currentSet.exerciseName}</h3>
+                {currentSet.myoRepRole && (
+                  <span className="text-[10px] font-bold bg-purple-500/80 text-white px-1.5 py-0.5 rounded tracking-wide uppercase">
+                    Myo-Rep
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-gray-400">
+                {currentSet.myoRepRole === 'activation'
+                  ? `Activation Set • Target: ${currentSet.targetReps} reps @ RPE 8`
+                  : currentSet.myoRepRole === 'mini'
+                    ? `Mini-Set ${currentSet.setNumber - 1} of 5 • Target: ${currentSet.targetReps} reps (${getCurrentExercise()?.restSeconds || 15}s rest)`
+                    : `Set ${currentSet.setNumber} • Target: ${currentSet.targetReps} reps`
+                }
+              </p>
             </div>
           </div>
 
