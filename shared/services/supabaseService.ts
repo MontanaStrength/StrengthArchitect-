@@ -2,7 +2,7 @@
 import { createClient } from '@supabase/supabase-js';
 import {
   SavedWorkout, TrainingBlock, LiftRecord, BodyCompEntry,
-  ScheduledWorkout, SleepEntry, TrainingGoal, CustomTemplate,
+  ScheduledWorkout, SkeletonExercise, SleepEntry, TrainingGoal, CustomTemplate,
   StrengthTestResult, GymSetup, OptimizerConfig, RPECalibration,
   CoachClient,
 } from '../types';
@@ -280,6 +280,65 @@ export const deleteBodyCompFromCloud = async (id: string, userId: string) => {
 
 // ===== SCHEDULED WORKOUTS (Calendar) =====
 
+interface SkeletonEnvelope {
+  __sk: 1;
+  sessionFocus?: string;
+  skeletonExercises?: SkeletonExercise[];
+  targetIntensity?: string;
+  targetVolume?: string;
+  targetSetsPerExercise?: string;
+  targetRepRange?: string;
+  trainingBlockId?: string;
+  phaseIndex?: number;
+  weekIndex?: number;
+  dayIndex?: number;
+  userNotes?: string;
+}
+
+function packSkeletonNotes(sw: ScheduledWorkout): string | null {
+  const hasSkeleton = sw.sessionFocus || sw.skeletonExercises || sw.targetIntensity || sw.trainingBlockId;
+  if (!hasSkeleton) return sw.notes || null;
+
+  const envelope: SkeletonEnvelope = {
+    __sk: 1,
+    sessionFocus: sw.sessionFocus,
+    skeletonExercises: sw.skeletonExercises,
+    targetIntensity: sw.targetIntensity,
+    targetVolume: sw.targetVolume,
+    targetSetsPerExercise: sw.targetSetsPerExercise,
+    targetRepRange: sw.targetRepRange,
+    trainingBlockId: sw.trainingBlockId,
+    phaseIndex: sw.phaseIndex,
+    weekIndex: sw.weekIndex,
+    dayIndex: sw.dayIndex,
+    userNotes: sw.notes || undefined,
+  };
+  return JSON.stringify(envelope);
+}
+
+function unpackSkeletonNotes(notes: string | null): Partial<ScheduledWorkout> {
+  if (!notes) return {};
+  try {
+    const parsed = JSON.parse(notes);
+    if (parsed && parsed.__sk === 1) {
+      return {
+        sessionFocus: parsed.sessionFocus,
+        skeletonExercises: parsed.skeletonExercises,
+        targetIntensity: parsed.targetIntensity,
+        targetVolume: parsed.targetVolume,
+        targetSetsPerExercise: parsed.targetSetsPerExercise,
+        targetRepRange: parsed.targetRepRange,
+        trainingBlockId: parsed.trainingBlockId,
+        phaseIndex: parsed.phaseIndex,
+        weekIndex: parsed.weekIndex,
+        dayIndex: parsed.dayIndex,
+        notes: parsed.userNotes || undefined,
+      };
+    }
+  } catch { /* not JSON, treat as plain notes */ }
+  return { notes };
+}
+
 export const syncScheduledWorkoutToCloud = async (sw: ScheduledWorkout, userId: string, clientId?: string | null) => {
   const { error } = await supabase
     .from('scheduled_workouts')
@@ -294,7 +353,7 @@ export const syncScheduledWorkoutToCloud = async (sw: ScheduledWorkout, userId: 
       suggested_readiness: sw.suggestedReadiness,
       suggested_intensity: sw.suggestedIntensity,
       suggested_focus: sw.suggestedFocus,
-      notes: sw.notes,
+      notes: packSkeletonNotes(sw),
       status: sw.status,
       completed_workout_id: sw.completedWorkoutId,
     });
@@ -311,19 +370,22 @@ export const fetchScheduledWorkoutsFromCloud = async (userId: string, clientId?:
 
   if (error) throw error;
 
-  return (data || []).map(row => ({
-    id: row.id,
-    date: row.date,
-    label: row.label,
-    phase: row.phase,
-    suggestedDuration: row.suggested_duration,
-    suggestedReadiness: row.suggested_readiness,
-    suggestedIntensity: row.suggested_intensity,
-    suggestedFocus: row.suggested_focus,
-    notes: row.notes,
-    status: row.status,
-    completedWorkoutId: row.completed_workout_id,
-  }));
+  return (data || []).map(row => {
+    const skeleton = unpackSkeletonNotes(row.notes);
+    return {
+      id: row.id,
+      date: row.date,
+      label: row.label,
+      phase: row.phase,
+      suggestedDuration: row.suggested_duration,
+      suggestedReadiness: row.suggested_readiness,
+      suggestedIntensity: row.suggested_intensity,
+      suggestedFocus: row.suggested_focus,
+      status: row.status,
+      completedWorkoutId: row.completed_workout_id,
+      ...skeleton,
+    };
+  });
 };
 
 export const deleteScheduledWorkoutFromCloud = async (id: string, userId: string) => {

@@ -1,12 +1,30 @@
 import React, { useState, useMemo } from 'react';
-import { ScheduledWorkout, SavedWorkout, TrainingGoalFocus, ScheduledWorkoutStatus } from '../shared/types';
-import { Calendar, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ScheduledWorkout, SavedWorkout, TrainingGoalFocus, ScheduledWorkoutStatus, TrainingPhase } from '../shared/types';
+import { Calendar, Plus, ChevronLeft, ChevronRight, X } from 'lucide-react';
 
 interface Props {
   scheduled: ScheduledWorkout[];
   history: SavedWorkout[];
   onSave: (sw: ScheduledWorkout) => void;
   onDelete: (id: string) => void;
+}
+
+const PHASE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  [TrainingPhase.HYPERTROPHY]:     { bg: 'bg-blue-900/50',   text: 'text-blue-300',   border: 'border-blue-700/50' },
+  [TrainingPhase.ACCUMULATION]:    { bg: 'bg-cyan-900/50',   text: 'text-cyan-300',   border: 'border-cyan-700/50' },
+  [TrainingPhase.STRENGTH]:        { bg: 'bg-purple-900/50', text: 'text-purple-300', border: 'border-purple-700/50' },
+  [TrainingPhase.INTENSIFICATION]: { bg: 'bg-violet-900/50', text: 'text-violet-300', border: 'border-violet-700/50' },
+  [TrainingPhase.REALIZATION]:     { bg: 'bg-rose-900/50',   text: 'text-rose-300',   border: 'border-rose-700/50' },
+  [TrainingPhase.PEAKING]:         { bg: 'bg-red-900/50',    text: 'text-red-300',    border: 'border-red-700/50' },
+  [TrainingPhase.DELOAD]:          { bg: 'bg-emerald-900/50',text: 'text-emerald-300',border: 'border-emerald-700/50' },
+};
+const DEFAULT_PHASE_COLOR = { bg: 'bg-blue-900/50', text: 'text-blue-300', border: 'border-blue-700/50' };
+
+function getWeeksFromToday(dateStr: string): number {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const date = new Date(dateStr + 'T00:00:00');
+  return (date.getTime() - today.getTime()) / (7 * 24 * 60 * 60 * 1000);
 }
 
 const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onDelete }) => {
@@ -16,6 +34,7 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
   const [addLabel, setAddLabel] = useState('');
   const [addFocus, setAddFocus] = useState<TrainingGoalFocus>('strength');
   const [addIntensity, setAddIntensity] = useState<'low' | 'moderate' | 'high' | 'rest'>('moderate');
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
@@ -125,37 +144,142 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
         {Array.from({ length: firstDayOfWeek }).map((_, i) => (
           <div key={`empty-${i}`} />
         ))}
-        {calendarDays.map(day => (
+        {calendarDays.map(day => {
+          const isSelected = selectedDate === day.date;
+          return (
           <div
             key={day.date}
-            className={`min-h-[72px] p-1 rounded-lg border text-xs transition-all ${
-              day.isToday ? 'border-amber-500 bg-amber-900/20' : 'border-neutral-800 bg-neutral-900/50'
+            onClick={() => setSelectedDate(isSelected ? null : day.date)}
+            className={`min-h-[72px] p-1 rounded-lg border text-xs transition-all cursor-pointer ${
+              isSelected ? 'border-amber-400 bg-amber-900/10 ring-1 ring-amber-400/30' :
+              day.isToday ? 'border-amber-500 bg-amber-900/20' : 'border-neutral-800 bg-neutral-900/50 hover:border-neutral-700'
             }`}
           >
             <p className={`text-right text-[10px] ${day.isToday ? 'text-amber-400 font-bold' : 'text-gray-500'}`}>{day.dayNum}</p>
-            {day.scheduled.map(s => (
-              <button
-                key={s.id}
-                onClick={() => toggleStatus(s)}
-                className={`w-full text-left px-1 py-0.5 rounded text-[9px] truncate mt-0.5 ${
-                  s.status === 'completed' ? 'bg-green-900/50 text-green-300 line-through' :
-                  s.status === 'skipped' ? 'bg-neutral-800 text-gray-500 line-through' :
-                  'bg-blue-900/50 text-blue-300'
-                }`}
-                title={`${s.label} (${s.status}) — click to toggle`}
-              >
-                {s.label}
-              </button>
-            ))}
+            {day.scheduled.map(s => {
+              const phaseColor = s.phase ? (PHASE_COLORS[s.phase] || DEFAULT_PHASE_COLOR) : DEFAULT_PHASE_COLOR;
+              const statusStyle =
+                s.status === 'completed' ? 'bg-green-900/50 text-green-300 line-through' :
+                s.status === 'skipped' ? 'bg-neutral-800 text-gray-500 line-through' :
+                `${phaseColor.bg} ${phaseColor.text}`;
+              const weeksOut = getWeeksFromToday(s.date);
+              const cellLabel = s.sessionFocus && weeksOut > 4
+                ? s.sessionFocus
+                : s.sessionFocus
+                ? `${s.sessionFocus}`
+                : s.label;
+              const exerciseHint = s.skeletonExercises && weeksOut <= 2 && s.status === 'planned'
+                ? s.skeletonExercises.filter(e => e.tier === 'primary').map(e => e.exerciseName).join(', ')
+                : undefined;
+              return (
+              <div key={s.id}>
+                <button
+                  onClick={(e) => { e.stopPropagation(); toggleStatus(s); }}
+                  className={`w-full text-left px-1 py-0.5 rounded text-[9px] truncate mt-0.5 ${statusStyle}`}
+                  title={`${s.label}${s.targetIntensity ? ` | ${s.targetIntensity}` : ''} (${s.status})`}
+                >
+                  {cellLabel}
+                </button>
+                {exerciseHint && (
+                  <p className="text-[8px] text-gray-500 truncate px-0.5">{exerciseHint}</p>
+                )}
+              </div>
+              );
+            })}
             {day.completed.map(w => (
               <div key={w.id} className="px-1 py-0.5 rounded bg-amber-900/30 text-amber-300 text-[9px] truncate mt-0.5">
-                ✓ {w.title}
+                &#10003; {w.title}
               </div>
             ))}
           </div>
-        ))}
+          );
+        })}
         </div>
       </div>
+
+      {/* Selected Day Detail Panel */}
+      {selectedDate && (() => {
+        const dayWorkouts = scheduled.filter(s => s.date === selectedDate);
+        const dayHistory = history.filter(w => {
+          const d = new Date(selectedDate + 'T00:00:00');
+          return w.timestamp >= d.getTime() && w.timestamp < d.getTime() + 86400000;
+        });
+        const weeksOut = getWeeksFromToday(selectedDate);
+        const dateLabel = new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+
+        return (
+          <div className="bg-neutral-900 border border-neutral-700 rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-bold text-white">{dateLabel}</h4>
+              <button onClick={() => setSelectedDate(null)} className="text-gray-500 hover:text-white"><X size={16} /></button>
+            </div>
+
+            {dayWorkouts.length === 0 && dayHistory.length === 0 && (
+              <p className="text-xs text-gray-500">No sessions scheduled.</p>
+            )}
+
+            {dayWorkouts.map(sw => {
+              const phaseColor = sw.phase ? (PHASE_COLORS[sw.phase] || DEFAULT_PHASE_COLOR) : DEFAULT_PHASE_COLOR;
+              return (
+                <div key={sw.id} className={`rounded-lg border p-3 space-y-2 ${phaseColor.border} ${phaseColor.bg}`}>
+                  <div className="flex items-center justify-between">
+                    <span className={`text-xs font-semibold ${phaseColor.text}`}>{sw.label}</span>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                        sw.status === 'completed' ? 'bg-green-900/60 text-green-300' :
+                        sw.status === 'skipped' ? 'bg-neutral-700 text-gray-400' :
+                        'bg-blue-900/60 text-blue-300'
+                      }`}>{sw.status}</span>
+                      <button
+                        onClick={() => onDelete(sw.id)}
+                        className="text-gray-600 hover:text-red-400 text-[10px]"
+                      >delete</button>
+                    </div>
+                  </div>
+
+                  {/* Detailed: within 2 weeks */}
+                  {weeksOut <= 2 && sw.skeletonExercises && sw.skeletonExercises.length > 0 && (
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-gray-400 uppercase tracking-wider">Exercises</p>
+                      {sw.skeletonExercises.map((ex, i) => (
+                        <div key={i} className="flex items-center justify-between text-xs">
+                          <span className="text-gray-300">{ex.exerciseName}</span>
+                          <span className="text-gray-500 text-[10px]">{ex.tier}</span>
+                        </div>
+                      ))}
+                      {sw.targetSetsPerExercise && sw.targetRepRange && (
+                        <p className="text-[10px] text-gray-500 mt-1">
+                          {sw.targetSetsPerExercise} sets x {sw.targetRepRange} reps @ {sw.targetIntensity}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Moderate: 2-4 weeks */}
+                  {weeksOut > 2 && weeksOut <= 4 && sw.skeletonExercises && sw.skeletonExercises.length > 0 && (
+                    <div>
+                      <p className="text-[10px] text-gray-400">
+                        {sw.skeletonExercises.map(ex => ex.exerciseName).join(' / ')}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Minimal: 4+ weeks */}
+                  {weeksOut > 4 && sw.targetIntensity && (
+                    <p className="text-[10px] text-gray-500">{sw.targetVolume} volume @ {sw.targetIntensity}</p>
+                  )}
+                </div>
+              );
+            })}
+
+            {dayHistory.map(w => (
+              <div key={w.id} className="rounded-lg border border-amber-700/50 bg-amber-900/30 p-3">
+                <span className="text-xs font-semibold text-amber-300">Completed: {w.title}</span>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* Legend */}
       <div className="flex flex-wrap gap-4 text-xs text-gray-400">

@@ -23,6 +23,7 @@ import {
 } from './shared/services/supabaseService';
 import { generateWorkout, TrainingContext, type SwapAndRebuildRequest } from './shared/services/geminiService';
 import { estimate1RM, getDynamic1RMs } from './shared/utils';
+import { generateBlockSkeleton } from './shared/services/blockSkeletonGenerator';
 import { initAudio } from './shared/utils/audioManager';
 
 // Component imports
@@ -1084,6 +1085,20 @@ const App: React.FC = () => {
                 setTrainingBlocks(final);
                 if (user) {
                   for (const b of final) syncTrainingBlockToCloud(b, user.id, cid).catch(console.error);
+                }
+
+                // Regenerate skeleton sessions for this block
+                const oldBlockWorkouts = scheduledWorkouts.filter(s => s.trainingBlockId === block.id);
+                if (user) {
+                  for (const w of oldBlockWorkouts) deleteScheduledWorkoutFromCloud(w.id, user.id).catch(console.error);
+                }
+                const skeleton = generateBlockSkeleton(block);
+                setScheduledWorkouts(prev => [
+                  ...prev.filter(s => s.trainingBlockId !== block.id),
+                  ...skeleton,
+                ]);
+                if (user) {
+                  for (const w of skeleton) syncScheduledWorkoutToCloud(w, user.id, cid).catch(console.error);
                 }
               }}
               onNavigateToLift={() => setView('lift')}

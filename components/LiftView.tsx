@@ -95,15 +95,19 @@ const LiftView: React.FC<Props> = ({
     : 'Set up your training plan first — block name, schedule, and exercises.';
 
   // Compute block context — week number, rest day, next session
+  // Week number = full weeks elapsed since block start (0–6 days → Week 1, 7–13 → Week 2). totalWeeks from phases sum when available.
   const blockContext = useMemo(() => {
     if (!activeBlock) return null;
+    const totalWeeks =
+      activeBlock.phases?.length > 0
+        ? activeBlock.phases.reduce((s, p) => s + p.weekCount, 0)
+        : activeBlock.lengthWeeks || 8;
     const now = Date.now();
     const elapsed = now - activeBlock.startDate;
     const weekNum = Math.min(
-      Math.floor(elapsed / (7 * 24 * 60 * 60 * 1000)) + 1,
-      activeBlock.lengthWeeks || 8,
+      Math.max(1, Math.floor(elapsed / (7 * 24 * 60 * 60 * 1000)) + 1),
+      totalWeeks,
     );
-    const totalWeeks = activeBlock.lengthWeeks || 8;
     const todayDow = new Date().getDay(); // 0=Sun
     const days = activeBlock.trainingDays;
     const isTrainingDay = days ? days.includes(todayDow) : true;

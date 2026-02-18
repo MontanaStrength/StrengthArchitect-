@@ -326,10 +326,18 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
       lengthWeeks >= 3
         ? buildPhasesFromBreakpoints(phaseBreakpoint1, phaseBreakpoint2, lengthWeeks)
         : block?.phases || [];
+    const phasesChanged =
+      (block?.phases?.length ?? 0) !== phases.length ||
+      (block?.phases ?? []).some((p, i) => phases[i]?.weekCount !== p.weekCount || phases[i]?.phase !== p.phase);
+    const lengthChanged = block?.lengthWeeks !== lengthWeeks;
+    const structureChanged = lengthChanged || phasesChanged;
+    // When block structure (length or phases) changes, reset start date so "Week 1" lines up with first sessions
+    const startDate =
+      block && structureChanged ? Date.now() : (block?.startDate || Date.now());
     const updated: TrainingBlock = {
       id: block?.id || crypto.randomUUID(),
       name: name.trim(),
-      startDate: block?.startDate || Date.now(),
+      startDate,
       phases,
       goalEvent: block?.goalEvent,
       isActive: block?.isActive ?? true,

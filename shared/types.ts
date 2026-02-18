@@ -545,6 +545,12 @@ export interface RecoveryProtocol {
 
 export type ScheduledWorkoutStatus = 'planned' | 'completed' | 'skipped';
 
+export interface SkeletonExercise {
+  exerciseId: string;
+  exerciseName: string;
+  tier: 'primary' | 'secondary' | 'tertiary' | 'accessory';
+}
+
 export interface ScheduledWorkout {
   id: string;
   date: string; // ISO YYYY-MM-DD
@@ -562,6 +568,18 @@ export interface ScheduledWorkout {
   phaseIndex?: number;
   weekIndex?: number;
   dayIndex?: number;
+  /** Skeleton: session focus derived from split pattern rotation */
+  sessionFocus?: string;
+  /** Skeleton: planned exercises for this session */
+  skeletonExercises?: SkeletonExercise[];
+  /** Skeleton: target intensity from phase */
+  targetIntensity?: string;
+  /** Skeleton: target volume from phase */
+  targetVolume?: string;
+  /** Skeleton: target sets per exercise */
+  targetSetsPerExercise?: string;
+  /** Skeleton: target rep range */
+  targetRepRange?: string;
 }
 
 // ===== SLEEP =====
