@@ -281,6 +281,7 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
 
   // Local state — initialized from block or sensible defaults
   const [name, setName] = useState(block?.name || '');
+  const [startDate, setStartDate] = useState<number>(block?.startDate || Date.now());
   const [lengthWeeks, setLengthWeeks] = useState(block?.lengthWeeks || 8);
   const [goalBias, setGoalBias] = useState(block?.goalBias ?? 50);
   const [phaseBreakpoint1, setPhaseBreakpoint1] = useState(() =>
@@ -339,10 +340,6 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
       (block?.phases?.length ?? 0) !== phases.length ||
       (block?.phases ?? []).some((p, i) => phases[i]?.weekCount !== p.weekCount || phases[i]?.phase !== p.phase);
     const lengthChanged = block?.lengthWeeks !== lengthWeeks;
-    const structureChanged = lengthChanged || phasesChanged;
-    // When block structure (length or phases) changes, reset start date so "Week 1" lines up with first sessions
-    const startDate =
-      block && structureChanged ? Date.now() : (block?.startDate || Date.now());
     const updated: TrainingBlock = {
       id: block?.id || crypto.randomUUID(),
       name: name.trim(),
@@ -538,6 +535,19 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
             {!name.trim() && (
               <p className="text-xs text-amber-400/70 mt-2">Give your block a name so you can find it later!</p>
             )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Start Date</label>
+            <input
+              type="date"
+              value={new Date(startDate).toISOString().split('T')[0]}
+              onChange={e => {
+                const d = new Date(e.target.value + 'T00:00:00');
+                if (!isNaN(d.getTime())) setStartDate(d.getTime());
+              }}
+              className="w-full bg-neutral-900 border border-neutral-700 rounded-lg px-3 py-2.5 text-white text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition-all"
+            />
           </div>
 
           <div>
