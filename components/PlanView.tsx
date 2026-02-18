@@ -240,11 +240,12 @@ function defaultPhaseBreakpoints(lengthWeeks: number, existingPhases?: TrainingB
   return [third, lengthWeeks - Math.max(1, Math.floor((lengthWeeks - third) / 2))];
 }
 
-/** Build 3-phase array (Hypertrophy → Strength → Peaking) from breakpoints and block length. */
+/** Build 3-phase array (Hypertrophy -> Strength -> Peaking) from breakpoints and block length. */
 function buildPhasesFromBreakpoints(
   breakpoint1: number,
   breakpoint2: number,
-  lengthWeeks: number
+  lengthWeeks: number,
+  daysPerWeek: number,
 ): TrainingBlockPhase[] {
   const w1 = breakpoint1;
   const w2 = breakpoint2 - breakpoint1;
@@ -252,10 +253,11 @@ function buildPhasesFromBreakpoints(
   const hyp = PHASE_PRESETS[TrainingPhase.HYPERTROPHY];
   const str = PHASE_PRESETS[TrainingPhase.STRENGTH];
   const peak = PHASE_PRESETS[TrainingPhase.PEAKING];
+  const peakDays = Math.max(3, daysPerWeek - 1);
   return [
-    { ...hyp, weekCount: w1, sessionsPerWeek: 4, splitPattern: 'upper-lower', description: hyp.description },
-    { ...str, weekCount: w2, sessionsPerWeek: 4, splitPattern: 'upper-lower', description: str.description },
-    { ...peak, weekCount: w3, sessionsPerWeek: 3, splitPattern: 'squat-bench-deadlift', description: peak.description },
+    { ...hyp, weekCount: w1, sessionsPerWeek: daysPerWeek, splitPattern: 'upper-lower', description: hyp.description },
+    { ...str, weekCount: w2, sessionsPerWeek: daysPerWeek, splitPattern: 'upper-lower', description: str.description },
+    { ...peak, weekCount: w3, sessionsPerWeek: peakDays, splitPattern: 'squat-bench-deadlift', description: peak.description },
   ];
 }
 
@@ -324,7 +326,7 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
     if (!isComplete) return;
     const phases =
       lengthWeeks >= 3
-        ? buildPhasesFromBreakpoints(phaseBreakpoint1, phaseBreakpoint2, lengthWeeks)
+        ? buildPhasesFromBreakpoints(phaseBreakpoint1, phaseBreakpoint2, lengthWeeks, Math.max(trainingDays.length, 3))
         : block?.phases || [];
     const phasesChanged =
       (block?.phases?.length ?? 0) !== phases.length ||
