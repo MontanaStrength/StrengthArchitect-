@@ -1104,14 +1104,19 @@ const App: React.FC = () => {
                   for (const b of final) syncTrainingBlockToCloud(b, user.id, cid).catch(console.error);
                 }
 
-                // Regenerate skeleton sessions for this block
+                // Regenerate skeleton sessions: clear this block's old sessions + orphans from deleted blocks
+                const validBlockIds = new Set(final.map(b => b.id));
+                const staleWorkouts = scheduledWorkouts.filter(
+                  s => s.trainingBlockId && !validBlockIds.has(s.trainingBlockId)
+                );
                 const oldBlockWorkouts = scheduledWorkouts.filter(s => s.trainingBlockId === block.id);
                 if (user) {
-                  for (const w of oldBlockWorkouts) deleteScheduledWorkoutFromCloud(w.id, user.id).catch(console.error);
+                  for (const w of [...oldBlockWorkouts, ...staleWorkouts]) deleteScheduledWorkoutFromCloud(w.id, user.id).catch(console.error);
                 }
                 const skeleton = generateBlockSkeleton(block);
                 setScheduledWorkouts(prev => [
-                  ...prev.filter(s => s.trainingBlockId !== block.id),
+                  ...prev.filter(s => !s.trainingBlockId || validBlockIds.has(s.trainingBlockId))
+                       .filter(s => s.trainingBlockId !== block.id),
                   ...skeleton,
                 ]);
                 if (user) {
@@ -1363,6 +1368,11 @@ const App: React.FC = () => {
             onDelete={async (id) => {
               setTrainingBlocks(prev => prev.filter(b => b.id !== id));
               if (user) deleteTrainingBlockFromCloud(id, user.id).catch(console.error);
+              const blockSessions = scheduledWorkouts.filter(s => s.trainingBlockId === id);
+              setScheduledWorkouts(prev => prev.filter(s => s.trainingBlockId !== id));
+              if (user) {
+                for (const w of blockSessions) deleteScheduledWorkoutFromCloud(w.id, user.id).catch(console.error);
+              }
             }}
           />
         )}
