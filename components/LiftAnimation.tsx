@@ -67,46 +67,32 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
         >
           <defs>
             <linearGradient id="la-bar" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#f6f8fb" />
-              <stop offset="20%" stopColor="#e8edf3" />
-              <stop offset="48%" stopColor="#c1c9d2" />
-              <stop offset="72%" stopColor="#a3adb8" />
-              <stop offset="100%" stopColor="#768290" />
-            </linearGradient>
-
-            <linearGradient id="la-bar-sheen" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#ffffff" stopOpacity="0" />
-              <stop offset="48%" stopColor="#ffffff" stopOpacity="0" />
-              <stop offset="52%" stopColor="#ffffff" stopOpacity="0.32" />
-              <stop offset="56%" stopColor="#ffffff" stopOpacity="0" />
-              <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+              <stop offset="0%" stopColor="#eef2f7" />
+              <stop offset="35%" stopColor="#cdd5df" />
+              <stop offset="70%" stopColor="#9aa5b2" />
+              <stop offset="100%" stopColor="#6f7b89" />
             </linearGradient>
 
             <linearGradient id="la-plate" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#fef3c7" />
-              <stop offset="22%" stopColor="#fcd34d" />
-              <stop offset="60%" stopColor="#f59e0b" />
-              <stop offset="100%" stopColor="#92400e" />
+              <stop offset="0%" stopColor="#d8dee6" />
+              <stop offset="45%" stopColor="#b2bcc8" />
+              <stop offset="100%" stopColor="#818d9b" />
             </linearGradient>
 
             <radialGradient id="la-plate-core" cx="38%" cy="34%" r="70%">
-              <stop offset="0%" stopColor="#ffd978" />
-              <stop offset="55%" stopColor="#f59e0b" />
-              <stop offset="100%" stopColor="#7c2d12" />
-            </linearGradient>
+              <stop offset="0%" stopColor="#cdd4dd" />
+              <stop offset="55%" stopColor="#9ea9b7" />
+              <stop offset="100%" stopColor="#5f6b79" />
+            </radialGradient>
 
             <linearGradient id="la-force-fill" x1="0" y1="1" x2="0" y2="0">
-              <stop offset="0%" stopColor="#f59e0b" stopOpacity="0" />
-              <stop offset="40%" stopColor="#f59e0b" stopOpacity="0.06" />
-              <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.12" />
+              <stop offset="0%" stopColor="#94a3b8" stopOpacity="0" />
+              <stop offset="40%" stopColor="#94a3b8" stopOpacity="0.06" />
+              <stop offset="100%" stopColor="#cbd5e1" stopOpacity="0.12" />
             </linearGradient>
 
             <filter id="la-dot-glow" x="-60%" y="-60%" width="220%" height="220%">
               <feGaussianBlur stdDeviation="3.5" />
-            </filter>
-
-            <filter id="la-soft-shadow" x="-80%" y="-80%" width="260%" height="260%">
-              <feGaussianBlur stdDeviation="1.5" />
             </filter>
 
             <clipPath id="la-chart-reveal">
@@ -138,7 +124,7 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
                 y1={chartBaseline - f}
                 x2={chartRight}
                 y2={chartBaseline - f}
-                stroke="#f59e0b"
+                stroke="#94a3b8"
                 strokeWidth="0.3"
                 opacity="0.08"
                 strokeDasharray="3 4"
@@ -150,7 +136,7 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
               y1={chartBaseline}
               x2={chartRight}
               y2={chartBaseline}
-              stroke="#f59e0b"
+              stroke="#94a3b8"
               strokeWidth="0.5"
               opacity="0.1"
             />
@@ -160,7 +146,7 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
               y1={chartBaseline}
               x2={chartLeft}
               y2={chartBaseline - 145}
-              stroke="#f59e0b"
+              stroke="#94a3b8"
               strokeWidth="0.5"
               opacity="0.1"
             />
@@ -169,7 +155,7 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
               x={chartLeft - 2}
               y={chartBaseline - 43}
               textAnchor="end"
-              fill="#f59e0b"
+              fill="#94a3b8"
               opacity="0.12"
               fontSize="5"
               fontFamily="monospace"
@@ -180,7 +166,7 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
               x={chartLeft - 2}
               y={chartBaseline - 88}
               textAnchor="end"
-              fill="#f59e0b"
+              fill="#94a3b8"
               opacity="0.12"
               fontSize="5"
               fontFamily="monospace"
@@ -191,7 +177,7 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
               x={chartLeft - 2}
               y={chartBaseline - 133}
               textAnchor="end"
-              fill="#f59e0b"
+              fill="#94a3b8"
               opacity="0.12"
               fontSize="5"
               fontFamily="monospace"
@@ -205,7 +191,7 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
                 x={chartLeft + repSpacing * (i + 0.5)}
                 y={chartBaseline + 8}
                 textAnchor="middle"
-                fill="#f59e0b"
+                fill="#94a3b8"
                 opacity="0.1"
                 fontSize="5"
                 fontFamily="monospace"
@@ -218,7 +204,7 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
               x={chartLeft + chartWidth / 2}
               y={chartBaseline + 16}
               textAnchor="middle"
-              fill="#f59e0b"
+              fill="#94a3b8"
               opacity="0.08"
               fontSize="5"
               fontFamily="monospace"
@@ -235,7 +221,7 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
 
             <path
               d={forcePath}
-              stroke="#f59e0b"
+              stroke="#cbd5e1"
               strokeWidth="1.5"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -244,8 +230,8 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
               clipPath="url(#la-chart-reveal)"
             />
 
-            <circle r="3" fill="#f59e0b" opacity="0.55" style={{ animation: `la-dot ${chartDuration}s linear infinite` }} />
-            <circle r="5.5" fill="#f59e0b" opacity="0.12" filter="url(#la-dot-glow)" style={{ animation: `la-dot ${chartDuration}s linear infinite` }} />
+            <circle r="3" fill="#cbd5e1" opacity="0.7" style={{ animation: `la-dot ${chartDuration}s linear infinite` }} />
+            <circle r="5.5" fill="#cbd5e1" opacity="0.12" filter="url(#la-dot-glow)" style={{ animation: `la-dot ${chartDuration}s linear infinite` }} />
 
             {peakHeights.map((h, i) => {
               const cx = chartLeft + repSpacing * (i + 0.5);
@@ -257,7 +243,7 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
                   cx={cx}
                   cy={cy}
                   r="2"
-                  fill="#f59e0b"
+                  fill="#cbd5e1"
                   opacity="0"
                   style={{
                     animation: `la-peak-appear ${chartDuration}s linear infinite`,
@@ -269,14 +255,10 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
           </g>
 
           <g style={{ animation: `la-rep ${chartDuration}s linear infinite` }}>
-            {/* subtle cinematic backlight */}
-            <ellipse cx="120" cy="120" rx="104" ry="54" fill="#f59e0b" opacity="0.04" filter="url(#la-soft-shadow)" />
-
             {/* shaft */}
             <rect x="34" y="117" width="172" height="6" rx="3" fill="url(#la-bar)" />
             <rect x="34" y="116.9" width="172" height="1.1" rx="0.55" fill="#ffffff" opacity="0.42" />
             <rect x="34" y="122.2" width="172" height="1.2" rx="0.6" fill="#0f1115" opacity="0.32" />
-            <rect x="-40" y="114.6" width="320" height="10.2" rx="5.1" fill="url(#la-bar-sheen)" style={{ animation: 'la-sheen 6.8s ease-in-out infinite' }} />
 
             {/* sleeves */}
             <rect x="27" y="115.8" width="8" height="8.4" rx="2" fill="#afb9c3" />
@@ -295,21 +277,21 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
 
             {/* left plates */}
             <circle cx="22" cy="120" r="12.5" fill="url(#la-plate)" />
-            <circle cx="22" cy="120" r="12.5" fill="none" stroke="#fef3c7" strokeOpacity="0.25" strokeWidth="0.9" />
+            <circle cx="22" cy="120" r="12.5" fill="none" stroke="#e2e8f0" strokeOpacity="0.32" strokeWidth="0.9" />
             <circle cx="22" cy="120" r="8.9" fill="url(#la-plate-core)" />
-            <circle cx="22" cy="120" r="3.1" fill="#6b3b12" />
+            <circle cx="22" cy="120" r="3.1" fill="#4b5563" />
             <circle cx="12.5" cy="120" r="9.2" fill="url(#la-plate-core)" />
-            <circle cx="12.5" cy="120" r="9.2" fill="none" stroke="#fcd34d" strokeOpacity="0.2" strokeWidth="0.8" />
-            <circle cx="12.5" cy="120" r="2.3" fill="#5b3111" />
+            <circle cx="12.5" cy="120" r="9.2" fill="none" stroke="#cbd5e1" strokeOpacity="0.25" strokeWidth="0.8" />
+            <circle cx="12.5" cy="120" r="2.3" fill="#374151" />
 
             {/* right plates */}
             <circle cx="218" cy="120" r="12.5" fill="url(#la-plate)" />
-            <circle cx="218" cy="120" r="12.5" fill="none" stroke="#fef3c7" strokeOpacity="0.25" strokeWidth="0.9" />
+            <circle cx="218" cy="120" r="12.5" fill="none" stroke="#e2e8f0" strokeOpacity="0.32" strokeWidth="0.9" />
             <circle cx="218" cy="120" r="8.9" fill="url(#la-plate-core)" />
-            <circle cx="218" cy="120" r="3.1" fill="#6b3b12" />
+            <circle cx="218" cy="120" r="3.1" fill="#4b5563" />
             <circle cx="227.5" cy="120" r="9.2" fill="url(#la-plate-core)" />
-            <circle cx="227.5" cy="120" r="9.2" fill="none" stroke="#fcd34d" strokeOpacity="0.2" strokeWidth="0.8" />
-            <circle cx="227.5" cy="120" r="2.3" fill="#5b3111" />
+            <circle cx="227.5" cy="120" r="9.2" fill="none" stroke="#cbd5e1" strokeOpacity="0.25" strokeWidth="0.8" />
+            <circle cx="227.5" cy="120" r="2.3" fill="#374151" />
           </g>
 
           <ellipse
@@ -317,8 +299,8 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
             cy="218"
             rx="52"
             ry="4.5"
-            fill="#5b6470"
-            opacity="0.08"
+            fill="#64748b"
+            opacity="0.12"
             style={{ transformOrigin: '120px 218px', animation: `la-shadow ${chartDuration}s linear infinite` }}
           />
         </svg>
@@ -331,24 +313,6 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
 
         @keyframes la-shadow {
           ${shadowKF}
-        }
-
-        @keyframes la-sheen {
-          0%, 25% {
-            transform: translateX(-250px) skewX(-14deg);
-            opacity: 0;
-          }
-          36% {
-            opacity: 0.85;
-          }
-          58% {
-            transform: translateX(250px) skewX(-14deg);
-            opacity: 0;
-          }
-          100% {
-            transform: translateX(250px) skewX(-14deg);
-            opacity: 0;
-          }
         }
 
         @keyframes la-reveal {
