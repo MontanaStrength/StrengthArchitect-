@@ -275,23 +275,37 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
             {/* center mark */}
             <rect x="118.4" y="114" width="3.2" height="12" rx="1.2" fill="none" stroke="#d5dbe1" strokeWidth="0.7" opacity="0.4" />
 
-            {/* left plates */}
-            <circle cx="22" cy="120" r="12.5" fill="url(#la-plate)" />
-            <circle cx="22" cy="120" r="12.5" fill="none" stroke="#e2e8f0" strokeOpacity="0.32" strokeWidth="0.9" />
-            <circle cx="22" cy="120" r="8.9" fill="url(#la-plate-core)" />
-            <circle cx="22" cy="120" r="3.1" fill="#4b5563" />
-            <circle cx="12.5" cy="120" r="9.2" fill="url(#la-plate-core)" />
-            <circle cx="12.5" cy="120" r="9.2" fill="none" stroke="#cbd5e1" strokeOpacity="0.25" strokeWidth="0.8" />
-            <circle cx="12.5" cy="120" r="2.3" fill="#374151" />
+            {/* left plates — Olympic setup: 45 / 45 / 25 */}
+            <circle cx="24" cy="120" r="11.8" fill="url(#la-plate)" />
+            <circle cx="24" cy="120" r="11.8" fill="none" stroke="#e2e8f0" strokeOpacity="0.32" strokeWidth="0.85" />
+            <circle cx="24" cy="120" r="8.4" fill="url(#la-plate-core)" />
+            <circle cx="24" cy="120" r="2.8" fill="#374151" />
 
-            {/* right plates */}
-            <circle cx="218" cy="120" r="12.5" fill="url(#la-plate)" />
-            <circle cx="218" cy="120" r="12.5" fill="none" stroke="#e2e8f0" strokeOpacity="0.32" strokeWidth="0.9" />
-            <circle cx="218" cy="120" r="8.9" fill="url(#la-plate-core)" />
-            <circle cx="218" cy="120" r="3.1" fill="#4b5563" />
-            <circle cx="227.5" cy="120" r="9.2" fill="url(#la-plate-core)" />
-            <circle cx="227.5" cy="120" r="9.2" fill="none" stroke="#cbd5e1" strokeOpacity="0.25" strokeWidth="0.8" />
-            <circle cx="227.5" cy="120" r="2.3" fill="#374151" />
+            <circle cx="16" cy="120" r="11.8" fill="url(#la-plate)" />
+            <circle cx="16" cy="120" r="11.8" fill="none" stroke="#e2e8f0" strokeOpacity="0.3" strokeWidth="0.85" />
+            <circle cx="16" cy="120" r="8.4" fill="url(#la-plate-core)" />
+            <circle cx="16" cy="120" r="2.8" fill="#374151" />
+
+            <circle cx="8" cy="120" r="8.4" fill="#8b97a6" />
+            <circle cx="8" cy="120" r="8.4" fill="none" stroke="#cbd5e1" strokeOpacity="0.28" strokeWidth="0.75" />
+            <circle cx="8" cy="120" r="5.8" fill="#738092" />
+            <circle cx="8" cy="120" r="2.2" fill="#334155" />
+
+            {/* right plates — Olympic setup: 45 / 45 / 25 */}
+            <circle cx="216" cy="120" r="11.8" fill="url(#la-plate)" />
+            <circle cx="216" cy="120" r="11.8" fill="none" stroke="#e2e8f0" strokeOpacity="0.32" strokeWidth="0.85" />
+            <circle cx="216" cy="120" r="8.4" fill="url(#la-plate-core)" />
+            <circle cx="216" cy="120" r="2.8" fill="#374151" />
+
+            <circle cx="224" cy="120" r="11.8" fill="url(#la-plate)" />
+            <circle cx="224" cy="120" r="11.8" fill="none" stroke="#e2e8f0" strokeOpacity="0.3" strokeWidth="0.85" />
+            <circle cx="224" cy="120" r="8.4" fill="url(#la-plate-core)" />
+            <circle cx="224" cy="120" r="2.8" fill="#374151" />
+
+            <circle cx="232" cy="120" r="8.4" fill="#8b97a6" />
+            <circle cx="232" cy="120" r="8.4" fill="none" stroke="#cbd5e1" strokeOpacity="0.28" strokeWidth="0.75" />
+            <circle cx="232" cy="120" r="5.8" fill="#738092" />
+            <circle cx="232" cy="120" r="2.2" fill="#334155" />
           </g>
 
           <ellipse
