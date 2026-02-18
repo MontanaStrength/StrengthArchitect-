@@ -254,58 +254,52 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
             })}
           </g>
 
+          {/* Barbell: real-world proportions — 50mm sleeve, 450mm 45s (9×), 25s ~250mm */}
           <g style={{ animation: `la-rep ${chartDuration}s linear infinite` }}>
-            {/* shaft */}
-            <rect x="34" y="117" width="172" height="6" rx="3" fill="url(#la-bar)" />
-            <rect x="34" y="116.9" width="172" height="1.1" rx="0.55" fill="#ffffff" opacity="0.42" />
-            <rect x="34" y="122.2" width="172" height="1.2" rx="0.6" fill="#0f1115" opacity="0.32" />
+            {/* shaft (28mm visual = thinner than sleeve), full length through collars */}
+            <rect x="6.5" y="118.9" width="227" height="2.2" rx="1.1" fill="url(#la-bar)" />
+            <rect x="6.5" y="118.85" width="227" height="0.5" rx="0.25" fill="#e2e8f0" opacity="0.5" />
+            <rect x="6.5" y="120.65" width="227" height="0.5" rx="0.25" fill="#1e293b" opacity="0.25" />
 
-            {/* sleeves */}
-            <rect x="27" y="115.8" width="8" height="8.4" rx="2" fill="#afb9c3" />
-            <rect x="205" y="115.8" width="8" height="8.4" rx="2" fill="#afb9c3" />
-            <rect x="27" y="115.8" width="8" height="1.2" rx="0.6" fill="#ffffff" opacity="0.35" />
-            <rect x="205" y="115.8" width="8" height="1.2" rx="0.6" fill="#ffffff" opacity="0.35" />
-
-            {/* collars */}
-            <rect x="42" y="113.5" width="4.5" height="13" rx="1.5" fill="#c9d0d8" />
-            <rect x="193.5" y="113.5" width="4.5" height="13" rx="1.5" fill="#c9d0d8" />
-            <rect x="42" y="113.6" width="4.5" height="1.1" rx="0.55" fill="#ffffff" opacity="0.35" />
-            <rect x="193.5" y="113.6" width="4.5" height="1.1" rx="0.55" fill="#ffffff" opacity="0.35" />
+            {/* left sleeve 50mm → 4 units */}
+            <rect x="0" y="118" width="4" height="4" rx="2" fill="#afb9c3" />
+            <rect x="0" y="118" width="4" height="0.6" rx="0.3" fill="#e2e8f0" opacity="0.4" />
+            {/* left collar */}
+            <rect x="4" y="117.6" width="2.5" height="4.8" rx="1" fill="#94a3b8" />
+            {/* right collar */}
+            <rect x="233.5" y="117.6" width="2.5" height="4.8" rx="1" fill="#94a3b8" />
+            {/* right sleeve */}
+            <rect x="236" y="118" width="4" height="4" rx="2" fill="#afb9c3" />
+            <rect x="236" y="118" width="4" height="0.6" rx="0.3" fill="#e2e8f0" opacity="0.4" />
 
             {/* center mark */}
-            <rect x="118.4" y="114" width="3.2" height="12" rx="1.2" fill="none" stroke="#d5dbe1" strokeWidth="0.7" opacity="0.4" />
+            <rect x="118.5" y="117.8" width="2" height="4.4" rx="0.6" fill="none" stroke="#94a3b8" strokeWidth="0.5" opacity="0.5" />
 
-            {/* left plates — Olympic setup: 45 / 45 / 25 */}
-            <circle cx="24" cy="120" r="11.8" fill="url(#la-plate)" />
-            <circle cx="24" cy="120" r="11.8" fill="none" stroke="#e2e8f0" strokeOpacity="0.32" strokeWidth="0.85" />
-            <circle cx="24" cy="120" r="8.4" fill="url(#la-plate-core)" />
-            <circle cx="24" cy="120" r="2.8" fill="#374151" />
+            {/* left plates: 25 (inner) then 45, 45 — 25 r=10, 45 r=18, flush stacked */}
+            <circle cx="16.5" cy="120" r="10" fill="url(#la-plate)" />
+            <circle cx="16.5" cy="120" r="10" fill="none" stroke="#cbd5e1" strokeOpacity="0.35" strokeWidth="0.6" />
+            <circle cx="16.5" cy="120" r="2.2" fill="#334155" />
 
-            <circle cx="16" cy="120" r="11.8" fill="url(#la-plate)" />
-            <circle cx="16" cy="120" r="11.8" fill="none" stroke="#e2e8f0" strokeOpacity="0.3" strokeWidth="0.85" />
-            <circle cx="16" cy="120" r="8.4" fill="url(#la-plate-core)" />
-            <circle cx="16" cy="120" r="2.8" fill="#374151" />
+            <circle cx="44.5" cy="120" r="18" fill="url(#la-plate)" />
+            <circle cx="44.5" cy="120" r="18" fill="none" stroke="#cbd5e1" strokeOpacity="0.35" strokeWidth="0.8" />
+            <circle cx="44.5" cy="120" r="2.2" fill="#334155" />
 
-            <circle cx="8" cy="120" r="8.4" fill="#8b97a6" />
-            <circle cx="8" cy="120" r="8.4" fill="none" stroke="#cbd5e1" strokeOpacity="0.28" strokeWidth="0.75" />
-            <circle cx="8" cy="120" r="5.8" fill="#738092" />
-            <circle cx="8" cy="120" r="2.2" fill="#334155" />
+            <circle cx="80.5" cy="120" r="18" fill="url(#la-plate)" />
+            <circle cx="80.5" cy="120" r="18" fill="none" stroke="#cbd5e1" strokeOpacity="0.35" strokeWidth="0.8" />
+            <circle cx="80.5" cy="120" r="2.2" fill="#334155" />
 
-            {/* right plates — Olympic setup: 45 / 45 / 25 */}
-            <circle cx="216" cy="120" r="11.8" fill="url(#la-plate)" />
-            <circle cx="216" cy="120" r="11.8" fill="none" stroke="#e2e8f0" strokeOpacity="0.32" strokeWidth="0.85" />
-            <circle cx="216" cy="120" r="8.4" fill="url(#la-plate-core)" />
-            <circle cx="216" cy="120" r="2.8" fill="#374151" />
+            {/* right plates: 45, 45, 25 (inner) — mirror of left */}
+            <circle cx="159.5" cy="120" r="18" fill="url(#la-plate)" />
+            <circle cx="159.5" cy="120" r="18" fill="none" stroke="#cbd5e1" strokeOpacity="0.35" strokeWidth="0.8" />
+            <circle cx="159.5" cy="120" r="2.2" fill="#334155" />
 
-            <circle cx="224" cy="120" r="11.8" fill="url(#la-plate)" />
-            <circle cx="224" cy="120" r="11.8" fill="none" stroke="#e2e8f0" strokeOpacity="0.3" strokeWidth="0.85" />
-            <circle cx="224" cy="120" r="8.4" fill="url(#la-plate-core)" />
-            <circle cx="224" cy="120" r="2.8" fill="#374151" />
+            <circle cx="195.5" cy="120" r="18" fill="url(#la-plate)" />
+            <circle cx="195.5" cy="120" r="18" fill="none" stroke="#cbd5e1" strokeOpacity="0.35" strokeWidth="0.8" />
+            <circle cx="195.5" cy="120" r="2.2" fill="#334155" />
 
-            <circle cx="232" cy="120" r="8.4" fill="#8b97a6" />
-            <circle cx="232" cy="120" r="8.4" fill="none" stroke="#cbd5e1" strokeOpacity="0.28" strokeWidth="0.75" />
-            <circle cx="232" cy="120" r="5.8" fill="#738092" />
-            <circle cx="232" cy="120" r="2.2" fill="#334155" />
+            <circle cx="223.5" cy="120" r="10" fill="url(#la-plate)" />
+            <circle cx="223.5" cy="120" r="10" fill="none" stroke="#cbd5e1" strokeOpacity="0.35" strokeWidth="0.6" />
+            <circle cx="223.5" cy="120" r="2.2" fill="#334155" />
           </g>
 
           <ellipse
