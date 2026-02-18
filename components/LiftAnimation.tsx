@@ -116,6 +116,38 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
             </clipPath>
           </defs>
 
+          {/* Barbell drawn first so the force curve (drawn after) reads clearly in front */}
+          <g style={{ animation: `la-rep ${chartDuration}s linear infinite` }}>
+            <rect x="6.5" y="118.9" width="227" height="2.2" rx="1.1" fill="url(#la-bar)" />
+            <rect x="6.5" y="118.85" width="227" height="0.5" rx="0.25" fill="#e2e8f0" opacity="0.5" />
+            <rect x="6.5" y="120.65" width="227" height="0.5" rx="0.25" fill="#1e293b" opacity="0.25" />
+            <rect x="0" y="118" width="4" height="4" rx="2" fill="#afb9c3" />
+            <rect x="0" y="118" width="4" height="0.6" rx="0.3" fill="#e2e8f0" opacity="0.4" />
+            <rect x="4" y="117.6" width="2.5" height="4.8" rx="1" fill="#94a3b8" />
+            <rect x="233.5" y="117.6" width="2.5" height="4.8" rx="1" fill="#94a3b8" />
+            <rect x="236" y="118" width="4" height="4" rx="2" fill="#afb9c3" />
+            <rect x="236" y="118" width="4" height="0.6" rx="0.3" fill="#e2e8f0" opacity="0.4" />
+            <rect x="118.5" y="117.8" width="2" height="4.4" rx="0.6" fill="none" stroke="#94a3b8" strokeWidth="0.5" opacity="0.5" />
+            <circle cx="16.5" cy="120" r="10" fill="url(#la-plate)" />
+            <circle cx="16.5" cy="120" r="10" fill="none" stroke="#e2e8f0" strokeOpacity="0.6" strokeWidth="0.7" />
+            <circle cx="16.5" cy="120" r="2.2" fill="#334155" />
+            <circle cx="44.5" cy="120" r="18" fill="url(#la-plate)" />
+            <circle cx="44.5" cy="120" r="18" fill="none" stroke="#e2e8f0" strokeOpacity="0.6" strokeWidth="0.8" />
+            <circle cx="44.5" cy="120" r="2.2" fill="#334155" />
+            <circle cx="80.5" cy="120" r="18" fill="url(#la-plate)" />
+            <circle cx="80.5" cy="120" r="18" fill="none" stroke="#e2e8f0" strokeOpacity="0.6" strokeWidth="0.8" />
+            <circle cx="80.5" cy="120" r="2.2" fill="#334155" />
+            <circle cx="159.5" cy="120" r="18" fill="url(#la-plate)" />
+            <circle cx="159.5" cy="120" r="18" fill="none" stroke="#e2e8f0" strokeOpacity="0.6" strokeWidth="0.8" />
+            <circle cx="159.5" cy="120" r="2.2" fill="#334155" />
+            <circle cx="195.5" cy="120" r="18" fill="url(#la-plate)" />
+            <circle cx="195.5" cy="120" r="18" fill="none" stroke="#e2e8f0" strokeOpacity="0.6" strokeWidth="0.8" />
+            <circle cx="195.5" cy="120" r="2.2" fill="#334155" />
+            <circle cx="223.5" cy="120" r="10" fill="url(#la-plate)" />
+            <circle cx="223.5" cy="120" r="10" fill="none" stroke="#e2e8f0" strokeOpacity="0.6" strokeWidth="0.7" />
+            <circle cx="223.5" cy="120" r="2.2" fill="#334155" />
+          </g>
+
           <g style={{ animation: `la-chart-cycle ${chartDuration}s linear infinite` }}>
             {tickForces.map((f, i) => (
               <line
@@ -252,54 +284,6 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
                 />
               );
             })}
-          </g>
-
-          {/* Barbell: real-world proportions — 50mm sleeve, 450mm 45s (9×), 25s ~250mm */}
-          <g style={{ animation: `la-rep ${chartDuration}s linear infinite` }}>
-            {/* shaft (28mm visual = thinner than sleeve), full length through collars */}
-            <rect x="6.5" y="118.9" width="227" height="2.2" rx="1.1" fill="url(#la-bar)" />
-            <rect x="6.5" y="118.85" width="227" height="0.5" rx="0.25" fill="#e2e8f0" opacity="0.5" />
-            <rect x="6.5" y="120.65" width="227" height="0.5" rx="0.25" fill="#1e293b" opacity="0.25" />
-
-            {/* left sleeve 50mm → 4 units */}
-            <rect x="0" y="118" width="4" height="4" rx="2" fill="#afb9c3" />
-            <rect x="0" y="118" width="4" height="0.6" rx="0.3" fill="#e2e8f0" opacity="0.4" />
-            {/* left collar */}
-            <rect x="4" y="117.6" width="2.5" height="4.8" rx="1" fill="#94a3b8" />
-            {/* right collar */}
-            <rect x="233.5" y="117.6" width="2.5" height="4.8" rx="1" fill="#94a3b8" />
-            {/* right sleeve */}
-            <rect x="236" y="118" width="4" height="4" rx="2" fill="#afb9c3" />
-            <rect x="236" y="118" width="4" height="0.6" rx="0.3" fill="#e2e8f0" opacity="0.4" />
-
-            {/* center mark */}
-            <rect x="118.5" y="117.8" width="2" height="4.4" rx="0.6" fill="none" stroke="#94a3b8" strokeWidth="0.5" opacity="0.5" />
-
-            {/* left plates: 25 (inner) then 45, 45 — 25 r=10, 45 r=18, flush stacked */}
-            <circle cx="16.5" cy="120" r="10" fill="url(#la-plate)" />
-            <circle cx="16.5" cy="120" r="10" fill="none" stroke="#cbd5e1" strokeOpacity="0.35" strokeWidth="0.6" />
-            <circle cx="16.5" cy="120" r="2.2" fill="#334155" />
-
-            <circle cx="44.5" cy="120" r="18" fill="url(#la-plate)" />
-            <circle cx="44.5" cy="120" r="18" fill="none" stroke="#cbd5e1" strokeOpacity="0.35" strokeWidth="0.8" />
-            <circle cx="44.5" cy="120" r="2.2" fill="#334155" />
-
-            <circle cx="80.5" cy="120" r="18" fill="url(#la-plate)" />
-            <circle cx="80.5" cy="120" r="18" fill="none" stroke="#cbd5e1" strokeOpacity="0.35" strokeWidth="0.8" />
-            <circle cx="80.5" cy="120" r="2.2" fill="#334155" />
-
-            {/* right plates: 45, 45, 25 (inner) — mirror of left */}
-            <circle cx="159.5" cy="120" r="18" fill="url(#la-plate)" />
-            <circle cx="159.5" cy="120" r="18" fill="none" stroke="#cbd5e1" strokeOpacity="0.35" strokeWidth="0.8" />
-            <circle cx="159.5" cy="120" r="2.2" fill="#334155" />
-
-            <circle cx="195.5" cy="120" r="18" fill="url(#la-plate)" />
-            <circle cx="195.5" cy="120" r="18" fill="none" stroke="#cbd5e1" strokeOpacity="0.35" strokeWidth="0.8" />
-            <circle cx="195.5" cy="120" r="2.2" fill="#334155" />
-
-            <circle cx="223.5" cy="120" r="10" fill="url(#la-plate)" />
-            <circle cx="223.5" cy="120" r="10" fill="none" stroke="#cbd5e1" strokeOpacity="0.35" strokeWidth="0.6" />
-            <circle cx="223.5" cy="120" r="2.2" fill="#334155" />
           </g>
 
           <ellipse
