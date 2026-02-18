@@ -17,6 +17,16 @@ export interface TrainingContext {
   isEndOfBlock?: boolean;
 }
 
+export interface SkeletonSessionPlan {
+  sessionFocus: string;
+  phase?: string;
+  exercises: { name: string; tier: string }[];
+  targetIntensity?: string;
+  targetVolume?: string;
+  targetSetsPerExercise?: string;
+  targetRepRange?: string;
+}
+
 export interface SwapAndRebuildRequest {
   replaceExerciseId: string;
   withExerciseId: string;
@@ -31,7 +41,8 @@ export const generateWorkout = async (
   exercisePreferences?: ExercisePreferences | null,
   goalBias?: number | null,
   volumeTolerance?: number | null,
-  swapAndRebuild?: SwapAndRebuildRequest | null
+  swapAndRebuild?: SwapAndRebuildRequest | null,
+  skeletonSession?: SkeletonSessionPlan | null,
 ): Promise<StrengthWorkoutPlan> => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 120_000); // 2 min timeout
@@ -43,7 +54,7 @@ export const generateWorkout = async (
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ data, history, trainingContext, optimizerRecommendations, exercisePreferences, goalBias, volumeTolerance, swapAndRebuild }),
+      body: JSON.stringify({ data, history, trainingContext, optimizerRecommendations, exercisePreferences, goalBias, volumeTolerance, swapAndRebuild, skeletonSession }),
       signal: controller.signal,
     });
   } catch (err: any) {

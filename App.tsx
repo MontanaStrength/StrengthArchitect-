@@ -21,7 +21,7 @@ import {
   syncDismissedAlertsToCloud, fetchDismissedAlertsFromCloud, UserPreferences,
   syncCoachClientToCloud, fetchCoachClientsFromCloud, deleteCoachClientFromCloud,
 } from './shared/services/supabaseService';
-import { generateWorkout, TrainingContext, type SwapAndRebuildRequest } from './shared/services/geminiService';
+import { generateWorkout, TrainingContext, type SwapAndRebuildRequest, type SkeletonSessionPlan } from './shared/services/geminiService';
 import { estimate1RM, getDynamic1RMs } from './shared/utils';
 import { generateBlockSkeleton } from './shared/services/blockSkeletonGenerator';
 import { initAudio } from './shared/utils/audioManager';
@@ -486,7 +486,24 @@ const App: React.FC = () => {
         bias,
       );
 
-      const plan = await generateWorkout(dataForGenerate, history, trainingContext, optimizerRecs, exercisePrefs, bias, volTol, safeSwap);
+      // Find today's skeleton session to seed the prompt
+      const todayStr = new Date().toISOString().split('T')[0];
+      const todaySkeleton = scheduledWorkouts.find(
+        sw => sw.date === todayStr && sw.trainingBlockId === activeBlock?.id && sw.sessionFocus
+      );
+      const skeletonPlan: SkeletonSessionPlan | null = todaySkeleton?.sessionFocus
+        ? {
+            sessionFocus: todaySkeleton.sessionFocus,
+            phase: todaySkeleton.phase,
+            exercises: (todaySkeleton.skeletonExercises || []).map(e => ({ name: e.exerciseName, tier: e.tier })),
+            targetIntensity: todaySkeleton.targetIntensity,
+            targetVolume: todaySkeleton.targetVolume,
+            targetSetsPerExercise: todaySkeleton.targetSetsPerExercise,
+            targetRepRange: todaySkeleton.targetRepRange,
+          }
+        : null;
+
+      const plan = await generateWorkout(dataForGenerate, history, trainingContext, optimizerRecs, exercisePrefs, bias, volTol, safeSwap, skeletonPlan);
       setCurrentPlan(plan);
 
       const saved: SavedWorkout = {

@@ -144,6 +144,16 @@ export interface SwapAndRebuildRequest {
   withExerciseName: string;
 }
 
+export interface SkeletonSessionPlan {
+  sessionFocus: string;
+  phase?: string;
+  exercises: { name: string; tier: string }[];
+  targetIntensity?: string;
+  targetVolume?: string;
+  targetSetsPerExercise?: string;
+  targetRepRange?: string;
+}
+
 export const generateWorkoutServer = async (
   data: FormData,
   history: SavedWorkout[] = [],
@@ -152,7 +162,8 @@ export const generateWorkoutServer = async (
   exercisePreferences?: ExercisePreferences | null,
   goalBias?: number | null,
   volumeTolerance?: number | null,
-  swapAndRebuild?: SwapAndRebuildRequest | null
+  swapAndRebuild?: SwapAndRebuildRequest | null,
+  skeletonSession?: SkeletonSessionPlan | null,
 ): Promise<StrengthWorkoutPlan> => {
   const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
   if (!apiKey) {
@@ -464,6 +475,27 @@ export const generateWorkoutServer = async (
     `;
   }
 
+  // ===== SKELETON SESSION PLAN (from block calendar) =====
+  let skeletonContext = '';
+  if (skeletonSession?.sessionFocus) {
+    const exerciseList = skeletonSession.exercises.length > 0
+      ? skeletonSession.exercises.map(e => `${e.name} (${e.tier})`).join(', ')
+      : 'no specific exercises planned';
+    skeletonContext = `
+    ### SESSION PLAN (from training block skeleton)
+    Today's planned session focus: ${skeletonSession.sessionFocus}${skeletonSession.phase ? ` (${skeletonSession.phase} phase)` : ''}
+    Planned exercises: ${exerciseList}
+    ${skeletonSession.targetSetsPerExercise && skeletonSession.targetRepRange ? `Target prescription: ${skeletonSession.targetSetsPerExercise} sets x ${skeletonSession.targetRepRange} reps @ ${skeletonSession.targetIntensity || 'auto'}` : ''}
+    ${skeletonSession.targetVolume ? `Volume target: ${skeletonSession.targetVolume}` : ''}
+
+    SOFT CONSTRAINT: Follow this session structure and exercise selection as the foundation.
+    The optimizer's BINDING prescriptions (sets, reps, intensity, rep scheme) always take priority
+    over the skeleton's targets. But use the skeleton's exercise selection and session focus
+    to guide which movements to include and what muscle groups to emphasize.
+    If readiness or fatigue signals suggest a different approach, adapt accordingly.
+    `;
+  }
+
   // Build 1RM context
   const liftPRs = [
     data.squat1RM ? `Squat 1RM: ${data.squat1RM} lbs` : null,
@@ -489,6 +521,7 @@ export const generateWorkoutServer = async (
 
     ${historyContext}
     ${blockContext}
+    ${skeletonContext}
     ${optimizerContext}
     ${exercisePrefsContext}
     ${goalBiasContext}
