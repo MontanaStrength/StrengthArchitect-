@@ -921,7 +921,6 @@ const App: React.FC = () => {
   /** Secondary links shown below PlanView */
   const planSecondaryItems: { label: string; view: ViewState; icon: React.ReactNode }[] = [
     { label: 'My Blocks',        view: 'training-blocks', icon: <Layers size={16} /> },
-    { label: 'Calendar',         view: 'calendar',        icon: <Calendar size={16} /> },
     { label: 'Goals',            view: 'goals',           icon: <Target size={16} /> },
     { label: 'Gym Setup',        view: 'gym-setup',       icon: <Wrench size={16} /> },
     { label: 'Optimizer',        view: 'optimizer',       icon: <Zap size={16} /> },
@@ -1123,6 +1122,17 @@ const App: React.FC = () => {
                 }
               }}
               onNavigateToLift={() => setView('lift')}
+              scheduledWorkouts={scheduledWorkouts}
+              workoutHistory={history}
+              onScheduledSave={async (sw) => {
+                const exists = scheduledWorkouts.find(s => s.id === sw.id);
+                setScheduledWorkouts(prev => exists ? prev.map(s => s.id === sw.id ? sw : s) : [...prev, sw]);
+                if (user) syncScheduledWorkoutToCloud(sw, user.id, cid).catch(console.error);
+              }}
+              onScheduledDelete={async (id) => {
+                setScheduledWorkouts(prev => prev.filter(s => s.id !== id));
+                if (user) deleteScheduledWorkoutFromCloud(id, user.id).catch(console.error);
+              }}
             />
             {/* Secondary links */}
             <div className="border-t border-sa-surface2 pt-6">

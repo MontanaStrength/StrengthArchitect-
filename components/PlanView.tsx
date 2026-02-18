@@ -104,10 +104,11 @@ function sortExercisesForSlot(category: string, tier: string, exercises: typeof 
   return { recommended, others };
 }
 import React, { useState, useMemo, useEffect } from 'react';
-import { TrainingBlock, TrainingBlockPhase, TrainingPhase, PHASE_PRESETS, ExerciseSlot, ExercisePreferences, MovementPattern, SessionStructure, SESSION_STRUCTURE_PRESETS, DEFAULT_SESSION_STRUCTURE } from '../shared/types';
+import { TrainingBlock, TrainingBlockPhase, TrainingPhase, PHASE_PRESETS, ExerciseSlot, ExercisePreferences, MovementPattern, SessionStructure, SESSION_STRUCTURE_PRESETS, DEFAULT_SESSION_STRUCTURE, ScheduledWorkout, SavedWorkout } from '../shared/types';
 import { EXERCISE_LIBRARY } from '../shared/services/exerciseLibrary';
 import { Layers, Calendar, Dumbbell, ChevronRight, Check, CheckCircle2, ArrowRight, Rocket } from 'lucide-react';
 import BlockPhaseSlider from './BlockPhaseSlider';
+import TrainingCalendarView from './TrainingCalendarView';
 
 interface EstimatedMaxes {
   squat1RM?: number;
@@ -122,9 +123,13 @@ interface Props {
   estimatedMaxes: EstimatedMaxes;
   onMaxesChange: (maxes: EstimatedMaxes) => void;
   onNavigateToLift?: () => void;
+  scheduledWorkouts: ScheduledWorkout[];
+  workoutHistory: SavedWorkout[];
+  onScheduledSave: (sw: ScheduledWorkout) => void;
+  onScheduledDelete: (id: string) => void;
 }
 
-type SubTab = 'block' | 'schedule' | 'exercises';
+type SubTab = 'block' | 'schedule' | 'exercises' | 'calendar';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -261,10 +266,10 @@ function buildPhasesFromBreakpoints(
   ];
 }
 
-const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChange, onNavigateToLift }) => {
+const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChange, onNavigateToLift, scheduledWorkouts, workoutHistory, onScheduledSave, onScheduledDelete }) => {
   const [subTab, setSubTab] = useState<SubTab>(() => {
     const saved = localStorage.getItem('sa-plan-subtab');
-    return (saved === 'block' || saved === 'schedule' || saved === 'exercises') ? saved : 'block';
+    return (saved === 'block' || saved === 'schedule' || saved === 'exercises' || saved === 'calendar') ? saved : 'block';
   });
 
   const changeSubTab = (tab: SubTab) => {
@@ -359,6 +364,7 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
     { id: 'block', label: 'Block', icon: <Layers size={16} /> },
     { id: 'schedule', label: 'Schedule', icon: <Calendar size={16} /> },
     { id: 'exercises', label: 'Exercises', icon: <Dumbbell size={16} /> },
+    { id: 'calendar', label: 'Calendar', icon: <Calendar size={16} /> },
   ];
 
   // Confirmation overlay
@@ -642,22 +648,6 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
             </div>
           </div>
 
-          {/* Continue configuring */}
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => changeSubTab('schedule')}
-              className="flex items-center justify-center gap-2 bg-neutral-800 hover:bg-neutral-700 text-white py-3.5 rounded-xl text-sm font-medium transition-all border border-neutral-700"
-            >
-              <Calendar size={16} /> Schedule
-            </button>
-            <button
-              onClick={() => changeSubTab('exercises')}
-              className="flex items-center justify-center gap-2 bg-neutral-800 hover:bg-neutral-700 text-white py-3.5 rounded-xl text-sm font-medium transition-all border border-neutral-700"
-            >
-              <Dumbbell size={16} /> Exercises
-            </button>
-          </div>
-
           {/* Create / Update Block */}
           <div className="relative">
             {isComplete && <div className="absolute -inset-1 bg-amber-500/20 rounded-2xl blur-lg pointer-events-none" style={{ animation: 'ctaPulse 2s ease-in-out infinite' }} />}
@@ -739,14 +729,6 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
               })}
             </div>
           </div>
-
-          {/* Continue to Exercises */}
-          <button
-            onClick={() => changeSubTab('exercises')}
-            className="w-full flex items-center justify-center gap-2 bg-neutral-800 hover:bg-neutral-700 text-white py-3.5 rounded-xl text-sm font-medium transition-all border border-neutral-700"
-          >
-            <Dumbbell size={16} /> Pick Your Exercises <ChevronRight size={14} />
-          </button>
 
           {/* Create / Update Block */}
           <div className="relative">
@@ -841,6 +823,16 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
             </button>
           </div>
         </div>
+      )}
+
+      {/* ===== CALENDAR SUB-TAB ===== */}
+      {subTab === 'calendar' && (
+        <TrainingCalendarView
+          scheduled={scheduledWorkouts}
+          history={workoutHistory}
+          onSave={onScheduledSave}
+          onDelete={onScheduledDelete}
+        />
       )}
 
       {/* Pulse animation for CTA glow */}
