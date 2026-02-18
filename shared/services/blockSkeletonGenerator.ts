@@ -3,6 +3,7 @@ import {
   ScheduledWorkout,
   SkeletonExercise,
   SplitPattern,
+  SessionStructure,
   ExerciseSlot,
   ExerciseSlotCategory,
 } from '../types';
@@ -16,9 +17,12 @@ const SPLIT_FOCUS_ROTATION: Record<SplitPattern, string[]> = {
   'custom':               ['Session'],
 };
 
+const OLAD_FOCUS_ROTATION = ['Squat', 'Bench', 'Deadlift', 'OHP'];
+
 type SlotKey = { category: ExerciseSlotCategory; tier: string };
 
-const SESSION_EXERCISE_MAP: Record<string, SlotKey[]> = {
+// Standard: 4 exercises per session (default)
+const STANDARD_EXERCISE_MAP: Record<string, SlotKey[]> = {
   'Upper': [
     { category: 'bench', tier: 'primary' },
     { category: 'bench', tier: 'secondary' },
@@ -79,6 +83,87 @@ const SESSION_EXERCISE_MAP: Record<string, SlotKey[]> = {
     { category: 'deadlift', tier: 'primary' },
   ],
 };
+
+// One Lift a Day: 1 primary lift + core/accessory
+const OLAD_EXERCISE_MAP: Record<string, SlotKey[]> = {
+  'Squat':    [{ category: 'squat', tier: 'primary' }, { category: 'core', tier: 'anti-flexion' }],
+  'Bench':    [{ category: 'bench', tier: 'primary' }, { category: 'accessory', tier: 'slot-1' }],
+  'Deadlift': [{ category: 'deadlift', tier: 'primary' }, { category: 'core', tier: 'anti-extension' }],
+  'OHP':      [{ category: 'ohp', tier: 'primary' }, { category: 'accessory', tier: 'slot-2' }],
+};
+
+// Main + Accessory: primary + secondary compound only
+const MAIN_PLUS_EXERCISE_MAP: Record<string, SlotKey[]> = {
+  'Upper':        [{ category: 'bench', tier: 'primary' }, { category: 'ohp', tier: 'primary' }],
+  'Lower':        [{ category: 'squat', tier: 'primary' }, { category: 'deadlift', tier: 'primary' }],
+  'Push':         [{ category: 'bench', tier: 'primary' }, { category: 'ohp', tier: 'primary' }],
+  'Pull':         [{ category: 'deadlift', tier: 'primary' }, { category: 'deadlift', tier: 'secondary' }],
+  'Legs':         [{ category: 'squat', tier: 'primary' }, { category: 'deadlift', tier: 'primary' }],
+  'Squat Day':    [{ category: 'squat', tier: 'primary' }, { category: 'squat', tier: 'secondary' }],
+  'Bench Day':    [{ category: 'bench', tier: 'primary' }, { category: 'bench', tier: 'secondary' }],
+  'Deadlift Day': [{ category: 'deadlift', tier: 'primary' }, { category: 'deadlift', tier: 'secondary' }],
+  'Full Body':    [{ category: 'squat', tier: 'primary' }, { category: 'bench', tier: 'primary' }],
+  'Session':      [{ category: 'squat', tier: 'primary' }, { category: 'bench', tier: 'primary' }],
+};
+
+// High Variety: expanded selection with all tiers + accessories
+const HIGH_VARIETY_EXERCISE_MAP: Record<string, SlotKey[]> = {
+  'Upper': [
+    { category: 'bench', tier: 'primary' }, { category: 'bench', tier: 'secondary' }, { category: 'bench', tier: 'tertiary' },
+    { category: 'ohp', tier: 'primary' }, { category: 'ohp', tier: 'secondary' },
+    { category: 'accessory', tier: 'slot-1' }, { category: 'accessory', tier: 'slot-2' },
+  ],
+  'Lower': [
+    { category: 'squat', tier: 'primary' }, { category: 'squat', tier: 'secondary' }, { category: 'squat', tier: 'tertiary' },
+    { category: 'deadlift', tier: 'primary' }, { category: 'deadlift', tier: 'secondary' },
+    { category: 'core', tier: 'anti-flexion' }, { category: 'core', tier: 'anti-extension' },
+  ],
+  'Push': [
+    { category: 'bench', tier: 'primary' }, { category: 'bench', tier: 'secondary' }, { category: 'bench', tier: 'tertiary' },
+    { category: 'ohp', tier: 'primary' }, { category: 'ohp', tier: 'secondary' }, { category: 'ohp', tier: 'tertiary' },
+  ],
+  'Pull': [
+    { category: 'deadlift', tier: 'primary' }, { category: 'deadlift', tier: 'secondary' }, { category: 'deadlift', tier: 'tertiary' },
+    { category: 'accessory', tier: 'slot-1' }, { category: 'accessory', tier: 'slot-2' }, { category: 'accessory', tier: 'slot-3' },
+    { category: 'core', tier: 'anti-extension' },
+  ],
+  'Legs': [
+    { category: 'squat', tier: 'primary' }, { category: 'squat', tier: 'secondary' }, { category: 'squat', tier: 'tertiary' },
+    { category: 'deadlift', tier: 'primary' }, { category: 'deadlift', tier: 'secondary' },
+    { category: 'core', tier: 'anti-flexion' }, { category: 'core', tier: 'anti-rotation' },
+  ],
+  'Squat Day': [
+    { category: 'squat', tier: 'primary' }, { category: 'squat', tier: 'secondary' }, { category: 'squat', tier: 'tertiary' },
+    { category: 'deadlift', tier: 'secondary' }, { category: 'core', tier: 'anti-flexion' }, { category: 'accessory', tier: 'slot-1' },
+  ],
+  'Bench Day': [
+    { category: 'bench', tier: 'primary' }, { category: 'bench', tier: 'secondary' }, { category: 'bench', tier: 'tertiary' },
+    { category: 'ohp', tier: 'primary' }, { category: 'ohp', tier: 'secondary' }, { category: 'accessory', tier: 'slot-1' },
+  ],
+  'Deadlift Day': [
+    { category: 'deadlift', tier: 'primary' }, { category: 'deadlift', tier: 'secondary' }, { category: 'deadlift', tier: 'tertiary' },
+    { category: 'squat', tier: 'secondary' }, { category: 'core', tier: 'anti-extension' }, { category: 'accessory', tier: 'slot-2' },
+  ],
+  'Full Body': [
+    { category: 'squat', tier: 'primary' }, { category: 'bench', tier: 'primary' },
+    { category: 'deadlift', tier: 'primary' }, { category: 'ohp', tier: 'primary' },
+    { category: 'core', tier: 'anti-flexion' }, { category: 'accessory', tier: 'slot-1' },
+  ],
+  'Session': [
+    { category: 'squat', tier: 'primary' }, { category: 'bench', tier: 'primary' },
+    { category: 'deadlift', tier: 'primary' }, { category: 'ohp', tier: 'primary' },
+    { category: 'core', tier: 'anti-flexion' },
+  ],
+};
+
+function getExerciseMap(structure: SessionStructure): Record<string, SlotKey[]> {
+  switch (structure) {
+    case 'one-lift': return OLAD_EXERCISE_MAP;
+    case 'main-plus-accessory': return MAIN_PLUS_EXERCISE_MAP;
+    case 'high-variety': return HIGH_VARIETY_EXERCISE_MAP;
+    default: return STANDARD_EXERCISE_MAP;
+  }
+}
 
 const INTENSITY_TARGETS: Record<string, { intensity: string; repRange: string }> = {
   'minimal':   { intensity: '40-50% 1RM', repRange: '12-15' },
@@ -149,6 +234,8 @@ function getSessionDates(
 export function generateBlockSkeleton(block: TrainingBlock): ScheduledWorkout[] {
   if (!block.phases || block.phases.length === 0) return [];
 
+  const structure: SessionStructure = block.sessionStructure || 'standard';
+  const exerciseMap = getExerciseMap(structure);
   const workouts: ScheduledWorkout[] = [];
   const slots = block.exercisePreferences?.slots || [];
   let weekOffset = 0;
@@ -156,7 +243,9 @@ export function generateBlockSkeleton(block: TrainingBlock): ScheduledWorkout[] 
 
   for (let phaseIdx = 0; phaseIdx < block.phases.length; phaseIdx++) {
     const phase = block.phases[phaseIdx];
-    const focusRotation = SPLIT_FOCUS_ROTATION[phase.splitPattern] || ['Session'];
+    const focusRotation = structure === 'one-lift'
+      ? OLAD_FOCUS_ROTATION
+      : (SPLIT_FOCUS_ROTATION[phase.splitPattern] || ['Session']);
     const iTarget = INTENSITY_TARGETS[phase.intensityFocus] || INTENSITY_TARGETS['moderate'];
     const vTarget = VOLUME_TARGETS[phase.volumeFocus] || VOLUME_TARGETS['moderate'];
 
@@ -170,7 +259,7 @@ export function generateBlockSkeleton(block: TrainingBlock): ScheduledWorkout[] 
 
       for (let session = 0; session < sessionDates.length; session++) {
         const sessionFocus = focusRotation[globalSessionIndex % focusRotation.length];
-        const slotKeys = SESSION_EXERCISE_MAP[sessionFocus] || [];
+        const slotKeys = exerciseMap[sessionFocus] || [];
 
         const skeletonExercises: SkeletonExercise[] = [];
         for (const key of slotKeys) {
