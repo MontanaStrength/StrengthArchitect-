@@ -57,11 +57,15 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
 
   return (
     <div className="flex flex-col items-center">
-      <div style={{ width: size, height: size }}>
+      <div
+        className="shrink-0"
+        style={{ width: size, height: size, minWidth: size, minHeight: size, aspectRatio: '1' }}
+      >
         <svg
           viewBox="0 0 240 240"
           width={size}
           height={size}
+          preserveAspectRatio="xMidYMid meet"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
@@ -116,36 +120,34 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
             </clipPath>
           </defs>
 
-          {/* Barbell drawn first so the force curve (drawn after) reads clearly in front */}
+          {/* Side view: bar horizontal, plates as vertical strips (edge toward viewer) — 2×45 + 1×25 per side */}
           <g style={{ animation: `la-rep ${chartDuration}s linear infinite` }}>
-            <rect x="6.5" y="118.9" width="227" height="2.2" rx="1.1" fill="url(#la-bar)" />
-            <rect x="6.5" y="118.85" width="227" height="0.5" rx="0.25" fill="#e2e8f0" opacity="0.5" />
-            <rect x="6.5" y="120.65" width="227" height="0.5" rx="0.25" fill="#1e293b" opacity="0.25" />
-            <rect x="0" y="118" width="4" height="4" rx="2" fill="#afb9c3" />
-            <rect x="0" y="118" width="4" height="0.6" rx="0.3" fill="#e2e8f0" opacity="0.4" />
-            <rect x="4" y="117.6" width="2.5" height="4.8" rx="1" fill="#94a3b8" />
-            <rect x="233.5" y="117.6" width="2.5" height="4.8" rx="1" fill="#94a3b8" />
-            <rect x="236" y="118" width="4" height="4" rx="2" fill="#afb9c3" />
-            <rect x="236" y="118" width="4" height="0.6" rx="0.3" fill="#e2e8f0" opacity="0.4" />
-            <rect x="118.5" y="117.8" width="2" height="4.4" rx="0.6" fill="none" stroke="#94a3b8" strokeWidth="0.5" opacity="0.5" />
-            <circle cx="16.5" cy="120" r="10" fill="url(#la-plate)" />
-            <circle cx="16.5" cy="120" r="10" fill="none" stroke="#e2e8f0" strokeOpacity="0.6" strokeWidth="0.7" />
-            <circle cx="16.5" cy="120" r="2.2" fill="#334155" />
-            <circle cx="44.5" cy="120" r="18" fill="url(#la-plate)" />
-            <circle cx="44.5" cy="120" r="18" fill="none" stroke="#e2e8f0" strokeOpacity="0.6" strokeWidth="0.8" />
-            <circle cx="44.5" cy="120" r="2.2" fill="#334155" />
-            <circle cx="80.5" cy="120" r="18" fill="url(#la-plate)" />
-            <circle cx="80.5" cy="120" r="18" fill="none" stroke="#e2e8f0" strokeOpacity="0.6" strokeWidth="0.8" />
-            <circle cx="80.5" cy="120" r="2.2" fill="#334155" />
-            <circle cx="159.5" cy="120" r="18" fill="url(#la-plate)" />
-            <circle cx="159.5" cy="120" r="18" fill="none" stroke="#e2e8f0" strokeOpacity="0.6" strokeWidth="0.8" />
-            <circle cx="159.5" cy="120" r="2.2" fill="#334155" />
-            <circle cx="195.5" cy="120" r="18" fill="url(#la-plate)" />
-            <circle cx="195.5" cy="120" r="18" fill="none" stroke="#e2e8f0" strokeOpacity="0.6" strokeWidth="0.8" />
-            <circle cx="195.5" cy="120" r="2.2" fill="#334155" />
-            <circle cx="223.5" cy="120" r="10" fill="url(#la-plate)" />
-            <circle cx="223.5" cy="120" r="10" fill="none" stroke="#e2e8f0" strokeOpacity="0.6" strokeWidth="0.7" />
-            <circle cx="223.5" cy="120" r="2.2" fill="#334155" />
+            {/* Shaft */}
+            <rect x="17.5" y="118.8" width="205" height="2.4" rx="1.2" fill="url(#la-bar)" />
+            <rect x="17.5" y="118.7" width="205" height="0.5" rx="0.25" fill="#e2e8f0" opacity="0.5" />
+            <rect x="17.5" y="120.6" width="205" height="0.5" rx="0.25" fill="#1e293b" opacity="0.25" />
+            <rect x="118" y="117.8" width="4" height="4.4" rx="0.8" fill="none" stroke="#94a3b8" strokeWidth="0.5" opacity="0.5" />
+
+            {/* Left sleeve + collar */}
+            <rect x="0" y="117.5" width="5" height="5" rx="1" fill="#afb9c3" />
+            <rect x="5" y="117.2" width="2" height="5.6" rx="0.8" fill="#94a3b8" />
+            {/* Left plates (side view: width = thickness, height = diameter) — 45, 45, 25 inner */}
+            <rect x="7" y="102" width="4" height="36" rx="0.8" fill="url(#la-plate)" />
+            <rect x="7" y="102" width="4" height="36" rx="0.8" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
+            <rect x="11" y="102" width="4" height="36" rx="0.8" fill="url(#la-plate)" />
+            <rect x="11" y="102" width="4" height="36" rx="0.8" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
+            <rect x="15" y="110" width="2.5" height="20" rx="0.5" fill="url(#la-plate)" />
+            <rect x="15" y="110" width="2.5" height="20" rx="0.5" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.4" />
+
+            {/* Right collar + plates — 25 (inner), 45, 45 (outer) */}
+            <rect x="222.5" y="117.2" width="2" height="5.6" rx="0.8" fill="#94a3b8" />
+            <rect x="224.5" y="110" width="2.5" height="20" rx="0.5" fill="url(#la-plate)" />
+            <rect x="224.5" y="110" width="2.5" height="20" rx="0.5" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.4" />
+            <rect x="227" y="102" width="4" height="36" rx="0.8" fill="url(#la-plate)" />
+            <rect x="227" y="102" width="4" height="36" rx="0.8" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
+            <rect x="231" y="102" width="4" height="36" rx="0.8" fill="url(#la-plate)" />
+            <rect x="231" y="102" width="4" height="36" rx="0.8" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
+            <rect x="235" y="117.5" width="5" height="5" rx="1" fill="#afb9c3" />
           </g>
 
           <g style={{ animation: `la-chart-cycle ${chartDuration}s linear infinite` }}>
