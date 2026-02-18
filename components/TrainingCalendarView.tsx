@@ -247,9 +247,9 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
                           <span className="text-gray-500 text-[10px]">{ex.tier}</span>
                         </div>
                       ))}
-                      {sw.targetSetsPerExercise && sw.targetRepRange && (
+                      {(sw.targetRepRange || sw.targetIntensity) && (
                         <p className="text-[10px] text-gray-500 mt-1">
-                          {sw.targetSetsPerExercise} sets x {sw.targetRepRange} reps @ {sw.targetIntensity}
+                          {sw.targetRepRange && `${sw.targetRepRange} reps`}{sw.targetRepRange && sw.targetIntensity && ' · '}{sw.targetIntensity}
                         </p>
                       )}
                     </div>
