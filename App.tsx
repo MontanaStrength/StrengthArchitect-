@@ -1104,21 +1104,20 @@ const App: React.FC = () => {
                   for (const b of final) syncTrainingBlockToCloud(b, user.id, cid).catch(console.error);
                 }
 
-                // Regenerate skeleton sessions: clear this block's old sessions + orphans from deleted blocks
+                // Regenerate skeleton sessions from latest state (avoids stale closure)
                 const validBlockIds = new Set(final.map(b => b.id));
-                const staleWorkouts = scheduledWorkouts.filter(
-                  s => s.trainingBlockId && !validBlockIds.has(s.trainingBlockId)
-                );
-                const oldBlockWorkouts = scheduledWorkouts.filter(s => s.trainingBlockId === block.id);
-                if (user) {
-                  for (const w of [...oldBlockWorkouts, ...staleWorkouts]) deleteScheduledWorkoutFromCloud(w.id, user.id).catch(console.error);
-                }
                 const skeleton = generateBlockSkeleton(block);
-                setScheduledWorkouts(prev => [
-                  ...prev.filter(s => !s.trainingBlockId || validBlockIds.has(s.trainingBlockId))
-                       .filter(s => s.trainingBlockId !== block.id),
-                  ...skeleton,
-                ]);
+                setScheduledWorkouts(prev => {
+                  const keep = prev.filter(s =>
+                    !s.trainingBlockId ||
+                    (validBlockIds.has(s.trainingBlockId) && s.trainingBlockId !== block.id)
+                  );
+                  const remove = prev.filter(s => !keep.includes(s));
+                  if (user && remove.length > 0) {
+                    for (const w of remove) deleteScheduledWorkoutFromCloud(w.id, user.id).catch(console.error);
+                  }
+                  return [...keep, ...skeleton];
+                });
                 if (user) {
                   for (const w of skeleton) syncScheduledWorkoutToCloud(w, user.id, cid).catch(console.error);
                 }
