@@ -106,7 +106,7 @@ function sortExercisesForSlot(category: string, tier: string, exercises: typeof 
 import React, { useState, useMemo, useEffect } from 'react';
 import { TrainingBlock, TrainingBlockPhase, TrainingPhase, PHASE_PRESETS, ExerciseSlot, ExercisePreferences, MovementPattern, SessionStructure, SESSION_STRUCTURE_PRESETS, DEFAULT_SESSION_STRUCTURE, ScheduledWorkout, SavedWorkout } from '../shared/types';
 import { EXERCISE_LIBRARY } from '../shared/services/exerciseLibrary';
-import { Layers, Calendar, Dumbbell, ChevronRight, Check, CheckCircle2, ArrowRight, Rocket } from 'lucide-react';
+import { Layers, Calendar, Dumbbell, ChevronRight, ChevronDown, Check, CheckCircle2, ArrowRight, Rocket } from 'lucide-react';
 import BlockPhaseSlider from './BlockPhaseSlider';
 import TrainingCalendarView from './TrainingCalendarView';
 
@@ -129,7 +129,7 @@ interface Props {
   onScheduledDelete: (id: string) => void;
 }
 
-type SubTab = 'block' | 'schedule' | 'exercises' | 'calendar';
+type SubTab = 'block' | 'schedule' | 'exercises';
 
 const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -269,13 +269,15 @@ function buildPhasesFromBreakpoints(
 const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChange, onNavigateToLift, scheduledWorkouts, workoutHistory, onScheduledSave, onScheduledDelete }) => {
   const [subTab, setSubTab] = useState<SubTab>(() => {
     const saved = localStorage.getItem('sa-plan-subtab');
-    return (saved === 'block' || saved === 'schedule' || saved === 'exercises' || saved === 'calendar') ? saved : 'block';
+    return (saved === 'block' || saved === 'schedule' || saved === 'exercises') ? saved : 'block';
   });
 
   const changeSubTab = (tab: SubTab) => {
     setSubTab(tab);
     localStorage.setItem('sa-plan-subtab', tab);
   };
+
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   // Local state — initialized from block or sensible defaults
   const [name, setName] = useState(block?.name || '');
@@ -364,7 +366,6 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
     { id: 'block', label: 'Block', icon: <Layers size={16} /> },
     { id: 'schedule', label: 'Schedule', icon: <Calendar size={16} /> },
     { id: 'exercises', label: 'Exercises', icon: <Dumbbell size={16} /> },
-    { id: 'calendar', label: 'Calendar', icon: <Calendar size={16} /> },
   ];
 
   // Confirmation overlay
@@ -825,15 +826,32 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
         </div>
       )}
 
-      {/* ===== CALENDAR SUB-TAB ===== */}
-      {subTab === 'calendar' && (
-        <TrainingCalendarView
-          scheduled={scheduledWorkouts}
-          history={workoutHistory}
-          onSave={onScheduledSave}
-          onDelete={onScheduledDelete}
-        />
-      )}
+      {/* ===== COLLAPSIBLE CALENDAR ===== */}
+      <div className="border-t border-neutral-800 pt-4 mt-6">
+        <button
+          onClick={() => setCalendarOpen(prev => !prev)}
+          className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 transition-all"
+        >
+          <div className="flex items-center gap-2.5">
+            <Calendar size={16} className="text-amber-400" />
+            <span className="text-sm font-medium text-gray-200">Training Calendar</span>
+          </div>
+          <ChevronDown
+            size={16}
+            className={`text-gray-500 transition-transform duration-200 ${calendarOpen ? 'rotate-180' : ''}`}
+          />
+        </button>
+        {calendarOpen && (
+          <div className="mt-3">
+            <TrainingCalendarView
+              scheduled={scheduledWorkouts}
+              history={workoutHistory}
+              onSave={onScheduledSave}
+              onDelete={onScheduledDelete}
+            />
+          </div>
+        )}
+      </div>
 
       {/* Pulse animation for CTA glow */}
       <style>{`
