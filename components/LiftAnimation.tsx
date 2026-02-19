@@ -120,34 +120,33 @@ const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
             </clipPath>
           </defs>
 
-          {/* Side view: bar horizontal, plates as vertical strips (edge toward viewer) — 2×45 + 1×25 per side */}
+          {/* Side view: bar horizontal, plates as vertical strips (edge toward viewer). Order: 45s innermost, 25s outermost. */}
           <g style={{ animation: `la-rep ${chartDuration}s linear infinite` }}>
-            {/* Shaft */}
-            <rect x="17.5" y="118.8" width="205" height="2.4" rx="1.2" fill="url(#la-bar)" />
-            <rect x="17.5" y="118.7" width="205" height="0.5" rx="0.25" fill="#e2e8f0" opacity="0.5" />
-            <rect x="17.5" y="120.6" width="205" height="0.5" rx="0.25" fill="#1e293b" opacity="0.25" />
-            <rect x="118" y="117.8" width="4" height="4.4" rx="0.8" fill="none" stroke="#94a3b8" strokeWidth="0.5" opacity="0.5" />
+            {/* Shaft — thicker bar, centerline y=120 */}
+            <rect x="24" y="117.5" width="192" height="5" rx="2.5" fill="url(#la-bar)" />
+            <rect x="24" y="117.4" width="192" height="1" rx="0.5" fill="#e2e8f0" opacity="0.5" />
+            <rect x="24" y="121.6" width="192" height="1" rx="0.5" fill="#1e293b" opacity="0.25" />
+            <rect x="116" y="116.5" width="8" height="7" rx="1.5" fill="none" stroke="#94a3b8" strokeWidth="0.6" opacity="0.5" />
 
-            {/* Left sleeve + collar */}
-            <rect x="0" y="117.5" width="5" height="5" rx="1" fill="#afb9c3" />
-            <rect x="5" y="117.2" width="2" height="5.6" rx="0.8" fill="#94a3b8" />
-            {/* Left plates (side view: width = thickness, height = diameter) — 45, 45, 25 inner */}
-            <rect x="7" y="102" width="4" height="36" rx="0.8" fill="url(#la-plate)" />
-            <rect x="7" y="102" width="4" height="36" rx="0.8" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
-            <rect x="11" y="102" width="4" height="36" rx="0.8" fill="url(#la-plate)" />
-            <rect x="11" y="102" width="4" height="36" rx="0.8" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
-            <rect x="15" y="110" width="2.5" height="20" rx="0.5" fill="url(#la-plate)" />
-            <rect x="15" y="110" width="2.5" height="20" rx="0.5" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.4" />
+            {/* Left: sleeve → 25 (outer) → 45 → 45 (inner) → collar → bar */}
+            <rect x="0" y="115" width="8" height="10" rx="2" fill="#afb9c3" />
+            <rect x="8" y="108" width="3" height="28" rx="0.6" fill="url(#la-plate)" />
+            <rect x="8" y="108" width="3" height="28" rx="0.6" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.4" />
+            <rect x="11" y="95" width="5" height="50" rx="1" fill="url(#la-plate)" />
+            <rect x="11" y="95" width="5" height="50" rx="1" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
+            <rect x="16" y="95" width="5" height="50" rx="1" fill="url(#la-plate)" />
+            <rect x="16" y="95" width="5" height="50" rx="1" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
+            <rect x="21" y="117" width="3" height="6" rx="1" fill="#94a3b8" />
 
-            {/* Right collar + plates — 25 (inner), 45, 45 (outer) */}
-            <rect x="222.5" y="117.2" width="2" height="5.6" rx="0.8" fill="#94a3b8" />
-            <rect x="224.5" y="110" width="2.5" height="20" rx="0.5" fill="url(#la-plate)" />
-            <rect x="224.5" y="110" width="2.5" height="20" rx="0.5" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.4" />
-            <rect x="227" y="102" width="4" height="36" rx="0.8" fill="url(#la-plate)" />
-            <rect x="227" y="102" width="4" height="36" rx="0.8" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
-            <rect x="231" y="102" width="4" height="36" rx="0.8" fill="url(#la-plate)" />
-            <rect x="231" y="102" width="4" height="36" rx="0.8" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
-            <rect x="235" y="117.5" width="5" height="5" rx="1" fill="#afb9c3" />
+            {/* Right: bar → collar → 45 (inner) → 45 → 25 (outer) → sleeve */}
+            <rect x="216" y="117" width="3" height="6" rx="1" fill="#94a3b8" />
+            <rect x="219" y="95" width="5" height="50" rx="1" fill="url(#la-plate)" />
+            <rect x="219" y="95" width="5" height="50" rx="1" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
+            <rect x="224" y="95" width="5" height="50" rx="1" fill="url(#la-plate)" />
+            <rect x="224" y="95" width="5" height="50" rx="1" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
+            <rect x="229" y="108" width="3" height="28" rx="0.6" fill="url(#la-plate)" />
+            <rect x="229" y="108" width="3" height="28" rx="0.6" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.4" />
+            <rect x="232" y="115" width="8" height="10" rx="2" fill="#afb9c3" />
           </g>
 
           <g style={{ animation: `la-chart-cycle ${chartDuration}s linear infinite` }}>
