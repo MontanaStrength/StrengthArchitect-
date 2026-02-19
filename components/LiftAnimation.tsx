@@ -15,10 +15,15 @@ function repPeakPath(cx: number, width: number, peakY: number, baseline: number)
 }
 
 const LiftAnimation: React.FC<Props> = ({ size = 280 }) => {
-  const chartLeft = 18;
-  const chartRight = 222;
+  // Scale: 50 units = 450mm (45 plate). Sleeve 400mm = 44.44 units to inner face of innermost 45.
+  const sleeveUnits = (400 / 450) * 50; // 44.44
+  const shaftWidth = 146;
+  const endWidth = sleeveUnits + 5 + 5 + 3 + 3; // sleeve + 45 + 45 + 25 + collar
+  const viewBoxW = Math.ceil(endWidth * 2 + shaftWidth); // 267
+  const chartWidth = 204;
+  const chartLeft = (viewBoxW - chartWidth) / 2;
+  const chartRight = chartLeft + chartWidth;
   const chartBaseline = 210;
-  const chartWidth = chartRight - chartLeft;
   const repCount = 8;
   const repSpacing = chartWidth / repCount;
 
@@ -62,7 +67,7 @@ const LiftAnimation: React.FC<Props> = ({ size = 280 }) => {
         style={{ width: size, height: size, minWidth: size, minHeight: size, aspectRatio: '1' }}
       >
         <svg
-          viewBox="0 0 240 240"
+          viewBox={`0 0 ${viewBoxW} 240`}
           width={size}
           height={size}
           preserveAspectRatio="xMidYMid meet"
@@ -120,33 +125,33 @@ const LiftAnimation: React.FC<Props> = ({ size = 280 }) => {
             </clipPath>
           </defs>
 
-          {/* Side view. Olympic: 2200mm total, 1310mm shaft, 450mm 45 plate → shaft/plate 2.91, total/plate 4.89. 50 units = 450mm. */}
+          {/* Side view. Sleeve 400mm = sleeveUnits to inner face of innermost 45. Order: sleeve, 25, 45, 45, collar, bar. */}
           <g style={{ animation: `la-rep ${chartDuration}s linear infinite` }}>
-            {/* Shaft 1310mm → 146 units (50 * 1310/450). Ends 47 units each (240 - 146) / 2. */}
-            <rect x="47" y="118.5" width="146" height="3" rx="1.5" fill="url(#la-bar)" />
-            <rect x="47" y="118.45" width="146" height="0.5" rx="0.25" fill="#e2e8f0" opacity="0.5" />
-            <rect x="47" y="121.05" width="146" height="0.5" rx="0.25" fill="#1e293b" opacity="0.25" />
-            <rect x="117" y="117.8" width="6" height="4.4" rx="1" fill="none" stroke="#94a3b8" strokeWidth="0.5" opacity="0.5" />
+            {/* Shaft: from endWidth to endWidth + shaftWidth */}
+            <rect x={endWidth} y="118.5" width={shaftWidth} height="3" rx="1.5" fill="url(#la-bar)" />
+            <rect x={endWidth} y="118.45" width={shaftWidth} height="0.5" rx="0.25" fill="#e2e8f0" opacity="0.5" />
+            <rect x={endWidth} y="121.05" width={shaftWidth} height="0.5" rx="0.25" fill="#1e293b" opacity="0.25" />
+            <rect x={endWidth + shaftWidth / 2 - 3} y="117.8" width="6" height="4.4" rx="1" fill="none" stroke="#94a3b8" strokeWidth="0.5" opacity="0.5" />
 
-            {/* Left: sleeve → 25 (outer) → 45 → 45 (inner) → collar → bar at 47 */}
-            <rect x="0" y="116" width="31" height="8" rx="1.5" fill="#afb9c3" />
-            <rect x="31" y="108" width="3" height="28" rx="0.6" fill="url(#la-plate)" />
-            <rect x="31" y="108" width="3" height="28" rx="0.6" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.4" />
-            <rect x="34" y="95" width="5" height="50" rx="1" fill="url(#la-plate)" />
-            <rect x="34" y="95" width="5" height="50" rx="1" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
-            <rect x="39" y="95" width="5" height="50" rx="1" fill="url(#la-plate)" />
-            <rect x="39" y="95" width="5" height="50" rx="1" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
-            <rect x="44" y="118.2" width="3" height="3.6" rx="0.8" fill="#94a3b8" />
+            {/* Left: sleeve 400mm (0 to sleeveUnits) → 45 (inner) → 45 → 25 (outer) → collar → bar */}
+            <rect x="0" y="116" width={sleeveUnits} height="8" rx="1.5" fill="#afb9c3" />
+            <rect x={sleeveUnits} y="95" width="5" height="50" rx="1" fill="url(#la-plate)" />
+            <rect x={sleeveUnits} y="95" width="5" height="50" rx="1" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
+            <rect x={sleeveUnits + 5} y="95" width="5" height="50" rx="1" fill="url(#la-plate)" />
+            <rect x={sleeveUnits + 5} y="95" width="5" height="50" rx="1" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
+            <rect x={sleeveUnits + 10} y="108" width="3" height="28" rx="0.6" fill="url(#la-plate)" />
+            <rect x={sleeveUnits + 10} y="108" width="3" height="28" rx="0.6" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.4" />
+            <rect x={endWidth - 3} y="118.2" width="3" height="3.6" rx="0.8" fill="#94a3b8" />
 
-            {/* Right: bar ends 193 → collar → 45 (inner) → 45 → 25 (outer) → sleeve */}
-            <rect x="193" y="118.2" width="3" height="3.6" rx="0.8" fill="#94a3b8" />
-            <rect x="196" y="95" width="5" height="50" rx="1" fill="url(#la-plate)" />
-            <rect x="196" y="95" width="5" height="50" rx="1" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
-            <rect x="201" y="95" width="5" height="50" rx="1" fill="url(#la-plate)" />
-            <rect x="201" y="95" width="5" height="50" rx="1" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
-            <rect x="206" y="108" width="3" height="28" rx="0.6" fill="url(#la-plate)" />
-            <rect x="206" y="108" width="3" height="28" rx="0.6" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.4" />
-            <rect x="209" y="116" width="31" height="8" rx="1.5" fill="#afb9c3" />
+            {/* Right: bar end → collar → 45 (inner) → 45 → 25 → sleeve (400mm) */}
+            <rect x={endWidth + shaftWidth} y="118.2" width="3" height="3.6" rx="0.8" fill="#94a3b8" />
+            <rect x={endWidth + shaftWidth + 3} y="95" width="5" height="50" rx="1" fill="url(#la-plate)" />
+            <rect x={endWidth + shaftWidth + 3} y="95" width="5" height="50" rx="1" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
+            <rect x={endWidth + shaftWidth + 8} y="95" width="5" height="50" rx="1" fill="url(#la-plate)" />
+            <rect x={endWidth + shaftWidth + 8} y="95" width="5" height="50" rx="1" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
+            <rect x={endWidth + shaftWidth + 13} y="108" width="3" height="28" rx="0.6" fill="url(#la-plate)" />
+            <rect x={endWidth + shaftWidth + 13} y="108" width="3" height="28" rx="0.6" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.4" />
+            <rect x={endWidth + shaftWidth + 16} y="116" width={sleeveUnits} height="8" rx="1.5" fill="#afb9c3" />
           </g>
 
           <g style={{ animation: `la-chart-cycle ${chartDuration}s linear infinite` }}>
@@ -288,13 +293,13 @@ const LiftAnimation: React.FC<Props> = ({ size = 280 }) => {
           </g>
 
           <ellipse
-            cx="120"
+            cx={viewBoxW / 2}
             cy="218"
             rx="52"
             ry="4.5"
             fill="#64748b"
             opacity="0.12"
-            style={{ transformOrigin: '120px 218px', animation: `la-shadow ${chartDuration}s linear infinite` }}
+            style={{ transformOrigin: `${viewBoxW / 2}px 218px`, animation: `la-shadow ${chartDuration}s linear infinite` }}
           />
         </svg>
       </div>
