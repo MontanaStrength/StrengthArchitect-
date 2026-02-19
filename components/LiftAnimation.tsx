@@ -144,6 +144,9 @@ const LiftAnimation: React.FC<Props> = ({ size = 280 }) => {
                 <rect x={sleeveVisibleUnits + i * plate45Width} y={95} width={plate45Width} height={50} rx={1} fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
               </React.Fragment>
             ))}
+            {[1, 2, 3].map((i) => (
+              <rect key={`lshadow-${i}`} x={sleeveVisibleUnits + i * plate45Width - 0.2} y={95} width={0.4} height={50} fill="#334155" opacity={0.4} />
+            ))}
             <rect x={endWidth - 3} y="118.2" width="3" height="3.6" rx="0.8" fill="#94a3b8" />
 
             {/* Right: bar end → collar → 212mm (4×45) → 188mm sleeve */}
@@ -153,6 +156,9 @@ const LiftAnimation: React.FC<Props> = ({ size = 280 }) => {
                 <rect x={endWidth + shaftWidth + 3 + i * plate45Width} y={95} width={plate45Width} height={50} rx={1} fill="url(#la-plate)" />
                 <rect x={endWidth + shaftWidth + 3 + i * plate45Width} y={95} width={plate45Width} height={50} rx={1} fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
               </React.Fragment>
+            ))}
+            {[1, 2, 3].map((i) => (
+              <rect key={`rshadow-${i}`} x={endWidth + shaftWidth + 3 + i * plate45Width - 0.2} y={95} width={0.4} height={50} fill="#334155" opacity={0.4} />
             ))}
             <rect x={endWidth + shaftWidth + 3 + plateStackWidth} y="116" width={sleeveVisibleUnits} height="8" rx="1.5" fill="#afb9c3" />
           </g>
