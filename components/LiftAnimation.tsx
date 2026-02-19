@@ -120,33 +120,33 @@ const LiftAnimation: React.FC<Props> = ({ size = 280 }) => {
             </clipPath>
           </defs>
 
-          {/* Side view. Proportions: bar 28mm, 45 plate 450mm (≈16:1). 25 plate ≈250mm. Centerline y=120. */}
+          {/* Side view. Olympic: 2200mm total, 1310mm shaft, 450mm 45 plate → shaft/plate 2.91, total/plate 4.89. 50 units = 450mm. */}
           <g style={{ animation: `la-rep ${chartDuration}s linear infinite` }}>
-            {/* Shaft — 28mm → 3 units (450mm 45 plate = 50 units, so 28/450 * 50 ≈ 3.1) */}
-            <rect x="24" y="118.5" width="192" height="3" rx="1.5" fill="url(#la-bar)" />
-            <rect x="24" y="118.45" width="192" height="0.5" rx="0.25" fill="#e2e8f0" opacity="0.5" />
-            <rect x="24" y="121.05" width="192" height="0.5" rx="0.25" fill="#1e293b" opacity="0.25" />
-            <rect x="116" y="117.8" width="6" height="4.4" rx="1" fill="none" stroke="#94a3b8" strokeWidth="0.5" opacity="0.5" />
+            {/* Shaft 1310mm → 146 units (50 * 1310/450). Ends 47 units each (240 - 146) / 2. */}
+            <rect x="47" y="118.5" width="146" height="3" rx="1.5" fill="url(#la-bar)" />
+            <rect x="47" y="118.45" width="146" height="0.5" rx="0.25" fill="#e2e8f0" opacity="0.5" />
+            <rect x="47" y="121.05" width="146" height="0.5" rx="0.25" fill="#1e293b" opacity="0.25" />
+            <rect x="117" y="117.8" width="6" height="4.4" rx="1" fill="none" stroke="#94a3b8" strokeWidth="0.5" opacity="0.5" />
 
-            {/* Left: sleeve → 25 (outer) → 45 → 45 (inner) → collar → bar */}
-            <rect x="0" y="116" width="8" height="8" rx="1.5" fill="#afb9c3" />
-            <rect x="8" y="108" width="3" height="28" rx="0.6" fill="url(#la-plate)" />
-            <rect x="8" y="108" width="3" height="28" rx="0.6" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.4" />
-            <rect x="11" y="95" width="5" height="50" rx="1" fill="url(#la-plate)" />
-            <rect x="11" y="95" width="5" height="50" rx="1" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
-            <rect x="16" y="95" width="5" height="50" rx="1" fill="url(#la-plate)" />
-            <rect x="16" y="95" width="5" height="50" rx="1" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
-            <rect x="21" y="118.2" width="3" height="3.6" rx="0.8" fill="#94a3b8" />
+            {/* Left: sleeve → 25 (outer) → 45 → 45 (inner) → collar → bar at 47 */}
+            <rect x="0" y="116" width="31" height="8" rx="1.5" fill="#afb9c3" />
+            <rect x="31" y="108" width="3" height="28" rx="0.6" fill="url(#la-plate)" />
+            <rect x="31" y="108" width="3" height="28" rx="0.6" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.4" />
+            <rect x="34" y="95" width="5" height="50" rx="1" fill="url(#la-plate)" />
+            <rect x="34" y="95" width="5" height="50" rx="1" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
+            <rect x="39" y="95" width="5" height="50" rx="1" fill="url(#la-plate)" />
+            <rect x="39" y="95" width="5" height="50" rx="1" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
+            <rect x="44" y="118.2" width="3" height="3.6" rx="0.8" fill="#94a3b8" />
 
-            {/* Right: bar → collar → 45 (inner) → 45 → 25 (outer) → sleeve */}
-            <rect x="216" y="118.2" width="3" height="3.6" rx="0.8" fill="#94a3b8" />
-            <rect x="219" y="95" width="5" height="50" rx="1" fill="url(#la-plate)" />
-            <rect x="219" y="95" width="5" height="50" rx="1" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
-            <rect x="224" y="95" width="5" height="50" rx="1" fill="url(#la-plate)" />
-            <rect x="224" y="95" width="5" height="50" rx="1" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
-            <rect x="229" y="108" width="3" height="28" rx="0.6" fill="url(#la-plate)" />
-            <rect x="229" y="108" width="3" height="28" rx="0.6" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.4" />
-            <rect x="232" y="116" width="8" height="8" rx="1.5" fill="#afb9c3" />
+            {/* Right: bar ends 193 → collar → 45 (inner) → 45 → 25 (outer) → sleeve */}
+            <rect x="193" y="118.2" width="3" height="3.6" rx="0.8" fill="#94a3b8" />
+            <rect x="196" y="95" width="5" height="50" rx="1" fill="url(#la-plate)" />
+            <rect x="196" y="95" width="5" height="50" rx="1" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
+            <rect x="201" y="95" width="5" height="50" rx="1" fill="url(#la-plate)" />
+            <rect x="201" y="95" width="5" height="50" rx="1" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
+            <rect x="206" y="108" width="3" height="28" rx="0.6" fill="url(#la-plate)" />
+            <rect x="206" y="108" width="3" height="28" rx="0.6" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.4" />
+            <rect x="209" y="116" width="31" height="8" rx="1.5" fill="#afb9c3" />
           </g>
 
           <g style={{ animation: `la-chart-cycle ${chartDuration}s linear infinite` }}>
