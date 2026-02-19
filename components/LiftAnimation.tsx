@@ -15,11 +15,13 @@ function repPeakPath(cx: number, width: number, peakY: number, baseline: number)
 }
 
 const LiftAnimation: React.FC<Props> = ({ size = 280 }) => {
-  // Scale: 50 units = 450mm (45 plate). Sleeve 400mm = 44.44 units to inner face of innermost 45.
+  // Scale: 50 units = 450mm (45 plate diameter). Sleeve 400mm; 45 plate thickness 53mm.
   const sleeveUnits = (400 / 450) * 50; // 44.44
+  const plate45Width = (53 / 450) * 50; // 5.89 — 45 lb plate thickness (side-view width)
+  const platesPerSide = 4;
   const shaftWidth = 146;
-  const endWidth = sleeveUnits + 5 + 5 + 3 + 3; // sleeve + 45 + 45 + 25 + collar
-  const viewBoxW = Math.ceil(endWidth * 2 + shaftWidth); // 267
+  const endWidth = sleeveUnits + platesPerSide * plate45Width + 3; // sleeve + 4×45 + collar
+  const viewBoxW = Math.ceil(endWidth * 2 + shaftWidth);
   const chartWidth = 204;
   const chartLeft = (viewBoxW - chartWidth) / 2;
   const chartRight = chartLeft + chartWidth;
@@ -125,33 +127,33 @@ const LiftAnimation: React.FC<Props> = ({ size = 280 }) => {
             </clipPath>
           </defs>
 
-          {/* Side view. Sleeve 400mm = sleeveUnits to inner face of innermost 45. Order: sleeve, 25, 45, 45, collar, bar. */}
+          {/* Side view. 4× 45 lb per side (53mm thick). Order: sleeve → 4×45 → collar → bar. */}
           <g style={{ animation: `la-rep ${chartDuration}s linear infinite` }}>
-            {/* Shaft: from endWidth to endWidth + shaftWidth */}
+            {/* Shaft */}
             <rect x={endWidth} y="118.5" width={shaftWidth} height="3" rx="1.5" fill="url(#la-bar)" />
             <rect x={endWidth} y="118.45" width={shaftWidth} height="0.5" rx="0.25" fill="#e2e8f0" opacity="0.5" />
             <rect x={endWidth} y="121.05" width={shaftWidth} height="0.5" rx="0.25" fill="#1e293b" opacity="0.25" />
             <rect x={endWidth + shaftWidth / 2 - 3} y="117.8" width="6" height="4.4" rx="1" fill="none" stroke="#94a3b8" strokeWidth="0.5" opacity="0.5" />
 
-            {/* Left: sleeve 400mm (0 to sleeveUnits) → 45 (inner) → 45 → 25 (outer) → collar → bar */}
+            {/* Left: sleeve → 4× 45 → collar → bar */}
             <rect x="0" y="116" width={sleeveUnits} height="8" rx="1.5" fill="#afb9c3" />
-            <rect x={sleeveUnits} y="95" width="5" height="50" rx="1" fill="url(#la-plate)" />
-            <rect x={sleeveUnits} y="95" width="5" height="50" rx="1" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
-            <rect x={sleeveUnits + 5} y="95" width="5" height="50" rx="1" fill="url(#la-plate)" />
-            <rect x={sleeveUnits + 5} y="95" width="5" height="50" rx="1" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
-            <rect x={sleeveUnits + 10} y="108" width="3" height="28" rx="0.6" fill="url(#la-plate)" />
-            <rect x={sleeveUnits + 10} y="108" width="3" height="28" rx="0.6" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.4" />
+            {[0, 1, 2, 3].map((i) => (
+              <React.Fragment key={`l45-${i}`}>
+                <rect x={sleeveUnits + i * plate45Width} y={95} width={plate45Width} height={50} rx={1} fill="url(#la-plate)" />
+                <rect x={sleeveUnits + i * plate45Width} y={95} width={plate45Width} height={50} rx={1} fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
+              </React.Fragment>
+            ))}
             <rect x={endWidth - 3} y="118.2" width="3" height="3.6" rx="0.8" fill="#94a3b8" />
 
-            {/* Right: bar end → collar → 45 (inner) → 45 → 25 → sleeve (400mm) */}
+            {/* Right: bar end → collar → 4× 45 → sleeve */}
             <rect x={endWidth + shaftWidth} y="118.2" width="3" height="3.6" rx="0.8" fill="#94a3b8" />
-            <rect x={endWidth + shaftWidth + 3} y="95" width="5" height="50" rx="1" fill="url(#la-plate)" />
-            <rect x={endWidth + shaftWidth + 3} y="95" width="5" height="50" rx="1" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
-            <rect x={endWidth + shaftWidth + 8} y="95" width="5" height="50" rx="1" fill="url(#la-plate)" />
-            <rect x={endWidth + shaftWidth + 8} y="95" width="5" height="50" rx="1" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
-            <rect x={endWidth + shaftWidth + 13} y="108" width="3" height="28" rx="0.6" fill="url(#la-plate)" />
-            <rect x={endWidth + shaftWidth + 13} y="108" width="3" height="28" rx="0.6" fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.4" />
-            <rect x={endWidth + shaftWidth + 16} y="116" width={sleeveUnits} height="8" rx="1.5" fill="#afb9c3" />
+            {[0, 1, 2, 3].map((i) => (
+              <React.Fragment key={`r45-${i}`}>
+                <rect x={endWidth + shaftWidth + 3 + i * plate45Width} y={95} width={plate45Width} height={50} rx={1} fill="url(#la-plate)" />
+                <rect x={endWidth + shaftWidth + 3 + i * plate45Width} y={95} width={plate45Width} height={50} rx={1} fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
+              </React.Fragment>
+            ))}
+            <rect x={endWidth + shaftWidth + 3 + platesPerSide * plate45Width} y="116" width={sleeveUnits} height="8" rx="1.5" fill="#afb9c3" />
           </g>
 
           <g style={{ animation: `la-chart-cycle ${chartDuration}s linear infinite` }}>
