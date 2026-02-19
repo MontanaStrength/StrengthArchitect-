@@ -15,12 +15,13 @@ function repPeakPath(cx: number, width: number, peakY: number, baseline: number)
 }
 
 const LiftAnimation: React.FC<Props> = ({ size = 280 }) => {
-  // Scale: 50 units = 450mm (45 plate diameter). Sleeve 400mm; 45 plate thickness 53mm.
-  const sleeveUnits = (400 / 450) * 50; // 44.44
-  const plate45Width = (53 / 450) * 50; // 5.89 — 45 lb plate thickness (side-view width)
+  // Scale: 50 units = 450mm (45 plate diameter). Sleeve 400mm total; 188mm tip to outer face of plates, 212mm plate stack (4×53mm), 400mm tip to inner face.
+  const sleeveVisibleUnits = (188 / 450) * 50; // 20.89 — from tip to outer edge of plate stack
+  const plate45Width = (53 / 450) * 50; // 5.89 — 45 lb plate thickness
   const platesPerSide = 4;
+  const plateStackWidth = platesPerSide * plate45Width; // 23.56 (212mm)
   const shaftWidth = 146;
-  const endWidth = sleeveUnits + platesPerSide * plate45Width + 3; // sleeve + 4×45 + collar
+  const endWidth = sleeveVisibleUnits + plateStackWidth + 3; // 188mm sleeve + 212mm plates + collar
   const viewBoxW = Math.ceil(endWidth * 2 + shaftWidth);
   const chartWidth = 204;
   const chartLeft = (viewBoxW - chartWidth) / 2;
@@ -127,7 +128,7 @@ const LiftAnimation: React.FC<Props> = ({ size = 280 }) => {
             </clipPath>
           </defs>
 
-          {/* Side view. 4× 45 lb per side (53mm thick). Order: sleeve → 4×45 → collar → bar. */}
+          {/* Side view. 188mm sleeve (tip to outer plates), 212mm plate stack, 400mm tip to inner face. */}
           <g style={{ animation: `la-rep ${chartDuration}s linear infinite` }}>
             {/* Shaft */}
             <rect x={endWidth} y="118.5" width={shaftWidth} height="3" rx="1.5" fill="url(#la-bar)" />
@@ -135,17 +136,17 @@ const LiftAnimation: React.FC<Props> = ({ size = 280 }) => {
             <rect x={endWidth} y="121.05" width={shaftWidth} height="0.5" rx="0.25" fill="#1e293b" opacity="0.25" />
             <rect x={endWidth + shaftWidth / 2 - 3} y="117.8" width="6" height="4.4" rx="1" fill="none" stroke="#94a3b8" strokeWidth="0.5" opacity="0.5" />
 
-            {/* Left: sleeve → 4× 45 → collar → bar */}
-            <rect x="0" y="116" width={sleeveUnits} height="8" rx="1.5" fill="#afb9c3" />
+            {/* Left: 188mm sleeve → 212mm (4×45) → collar → bar */}
+            <rect x="0" y="116" width={sleeveVisibleUnits} height="8" rx="1.5" fill="#afb9c3" />
             {[0, 1, 2, 3].map((i) => (
               <React.Fragment key={`l45-${i}`}>
-                <rect x={sleeveUnits + i * plate45Width} y={95} width={plate45Width} height={50} rx={1} fill="url(#la-plate)" />
-                <rect x={sleeveUnits + i * plate45Width} y={95} width={plate45Width} height={50} rx={1} fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
+                <rect x={sleeveVisibleUnits + i * plate45Width} y={95} width={plate45Width} height={50} rx={1} fill="url(#la-plate)" />
+                <rect x={sleeveVisibleUnits + i * plate45Width} y={95} width={plate45Width} height={50} rx={1} fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
               </React.Fragment>
             ))}
             <rect x={endWidth - 3} y="118.2" width="3" height="3.6" rx="0.8" fill="#94a3b8" />
 
-            {/* Right: bar end → collar → 4× 45 → sleeve */}
+            {/* Right: bar end → collar → 212mm (4×45) → 188mm sleeve */}
             <rect x={endWidth + shaftWidth} y="118.2" width="3" height="3.6" rx="0.8" fill="#94a3b8" />
             {[0, 1, 2, 3].map((i) => (
               <React.Fragment key={`r45-${i}`}>
@@ -153,7 +154,7 @@ const LiftAnimation: React.FC<Props> = ({ size = 280 }) => {
                 <rect x={endWidth + shaftWidth + 3 + i * plate45Width} y={95} width={plate45Width} height={50} rx={1} fill="none" stroke="#cbd5e1" strokeOpacity="0.5" strokeWidth="0.5" />
               </React.Fragment>
             ))}
-            <rect x={endWidth + shaftWidth + 3 + platesPerSide * plate45Width} y="116" width={sleeveUnits} height="8" rx="1.5" fill="#afb9c3" />
+            <rect x={endWidth + shaftWidth + 3 + plateStackWidth} y="116" width={sleeveVisibleUnits} height="8" rx="1.5" fill="#afb9c3" />
           </g>
 
           <g style={{ animation: `la-chart-cycle ${chartDuration}s linear infinite` }}>
