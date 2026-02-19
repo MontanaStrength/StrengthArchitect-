@@ -47,7 +47,7 @@ const LoadingView: React.FC<Props> = ({ contextLabel }) => {
     <div className="py-8 space-y-8">
       {/* Animated barbell — keep square so plates don't squash to edge-on */}
       <div className="flex justify-center shrink-0">
-        <LiftAnimation size={160} />
+        <LiftAnimation size={280} />
         {/* Geometric alternative: <LiftAnimationGeometric size={160} /> */}
       </div>
 

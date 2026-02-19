@@ -14,7 +14,7 @@ function repPeakPath(cx: number, width: number, peakY: number, baseline: number)
   return `L${x0},${baseline} C${x1},${baseline} ${x1},${baseline - peakY} ${cx},${baseline - peakY} C${x2},${baseline - peakY} ${x2},${baseline} ${x3},${baseline}`;
 }
 
-const LiftAnimation: React.FC<Props> = ({ size = 160 }) => {
+const LiftAnimation: React.FC<Props> = ({ size = 280 }) => {
   const chartLeft = 18;
   const chartRight = 222;
   const chartBaseline = 210;
