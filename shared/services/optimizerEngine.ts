@@ -456,28 +456,36 @@ const FATIGUE_TARGETS: Record<TrainingGoalFocus, { min: number; max: number }> =
 //   eliminating the need for a linear displacement transducer (LDT).
 //
 //   Grounded in velocity-based training research (Sanchez-Medina &
-//   González-Badillo 2011, Izquierdo et al. 2006) which shows that
-//   peak velocity/force degrades once ~40-60% of max reps are
-//   completed, with the ratio being intensity-dependent:
+//   González-Badillo 2011, Rodríguez-Rosell et al. 2020, Izquierdo
+//   et al. 2006) which shows peak velocity/force degrades once
+//   ~30-45% of max reps are completed, with the ratio being
+//   intensity-dependent:
 //     - Higher intensity → motor units saturated sooner, force drops
 //       earlier (as % of max reps)
 //     - Lower intensity → more reserve motor units, force maintained
 //       longer before recruitment ceiling is hit
 //
-//   Calibrated to LDT data:  75% 1RM, ~10 max reps → force drops
-//   around rep 5-6 (qualityRatio ≈ 0.49).
+//   Calibrated to strict ≥95% peak force criterion (~10-15% velocity
+//   loss threshold per VBT literature):
+//     60% → ~9 reps    (of ~20 max,  ratio ~0.46)
+//     65% → ~7 reps    (of ~16 max,  ratio ~0.44)
+//     70% → ~5 reps    (of ~13 max,  ratio ~0.41)
+//     75% → ~4 reps    (of ~10 max,  ratio ~0.38)
+//     80% → ~3 reps    (of ~7.5 max, ratio ~0.34)
+//     85% → ~2 reps    (of ~5.3 max, ratio ~0.30)
+//     90% → 1 rep      (hardcoded)
 //
 //   For intensity > 90%: always returns 1 (neural demand so high
 //   that peak force declines after the very first rep).
 //
 //   Model:
-//     maxReps       = 30 × (100 / intensity - 1)                    [Epley]
-//     qualityRatio  = 0.30 + 0.30 × ((90 - intensity) / 30) ^ 0.7  [concave]
+//     maxReps       = 30 × (100 / intensity - 1)                     [Epley]
+//     qualityRatio  = 0.24 + 0.22 × ((90 - intensity) / 30) ^ 0.65  [concave]
 //     dropRep       = round(maxReps × qualityRatio)
 //
-//   The 0.7 exponent creates a concave curve: quality ratio rises
-//   quickly at moderate intensities (large motor-unit reserve) and
-//   compresses near 90% where force drops almost immediately.
+//   The 0.65 exponent creates a concave curve: quality ratio rises
+//   at moderate intensities (larger motor-unit reserve) and compresses
+//   near 90% where force drops almost immediately.
 
 /**
  * Estimate the last rep in a set where peak force is still ≥ 95%
@@ -490,12 +498,11 @@ const FATIGUE_TARGETS: Record<TrainingGoalFocus, { min: number; max: number }> =
  */
 export const estimatePeakForceDropRep = (intensityPct: number): number => {
   const intensity = Math.max(30, Math.min(intensityPct, 100));
-  // Above 90%: force drops after first rep
   if (intensity > 90) return 1;
 
   const maxReps = 30 * (100 / intensity - 1); // Epley
   const normalised = (90 - intensity) / 30;   // 0 at 90%, 1 at 60%
-  const qualityRatio = 0.30 + 0.30 * Math.pow(normalised, 0.7);
+  const qualityRatio = 0.24 + 0.22 * Math.pow(normalised, 0.65);
   return Math.max(1, Math.round(maxReps * qualityRatio));
 };
 
@@ -526,6 +533,65 @@ export const prescribeStrengthSets = (
 
   return { sets, repsPerSet, qualityReps, restSeconds };
 };
+
+/**
+ * Mechanical Tension Hypertrophy — peak-force-limited sets for muscle growth.
+ *
+ * Every rep stays in the peak-force zone (≥95% of first-rep force), maximizing
+ * mechanical tension per sarcomere. Hypertrophy is driven by mechano-transduction
+ * (FAK/integrin, titin-based sensing) rather than metabolite accumulation.
+ *
+ * Flow: Hanley prescribes total reps → peak-force limiter caps reps/set →
+ * sets = ceil(totalReps / repsPerSet). Frederick is computed for tracking only.
+ *
+ * Intensity is nudged into the 65-78% band where the peak-force limiter
+ * yields practical set/rep combos (5-8 reps/set, 6-12 sets).
+ */
+export function prescribeMechanicalTensionSets(
+  targetReps: number,
+  intMin: number,
+  intMax: number,
+): {
+  sets: number;
+  repsPerSet: number;
+  intensityPct: number;
+  restSeconds: number;
+  totalReps: number;
+  peakForceDropRep: number;
+  frederickPerExercise: number;
+  description: string;
+} {
+  const clampedMin = Math.max(intMin, 63);
+  const clampedMax = Math.min(intMax, 80);
+  const intensity = Math.round((clampedMin + clampedMax) / 2);
+
+  const dropRep = estimatePeakForceDropRep(intensity);
+  const repsPerSet = dropRep;
+  const sets = Math.max(3, Math.ceil(targetReps / repsPerSet));
+  const totalReps = sets * repsPerSet;
+
+  // Rest: enough for peak-force recovery but not full strength-style rest
+  let restSeconds: number;
+  if (intensity >= 78) restSeconds = 180;
+  else if (intensity >= 72) restSeconds = 150;
+  else restSeconds = 120;
+
+  // Compute Frederick for tracking (not prescriptive)
+  const rpe = rpeAtIntensity(repsPerSet, intensity);
+  const perSetLoad = calculateSetMetabolicLoad(intensity, repsPerSet, rpe);
+  const frederickPerExercise = Math.round(perSetLoad * sets * 100) / 100;
+
+  return {
+    sets,
+    repsPerSet,
+    intensityPct: intensity,
+    restSeconds,
+    totalReps,
+    peakForceDropRep: dropRep,
+    frederickPerExercise,
+    description: `${sets}×${repsPerSet} @ ${intensity}% 1RM (peak-force capped, ${Math.round(restSeconds / 60)}-${Math.round(restSeconds / 60) + 0.5} min rest)`,
+  };
+}
 
 /** Peak force drop-off table — exported for the UI */
 export const PEAK_FORCE_TABLE = [60, 65, 70, 75, 80, 85, 90].map(pct => ({
@@ -558,8 +624,11 @@ const phaseVolumeScalar = (ctx: TrainingContext | null | undefined): number => {
   if (!ctx) return 1.0;
   const phase = ctx.phaseName.toLowerCase();
   if (phase.includes('deload') || phase.includes('taper'))         return 0.50;
-  if (phase.includes('peak'))                                      return 0.65;
+  if (phase.includes('peak') || phase.includes('realiz'))          return 0.65;
+  if (phase.includes('power'))                                     return 0.70;
   if (phase.includes('intensif'))                                  return 0.85;
+  if (phase.includes('strength'))                                  return 0.90;
+  if (phase.includes('gpp'))                                       return 1.10;
   if (phase.includes('accumulation') || phase.includes('volume'))  return 1.15;
   if (phase.includes('hypertrophy'))                               return 1.20;
   return 1.0;
@@ -571,14 +640,17 @@ const phaseIntensityShift = (ctx: TrainingContext | null | undefined): number =>
   const phase = ctx.phaseName.toLowerCase();
   let base = 0;
   if (phase.includes('deload') || phase.includes('taper')) base = -10;
-  else if (phase.includes('peak')) base = 5;
+  else if (phase.includes('peak') || phase.includes('realiz')) base = 5;
+  else if (phase.includes('power')) base = 3;
   else if (phase.includes('intensif')) base = 5;
+  else if (phase.includes('strength')) base = 2;
+  else if (phase.includes('gpp')) base = -5;
   else if (phase.includes('accumulation')) base = -5;
   else if (phase.includes('hypertrophy')) base = -3;
   const total = ctx.totalWeeksInPhase ?? 1;
   const week = ctx.weekInPhase ?? 1;
   const progress = total > 1 ? (week - 1) / (total - 1) : 0;
-  const ramp = Math.round(progress * 3); // +0 early phase, up to +3% by end of phase
+  const ramp = Math.round(progress * 3);
   return base + ramp;
 };
 
@@ -873,9 +945,11 @@ export function computeOptimizerRecommendations(
   if (trainingContext) {
     const phase = trainingContext.phaseName.toLowerCase();
     const balancedBias = goalBias >= 44 && goalBias <= 64;
-    if ((phase.includes('strength') || phase.includes('intensif')) && !balancedBias) suggestedFocus = 'strength';
+    if (phase.includes('gpp')) suggestedFocus = 'general';
+    else if ((phase.includes('strength') || phase.includes('intensif')) && !balancedBias) suggestedFocus = 'strength';
     else if (phase.includes('hypertrophy') || phase.includes('accumulation')) suggestedFocus = 'hypertrophy';
-    else if (phase.includes('power') || phase.includes('peak')) suggestedFocus = 'power';
+    else if (phase.includes('power')) suggestedFocus = 'power';
+    else if (phase.includes('peak') || phase.includes('realiz')) suggestedFocus = 'power';
   }
 
   // ── 10. Frederick Metabolic Stress — prescriptive for hypertrophy ──
@@ -992,21 +1066,48 @@ export function computeOptimizerRecommendations(
     }
   }
 
-  // ── 11c-pre. Myo-Rep session detection (~25% of hypertrophy sessions) ──
+  // ── 11b-2. Mechanical Tension Hypertrophy — ~33% of hypertrophy sessions ──
+  //   Peak-force-limited sets: every rep at ≥95% of first-rep peak force.
+  //   Drives hypertrophy via mechano-transduction (FAK/integrin, titin)
+  //   rather than metabolite accumulation. Frederick is computed for
+  //   tracking but is NOT a binding constraint.
+  //   Eligible: hypertrophy-like, bias < 65, not deload, not low readiness.
+  //   Rotation: every 3rd qualifying session.
+  let mechanicalTensionScheme: OptimizerRecommendations['mechanicalTensionScheme'] | undefined;
+  const isLowReadiness = String(formData.readiness).toLowerCase().includes('low');
+  const mechTensionEligible = isHypertrophyLike && !forceDeload && goalBias < 65 && !isLowReadiness && targetRepsPerExercise != null;
+  const isMechTensionSession = mechTensionEligible && (history.length % 3 === 0);
+
+  if (isMechTensionSession && targetRepsPerExercise != null) {
+    mechanicalTensionScheme = prescribeMechanicalTensionSets(
+      targetRepsPerExercise,
+      intMin,
+      intMax,
+    );
+
+    repScheme = `Mechanical Tension: ${mechanicalTensionScheme.description}`;
+    intMin = Math.max(intMin, mechanicalTensionScheme.intensityPct - 2);
+    intMax = mechanicalTensionScheme.intensityPct;
+    restRange = { min: mechanicalTensionScheme.restSeconds, max: mechanicalTensionScheme.restSeconds + 30 };
+
+    // Frederick is tracked but not prescriptive — clear the binding targets
+    metabolicLoadTarget = undefined;
+    metabolicSetsPerExercise = undefined;
+  }
+
+  // ── 11c-pre. Myo-Rep session detection (~25% of non-mech-tension hypertrophy sessions) ──
   //   Myo-Reps (Borge Fagerli): activation set 12-20 reps @ RPE 8, then
   //   3-5 mini-sets of 3-5 reps with 15-20s rest. Stops when reps drop.
   //   Equivalent hypertrophy to 3 traditional sets in ~30% of the time.
   //   Applied to accessories/machines only — NOT barbell squat/bench/deadlift.
-  //   Triggered when: hypertrophy-focused (bias < 44), not deload, not low readiness.
-  //   Rotation: every 4th qualifying session (deterministic ~25%).
+  //   Triggered when: hypertrophy-focused (bias < 44), not deload, not low readiness, not mech tension.
+  //   Rotation: every 4th qualifying session.
   let myoRepScheme: OptimizerRecommendations['myoRepScheme'] | undefined;
-  const isLowReadiness = String(formData.readiness).toLowerCase().includes('low');
-  const myoRepEligible = isHypertrophyLike && !forceDeload && goalBias < 44 && !isLowReadiness;
+  const myoRepEligible = isHypertrophyLike && !forceDeload && !isMechTensionSession && goalBias < 44 && !isLowReadiness;
   const isMyoRepSession = myoRepEligible && (history.length % 4 === 0);
 
   if (isMyoRepSession) {
-    // Myo-Rep intensity: ~55-65% 1RM (lighter than standard hypertrophy)
-    const myoIntensity = Math.round((55 + 65) / 2); // 60% midpoint
+    const myoIntensity = Math.round((55 + 65) / 2);
     myoRepScheme = {
       activationReps: [12, 15],
       miniSetReps: [3, 5],
@@ -1016,14 +1117,11 @@ export function computeOptimizerRecommendations(
       description: `Myo-Rep: 12-15 activation @ RPE 8, then up to 5×3-5 with 15s rest. ~${myoIntensity}% 1RM. Accessories/machines only — compounds use straight sets.`,
     };
 
-    // Override rep scheme and intensity for Myo-Rep session
     repScheme = `Myo-Rep: 12-15 + up to 5×3-5 (15s rest) for accessories; straight sets for compounds`;
     intMin = Math.min(intMin, 55);
     intMax = Math.min(intMax, 65);
     restRange = { min: 15, max: 20 };
 
-    // Hanley targets don't apply to Myo-Rep exercises (fewer total reps, same stimulus)
-    // but we keep Frederick — metabolic stress is very high per Myo-Rep "set"
     fatigueScoreTarget = undefined;
     fatigueScoreZone = undefined;
     targetRepsPerExercise = undefined;
@@ -1033,7 +1131,7 @@ export function computeOptimizerRecommendations(
   //   Bias < 50:  metabolic taper (lead high-RPE + taper low-RPE)
   //   Bias ≥ 50:  cluster-taper hybrid (force-capped lead + metabolic follow-up)
   //   Both hit Hanley total reps and keep Frederick within gate.
-  //   Skipped entirely when Myo-Rep session is active.
+  //   Skipped when Myo-Rep or Mechanical Tension session is active.
   let taperedRepScheme: ReturnType<typeof prescribeTaperedSets> | undefined = undefined;
   let taperedHeuristic: number | undefined;
   let clusterTaperScheme: ReturnType<typeof prescribeClusterTaperSets> | undefined = undefined;
@@ -1043,13 +1141,13 @@ export function computeOptimizerRecommendations(
     isHypertrophyLike &&
     !forceDeload &&
     !isMyoRepSession &&
+    !isMechTensionSession &&
     targetRepsPerExercise != null &&
     metabolicLoadTarget != null
   ) {
     const midIntensity = (intMin + intMax) / 2;
 
     if (goalBias >= 44) {
-      // ── Cluster-Taper hybrid (bias ≥ 44) ──
       clusterTaperScheme = prescribeClusterTaperSets(
         targetRepsPerExercise,
         intMin,
@@ -1057,7 +1155,6 @@ export function computeOptimizerRecommendations(
       ) ?? undefined;
 
       if (clusterTaperScheme) {
-        // Prefer interleaved (F-M-F-M...) when block bias is balanced (48–62) or ~70% of sessions by rotation
         const balancedBias = goalBias >= 48 && goalBias <= 62;
         const useInterleaved = balancedBias || history.length % 10 < 7;
         (clusterTaperScheme as any).interleaved = useInterleaved;
@@ -1068,13 +1165,11 @@ export function computeOptimizerRecommendations(
         const orderLabel = useInterleaved ? 'interleaved' : 'blocked';
         repScheme = `Cluster-Taper (${orderLabel}): ${clusterTaperScheme.description} (~${clusterTaperScheme.totalReps} reps, Frederick ~${Math.round(clusterTaperScheme.totalFrederickLoad)})`;
 
-        // Override intensity range to the hybrid intensity
         intMin = Math.max(intMin, clusterTaperScheme.intensityPct - 3);
         intMax = clusterTaperScheme.intensityPct;
       }
     }
 
-    // ── Metabolic taper (bias < 44, or cluster-taper fallback) ──
     if (!clusterTaperScheme) {
       taperedRepScheme = prescribeTaperedSets(
         targetRepsPerExercise,
@@ -1087,7 +1182,6 @@ export function computeOptimizerRecommendations(
         taperedHeuristic = Math.round(totalHeuristic * 100) / 100;
         repScheme = `Tapered: ${taperedRepScheme.description} (~${taperedRepScheme.totalReps} reps, Frederick ~${Math.round(taperedRepScheme.totalFrederickLoad)})`;
 
-        // Override intensity range to the Epley-derived value (lead and taper use same weight)
         if (taperedRepScheme.leadIntensityPct) {
           intMin = Math.max(intMin, taperedRepScheme.leadIntensityPct - 3);
           intMax = taperedRepScheme.leadIntensityPct;
@@ -1173,6 +1267,9 @@ export function computeOptimizerRecommendations(
   if (taperedRepScheme) {
     parts.push(`Tapered sets: ${taperedRepScheme.description} — ~${taperedRepScheme.totalReps} reps, prescribed Frederick ~${Math.round(taperedRepScheme.totalFrederickLoad)} (capped), effective ~${taperedHeuristic != null ? Math.round(taperedHeuristic) : '?'} (w/ RPE drift).`);
   }
+  if (mechanicalTensionScheme) {
+    parts.push(`MECHANICAL TENSION SESSION: ${mechanicalTensionScheme.description}. Peak-force-capped sets — every rep at ≥95% peak force. Hypertrophy via mechano-transduction, not metabolite accumulation. Frederick tracked (~${mechanicalTensionScheme.frederickPerExercise}) but not prescriptive.`);
+  }
   if (myoRepScheme) {
     parts.push(`MYO-REP SESSION: ${myoRepScheme.description}. Hanley fatigue targets suspended for Myo-Rep exercises (fewer total reps, equivalent stimulus). Frederick metabolic load still applies.`);
   }
@@ -1204,5 +1301,6 @@ export function computeOptimizerRecommendations(
       : undefined,
     lastSessionSetRPESummary: lastSetRPE?.summary,
     myoRepScheme,
+    mechanicalTensionScheme,
   };
 }

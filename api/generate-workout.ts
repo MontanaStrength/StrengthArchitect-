@@ -1,6 +1,16 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI, Type } from '@google/genai';
 
+// ===== PHASE-SPECIFIC AI DIRECTIVES =====
+
+function getPhaseDirective(phaseName: string): string {
+  const p = phaseName.toLowerCase();
+  if (p.includes('gpp') || p === 'gpp') return `PHASE: GPP — Build work capacity + movement quality. Load 55-70% 1RM, RPE 5-7. High variety (5-8 exercises), 8-15 reps. Prioritize unilateral work, tempo lifts, carries, mobility-loaded movements. Shorter rest (60-90s). No heavy singles.`;
+  if (p.includes('power')) return `PHASE: POWER — Explosive force production. Load 70-85% 1RM with MAX VELOCITY INTENT. Low volume (3-5 reps, 3-5 sets). Speed squats/bench/deads, Olympic variations, contrast methods. Full rest (2-4 min). Fast concentric, no slow tempos. No supersetting primary power movements.`;
+  if (p.includes('deload') || p.includes('taper')) return `PHASE: DELOAD — Active recovery. Load 50-65% 1RM, RPE 4-6 max. 40-50% of normal volume. Familiar movements only, light technique work, no grinding. Goal is RECOVERY, not stimulus.`;
+  return '';
+}
+
 // ===== SELF-CONTAINED VERCEL SERVERLESS FUNCTION =====
 // This file is a standalone copy of the generation logic for Vercel deployment.
 // It does NOT import from ../server/generateWorkout.ts because Vercel serverless
@@ -214,7 +224,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     let blockContext = '';
     if (trainingContext) {
-      blockContext = `ACTIVE BLOCK: "${trainingContext.blockName}" — ${trainingContext.phaseName} (Week ${trainingContext.weekInPhase}/${trainingContext.totalWeeksInPhase}), Intensity: ${trainingContext.intensityFocus}, Volume: ${trainingContext.volumeFocus}`;
+      const phaseDirective = getPhaseDirective(trainingContext.phaseName);
+      blockContext = `ACTIVE BLOCK: "${trainingContext.blockName}" — ${trainingContext.phaseName} (Week ${trainingContext.weekInPhase}/${trainingContext.totalWeeksInPhase}), Intensity: ${trainingContext.intensityFocus}, Volume: ${trainingContext.volumeFocus}${phaseDirective ? '\n' + phaseDirective : ''}`;
     }
 
     let optimizerContext = '';
@@ -224,6 +235,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         : '';
       const fatigueLoad = optimizerRecommendations.fatigueScoreTarget
         ? ` VOLUME STRESS (Hanley, BINDING) PER EXERCISE: ~${optimizerRecommendations.targetRepsPerExercise} total reps PER EXERCISE at recommended intensity. Structure sets×reps to hit this number.`
+        : '';
+      const mechTensionRx = optimizerRecommendations.mechanicalTensionScheme
+        ? ` MECHANICAL TENSION HYPERTROPHY (BINDING): Peak-force-capped sets for hypertrophy via mechano-transduction. REQUIRED: ${optimizerRecommendations.mechanicalTensionScheme.sets}×${optimizerRecommendations.mechanicalTensionScheme.repsPerSet} @ ${optimizerRecommendations.mechanicalTensionScheme.intensityPct}% 1RM. Cap ALL sets at ${optimizerRecommendations.mechanicalTensionScheme.peakForceDropRep} reps max (peak force drop-off). Rest ${Math.round(optimizerRecommendations.mechanicalTensionScheme.restSeconds / 60)}-${Math.round(optimizerRecommendations.mechanicalTensionScheme.restSeconds / 60) + 1} min. Total ~${optimizerRecommendations.mechanicalTensionScheme.totalReps} reps. Every rep explosive, stop if bar speed drops. Frederick ~${optimizerRecommendations.mechanicalTensionScheme.frederickPerExercise} (tracked, NOT prescriptive). MUST include weightLbs AND percentOf1RM. Round to 5 lbs. No supersets on primary movements.`
         : '';
       const peakForceRx = optimizerRecommendations.strengthSetDivision
         ? ` PEAK FORCE (BINDING): force drops after rep ${optimizerRecommendations.peakForceDropRep}. REQUIRED: ${optimizerRecommendations.strengthSetDivision.sets}×${optimizerRecommendations.strengthSetDivision.repsPerSet}. Cap ALL sets at ${optimizerRecommendations.peakForceDropRep} reps max.`
@@ -250,7 +264,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const myoRepRx = optimizerRecommendations.myoRepScheme
         ? ` MYO-REP SESSION (BINDING): Accessories/machines/cables use Myo-Rep protocol. Compound barbell lifts (squat, bench, deadlift variants) use STRAIGHT SETS. MYO-REP PROTOCOL: Activation ${optimizerRecommendations.myoRepScheme.activationReps[0]}-${optimizerRecommendations.myoRepScheme.activationReps[1]} reps @ RPE 8, then up to ${optimizerRecommendations.myoRepScheme.maxMiniSets} mini-sets of ${optimizerRecommendations.myoRepScheme.miniSetReps[0]}-${optimizerRecommendations.myoRepScheme.miniSetReps[1]} reps with ${optimizerRecommendations.myoRepScheme.miniSetRestSeconds}s rest. Stop when reps drop. For Myo-Rep exercises: sets=1, reps="${optimizerRecommendations.myoRepScheme.activationReps[0]}-${optimizerRecommendations.myoRepScheme.activationReps[1]} + up to ${optimizerRecommendations.myoRepScheme.maxMiniSets}x${optimizerRecommendations.myoRepScheme.miniSetReps[0]}-${optimizerRecommendations.myoRepScheme.miniSetReps[1]}", restSeconds=${optimizerRecommendations.myoRepScheme.miniSetRestSeconds}, rpeTarget=8, setProtocol="myo-reps". For compounds: setProtocol="straight", normal sets/reps/rest. Safe for Myo-Reps: leg press, hack squat, Smith machine, cables, machines, isolation. NOT safe: barbell squat, deadlift, bench press, barbell row. 1 Myo-Rep cluster ≈ 2-3 traditional sets.`
         : '';
-      optimizerContext = `⚡ OPTIMIZER (BINDING — DO NOT OVERRIDE WITH GENERIC DEFAULTS): ${optimizerRecommendations.sessionVolume} working sets, ${optimizerRecommendations.repScheme}, ${optimizerRecommendations.intensityRange.min}-${optimizerRecommendations.intensityRange.max}% 1RM, ${optimizerRecommendations.exerciseCount.min}-${optimizerRecommendations.exerciseCount.max} exercises. Rationale: ${optimizerRecommendations.rationale}${lastSetRPEContext}${metLoad}${fatigueLoad}${clusterTaperRx}${taperedRx}${peakForceRx}${myoRepRx} COMPLIANCE: Every exercise must match the optimizer's sets/reps/intensity. Do NOT default to 3×10 @ 70%.`;
+      optimizerContext = `⚡ OPTIMIZER (BINDING — DO NOT OVERRIDE WITH GENERIC DEFAULTS): ${optimizerRecommendations.sessionVolume} working sets, ${optimizerRecommendations.repScheme}, ${optimizerRecommendations.intensityRange.min}-${optimizerRecommendations.intensityRange.max}% 1RM, ${optimizerRecommendations.exerciseCount.min}-${optimizerRecommendations.exerciseCount.max} exercises. Rationale: ${optimizerRecommendations.rationale}${lastSetRPEContext}${metLoad}${fatigueLoad}${mechTensionRx}${clusterTaperRx}${taperedRx}${peakForceRx}${myoRepRx} COMPLIANCE: Every exercise must match the optimizer's sets/reps/intensity. Do NOT default to 3×10 @ 70%.`;
     }
 
     let volumeToleranceContext = '';

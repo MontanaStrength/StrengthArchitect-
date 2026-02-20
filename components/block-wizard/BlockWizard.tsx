@@ -2,11 +2,9 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   TrainingBlock,
-  TrainingPhase,
-  PERIODIZATION_TEMPLATES,
   ScheduledWorkout,
 } from '../../shared/types';
-import { BlockWizardState, BlockStepConfig, BlockStepProps, DEFAULT_BLOCK_STATE } from './types';
+import { BlockWizardState, BlockStepConfig, BlockStepProps, DEFAULT_BLOCK_STATE, generatePhasesForFocus } from './types';
 
 import StepBlockGoal from './StepBlockGoal';
 import StepPhaseDesigner from './StepPhaseDesigner';
@@ -19,8 +17,8 @@ import StepBlockReview from './StepBlockReview';
 const BLOCK_STEPS: BlockStepConfig[] = [
   {
     id: 'goal',
-    title: 'Goal & Template',
-    subtitle: 'What are you training for?',
+    title: 'Block Focus',
+    subtitle: 'What kind of training block do you want?',
     component: StepBlockGoal,
   },
   {
@@ -65,13 +63,9 @@ const BlockWizard: React.FC<BlockWizardProps> = ({
   onCancel,
 }) => {
   const [state, setState] = useState<BlockWizardState>(() => {
-    // Pre-populate with the first template's phases
-    const tmpl = PERIODIZATION_TEMPLATES['linear-8-week'];
-    return {
-      ...DEFAULT_BLOCK_STATE,
-      phases: tmpl ? [...tmpl.phases] : [],
-      name: tmpl?.name || '',
-    };
+    const init = { ...DEFAULT_BLOCK_STATE };
+    init.phases = generatePhasesForFocus(init.blockFocus, init.totalWeeks, init.defaultSessionsPerWeek, init.defaultSplitPattern);
+    return init;
   });
 
   const [stepIndex, setStepIndex] = useState(0);
@@ -178,7 +172,7 @@ const BlockWizard: React.FC<BlockWizardProps> = ({
 
           <button
             onClick={goNext}
-            disabled={current.id === 'goal' && state.phases.length === 0}
+            disabled={state.phases.length === 0 && state.blockFocus !== 'custom'}
             className="flex items-center gap-1 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-black font-bold rounded-lg text-sm transition-all"
           >
             Next <ChevronRight size={16} />

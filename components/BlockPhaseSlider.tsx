@@ -1,110 +1,175 @@
 import React, { useRef, useCallback, useState, useEffect } from 'react';
+import { TrainingPhase } from '../shared/types';
 
-export type PhaseKind = 'hypertrophy' | 'strength' | 'peaking';
+export type SliderPhase = 'gpp' | 'hypertrophy' | 'strength' | 'power' | 'peaking' | 'deload';
 
-/** Breakpoints = last week of phase 1 and phase 2 (1-based). So phase 1 = weeks 1..b1, phase 2 = b1+1..b2, phase 3 = b2+1..lengthWeeks. */
-export interface BlockPhaseSliderProps {
-  lengthWeeks: number;
-  /** End week of phase 1 (Hypertrophy), in [1, lengthWeeks-2] */
-  breakpoint1: number;
-  /** End week of phase 2 (Strength), in [breakpoint1+1, lengthWeeks-1] */
-  breakpoint2: number;
-  onChange: (breakpoint1: number, breakpoint2: number) => void;
-  className?: string;
-}
+export const SLIDER_PHASE_ORDER: SliderPhase[] = ['gpp', 'hypertrophy', 'strength', 'power', 'peaking', 'deload'];
 
-const PHASE_COLORS: Record<PhaseKind, { track: string; glow: string; label: string }> = {
+export const SLIDER_PHASE_CONFIG: Record<SliderPhase, {
+  label: string;
+  trainingPhase: TrainingPhase;
+  track: string;
+  glow: string;
+  labelColor: string;
+  chipBg: string;
+  chipBorder: string;
+  weekLabel: string;
+}> = {
+  gpp: {
+    label: 'GPP',
+    trainingPhase: TrainingPhase.GPP,
+    track: 'from-cyan-600 to-teal-500',
+    glow: 'rgba(6, 182, 212, 0.35)',
+    labelColor: 'text-cyan-300',
+    chipBg: 'bg-cyan-500/15',
+    chipBorder: 'border-cyan-500',
+    weekLabel: 'text-cyan-400/90',
+  },
   hypertrophy: {
+    label: 'Hypertrophy',
+    trainingPhase: TrainingPhase.HYPERTROPHY,
     track: 'from-violet-600 to-purple-600',
     glow: 'rgba(139, 92, 246, 0.35)',
-    label: 'text-violet-300',
+    labelColor: 'text-violet-300',
+    chipBg: 'bg-violet-500/15',
+    chipBorder: 'border-violet-500',
+    weekLabel: 'text-violet-400/90',
   },
   strength: {
+    label: 'Strength',
+    trainingPhase: TrainingPhase.STRENGTH,
     track: 'from-amber-500 to-orange-500',
     glow: 'rgba(245, 158, 11, 0.35)',
-    label: 'text-amber-300',
+    labelColor: 'text-amber-300',
+    chipBg: 'bg-amber-500/15',
+    chipBorder: 'border-amber-500',
+    weekLabel: 'text-amber-400/90',
+  },
+  power: {
+    label: 'Power',
+    trainingPhase: TrainingPhase.POWER,
+    track: 'from-rose-500 to-red-500',
+    glow: 'rgba(244, 63, 94, 0.35)',
+    labelColor: 'text-rose-300',
+    chipBg: 'bg-rose-500/15',
+    chipBorder: 'border-rose-500',
+    weekLabel: 'text-rose-400/90',
   },
   peaking: {
+    label: 'Peaking',
+    trainingPhase: TrainingPhase.PEAKING,
     track: 'from-yellow-500 to-amber-400',
     glow: 'rgba(250, 204, 21, 0.35)',
-    label: 'text-yellow-300',
+    labelColor: 'text-yellow-300',
+    chipBg: 'bg-yellow-500/15',
+    chipBorder: 'border-yellow-500',
+    weekLabel: 'text-yellow-400/90',
+  },
+  deload: {
+    label: 'Deload',
+    trainingPhase: TrainingPhase.DELOAD,
+    track: 'from-emerald-500 to-green-500',
+    glow: 'rgba(16, 185, 129, 0.35)',
+    labelColor: 'text-emerald-300',
+    chipBg: 'bg-emerald-500/15',
+    chipBorder: 'border-emerald-500',
+    weekLabel: 'text-emerald-400/90',
   },
 };
 
-function clampBreakpoints(
-  lengthWeeks: number,
-  b1: number,
-  b2: number
-): [number, number] {
-  const minB1 = 1;
-  const maxB1 = Math.max(minB1, lengthWeeks - 2);
-  const minB2 = Math.min(b1 + 1, lengthWeeks - 1);
-  const maxB2 = lengthWeeks - 1;
-  const n1 = Math.max(minB1, Math.min(maxB1, b1));
-  const n2 = Math.max(minB2, Math.min(maxB2, Math.max(b2, n1 + 1)));
-  return [n1, n2];
+export interface BlockPhaseSliderProps {
+  lengthWeeks: number;
+  selectedPhases: SliderPhase[];
+  weekDistribution: number[];
+  onChange: (phases: SliderPhase[], distribution: number[]) => void;
+  className?: string;
+}
+
+function distributionToBreakpoints(distribution: number[]): number[] {
+  const bps: number[] = [];
+  let sum = 0;
+  for (let i = 0; i < distribution.length - 1; i++) {
+    sum += distribution[i];
+    bps.push(sum);
+  }
+  return bps;
+}
+
+function breakpointsToDistribution(breakpoints: number[], totalWeeks: number): number[] {
+  const dist: number[] = [];
+  let prev = 0;
+  for (const bp of breakpoints) {
+    dist.push(bp - prev);
+    prev = bp;
+  }
+  dist.push(totalWeeks - prev);
+  return dist;
+}
+
+function ensureValidDistribution(dist: number[], total: number): number[] {
+  const result = dist.map(w => Math.max(1, w));
+  const sum = result.reduce((a, b) => a + b, 0);
+  if (sum !== total) {
+    const diff = total - sum;
+    const maxIdx = result.indexOf(Math.max(...result));
+    result[maxIdx] = Math.max(1, result[maxIdx] + diff);
+  }
+  return result;
 }
 
 export default function BlockPhaseSlider({
   lengthWeeks,
-  breakpoint1,
-  breakpoint2,
+  selectedPhases,
+  weekDistribution,
   onChange,
   className = '',
 }: BlockPhaseSliderProps) {
   const trackRef = useRef<HTMLDivElement>(null);
-  const [dragging, setDragging] = useState<'b1' | 'b2' | null>(null);
-  const [b1, b2] = clampBreakpoints(lengthWeeks, breakpoint1, breakpoint2);
+  const [dragging, setDragging] = useState<number | null>(null);
 
-  // When block length changes, reclamp breakpoints and sync to parent
+  const dist = ensureValidDistribution(weekDistribution, lengthWeeks);
+  const breakpoints = distributionToBreakpoints(dist);
+
+  // Re-clamp when lengthWeeks changes
   useEffect(() => {
-    const [c1, c2] = clampBreakpoints(lengthWeeks, breakpoint1, breakpoint2);
-    if (c1 !== breakpoint1 || c2 !== breakpoint2) {
-      onChange(c1, c2);
+    if (selectedPhases.length === 0) return;
+    const clamped = ensureValidDistribution(weekDistribution, lengthWeeks);
+    const sum = clamped.reduce((a, b) => a + b, 0);
+    if (sum !== lengthWeeks || clamped.some((w, i) => w !== weekDistribution[i])) {
+      onChange(selectedPhases, clamped);
     }
   }, [lengthWeeks]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const p1 = lengthWeeks > 0 ? b1 / lengthWeeks : 0;
-  const p2 = lengthWeeks > 0 ? b2 / lengthWeeks : 1;
-  const w1 = p1 * 100;
-  const w2 = (p2 - p1) * 100;
-  const w3 = (1 - p2) * 100;
 
   const valueFromClientX = useCallback(
     (clientX: number): number => {
       const track = trackRef.current;
-      if (!track || lengthWeeks < 3) return 1;
+      if (!track) return 1;
       const rect = track.getBoundingClientRect();
       const x = clientX - rect.left;
       const p = Math.max(0, Math.min(1, x / rect.width));
-      const week = Math.round(1 + p * (lengthWeeks - 1));
-      return Math.max(1, Math.min(lengthWeeks, week));
+      return Math.max(1, Math.min(lengthWeeks, Math.round(1 + p * (lengthWeeks - 1))));
     },
-    [lengthWeeks]
+    [lengthWeeks],
   );
 
   const handlePointerDown = useCallback(
-    (which: 'b1' | 'b2') => (e: React.PointerEvent) => {
+    (handleIdx: number) => (e: React.PointerEvent) => {
       e.preventDefault();
       (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-      setDragging(which);
+      setDragging(handleIdx);
     },
-    []
+    [],
   );
 
   useEffect(() => {
     if (dragging === null) return;
     const onMove = (e: PointerEvent) => {
       const week = valueFromClientX(e.clientX);
-      if (dragging === 'b1') {
-        const newB1 = Math.max(1, Math.min(week, b2 - 1));
-        const newB2 = Math.max(newB1 + 1, b2);
-        onChange(newB1, newB2);
-      } else {
-        const newB2 = Math.max(b1 + 1, Math.min(week, lengthWeeks - 1));
-        const newB1 = Math.min(b1, newB2 - 1);
-        onChange(newB1, newB2);
-      }
+      const bps = [...breakpoints];
+      const minBp = dragging === 0 ? 1 : bps[dragging - 1] + 1;
+      const maxBp = dragging === bps.length - 1 ? lengthWeeks - 1 : bps[dragging + 1] - 1;
+      bps[dragging] = Math.max(minBp, Math.min(maxBp, week));
+      onChange(selectedPhases, ensureValidDistribution(breakpointsToDistribution(bps, lengthWeeks), lengthWeeks));
     };
     const onUp = () => setDragging(null);
     window.addEventListener('pointermove', onMove);
@@ -115,118 +180,160 @@ export default function BlockPhaseSlider({
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onUp);
     };
-  }, [dragging, b1, b2, lengthWeeks, onChange, valueFromClientX]);
+  }, [dragging, breakpoints, lengthWeeks, selectedPhases, onChange, valueFromClientX]);
 
-  const weeks1 = b1;
-  const weeks2 = b2 - b1;
-  const weeks3 = lengthWeeks - b2;
+  const handleTogglePhase = (phase: SliderPhase) => {
+    const isSelected = selectedPhases.includes(phase);
+
+    if (isSelected) {
+      if (selectedPhases.length <= 1) return;
+      const idx = selectedPhases.indexOf(phase);
+      const newPhases = selectedPhases.filter(p => p !== phase);
+      const newDist = dist.filter((_, i) => i !== idx);
+      onChange(newPhases, ensureValidDistribution(
+        redistributeWeeks(newDist, lengthWeeks),
+        lengthWeeks,
+      ));
+    } else {
+      if (lengthWeeks < selectedPhases.length + 1) return;
+      const newPhases = SLIDER_PHASE_ORDER.filter(p => selectedPhases.includes(p) || p === phase);
+      const insertIdx = newPhases.indexOf(phase);
+      const newWeeks = Math.max(1, Math.min(2, Math.floor(lengthWeeks / newPhases.length)));
+      const newDist = [...dist];
+      const largestIdx = newDist.indexOf(Math.max(...newDist));
+      newDist[largestIdx] = Math.max(1, newDist[largestIdx] - newWeeks);
+      newDist.splice(insertIdx, 0, newWeeks);
+      onChange(newPhases, ensureValidDistribution(newDist, lengthWeeks));
+    }
+  };
+
+  // Compute segment positions
+  const segments = selectedPhases.map((phase, i) => {
+    const leftWeeks = i === 0 ? 0 : breakpoints[i - 1];
+    const widthWeeks = dist[i];
+    return {
+      phase,
+      config: SLIDER_PHASE_CONFIG[phase],
+      leftPct: (leftWeeks / lengthWeeks) * 100,
+      widthPct: (widthWeeks / lengthWeeks) * 100,
+      weeks: widthWeeks,
+    };
+  });
+
+  // Build per-week phase assignments for bottom labels
+  const weekPhases: SliderPhase[] = [];
+  for (let i = 0; i < selectedPhases.length; i++) {
+    for (let w = 0; w < dist[i]; w++) {
+      weekPhases.push(selectedPhases[i]);
+    }
+  }
 
   return (
     <div className={className}>
-      <div className="flex justify-between items-baseline mb-2">
-        <span className={`text-xs font-semibold ${PHASE_COLORS.hypertrophy.label}`}>
-          Hypertrophy · {weeks1} wk{weeks1 !== 1 ? 's' : ''}
-        </span>
-        <span className={`text-xs font-semibold ${PHASE_COLORS.strength.label}`}>
-          Strength · {weeks2} wk{weeks2 !== 1 ? 's' : ''}
-        </span>
-        <span className={`text-xs font-semibold ${PHASE_COLORS.peaking.label}`}>
-          Peaking · {weeks3} wk{weeks3 !== 1 ? 's' : ''}
-        </span>
+      {/* Phase toggle chips */}
+      <div className="flex flex-wrap gap-1.5 mb-4">
+        {SLIDER_PHASE_ORDER.map(phase => {
+          const cfg = SLIDER_PHASE_CONFIG[phase];
+          const active = selectedPhases.includes(phase);
+          const canToggle = active ? selectedPhases.length > 1 : lengthWeeks >= selectedPhases.length + 1;
+          return (
+            <button
+              key={phase}
+              onClick={() => handleTogglePhase(phase)}
+              disabled={!canToggle}
+              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition-all ${
+                active
+                  ? `${cfg.chipBg} ${cfg.chipBorder} ring-1 ring-opacity-30`
+                  : canToggle
+                    ? 'bg-neutral-800/60 border-neutral-700 hover:border-neutral-500 text-gray-500'
+                    : 'bg-neutral-900/40 border-neutral-800 text-gray-700 cursor-not-allowed opacity-50'
+              }`}
+              style={active ? { color: undefined } : undefined}
+            >
+              <span className={active ? cfg.labelColor : undefined}>{cfg.label}</span>
+            </button>
+          );
+        })}
       </div>
 
+      {/* Phase labels row */}
+      <div className="flex justify-between items-baseline mb-2">
+        {segments.map(seg => (
+          <span
+            key={seg.phase}
+            className={`text-xs font-semibold ${seg.config.labelColor}`}
+            style={{ flex: seg.weeks }}
+          >
+            {seg.config.label} · {seg.weeks} wk{seg.weeks !== 1 ? 's' : ''}
+          </span>
+        ))}
+      </div>
+
+      {/* Track */}
       <div
         ref={trackRef}
         className="relative h-10 rounded-xl overflow-hidden border border-neutral-700/80 shadow-inner flex cursor-pointer select-none touch-none"
         style={{ minHeight: 40 }}
       >
-        {/* Segment 1: Hypertrophy */}
-        <div
-          className={`absolute left-0 top-0 bottom-0 bg-gradient-to-r ${PHASE_COLORS.hypertrophy.track} transition-[width] duration-150 ease-out`}
-          style={{
-            width: `${w1}%`,
-            boxShadow: `inset 0 0 20px ${PHASE_COLORS.hypertrophy.glow}`,
-          }}
-        />
-        {/* Segment 2: Strength */}
-        <div
-          className={`absolute top-0 bottom-0 bg-gradient-to-r ${PHASE_COLORS.strength.track} transition-[width] duration-150 ease-out`}
-          style={{
-            left: `${w1}%`,
-            width: `${w2}%`,
-            boxShadow: `inset 0 0 20px ${PHASE_COLORS.strength.glow}`,
-          }}
-        />
-        {/* Segment 3: Peaking */}
-        <div
-          className={`absolute right-0 top-0 bottom-0 bg-gradient-to-r ${PHASE_COLORS.peaking.track} transition-[width] duration-150 ease-out`}
-          style={{
-            width: `${w3}%`,
-            boxShadow: `inset 0 0 20px ${PHASE_COLORS.peaking.glow}`,
-          }}
-        />
-
-        {/* Handle 1 */}
-        <div
-          role="slider"
-          aria-valuenow={b1}
-          aria-valuemin={1}
-          aria-valuemax={lengthWeeks - 2}
-          tabIndex={0}
-          onPointerDown={handlePointerDown('b1')}
-          className="absolute top-0 bottom-0 w-3 cursor-ew-resize flex items-center justify-center z-10 group"
-          style={{ left: `${p1 * 100}%`, transform: 'translateX(-50%)' }}
-        >
+        {/* Colored segments */}
+        {segments.map(seg => (
           <div
-            className={`w-1.5 h-8 rounded-full bg-white/95 shadow-lg border-2 border-neutral-800 transition-transform ${
-              dragging === 'b1' ? 'scale-110 ring-2 ring-white/50' : 'group-hover:scale-105'
-            }`}
+            key={seg.phase}
+            className={`absolute top-0 bottom-0 bg-gradient-to-r ${seg.config.track} transition-[width,left] duration-150 ease-out`}
+            style={{
+              left: `${seg.leftPct}%`,
+              width: `${seg.widthPct}%`,
+              boxShadow: `inset 0 0 20px ${seg.config.glow}`,
+            }}
           />
-        </div>
+        ))}
 
-        {/* Handle 2 */}
-        <div
-          role="slider"
-          aria-valuenow={b2}
-          aria-valuemin={2}
-          aria-valuemax={lengthWeeks - 1}
-          tabIndex={0}
-          onPointerDown={handlePointerDown('b2')}
-          className="absolute top-0 bottom-0 w-3 cursor-ew-resize flex items-center justify-center z-10 group"
-          style={{ left: `${p2 * 100}%`, transform: 'translateX(-50%)' }}
-        >
+        {/* Draggable handles between phases */}
+        {breakpoints.map((bp, i) => (
           <div
-            className={`w-1.5 h-8 rounded-full bg-white/95 shadow-lg border-2 border-neutral-800 transition-transform ${
-              dragging === 'b2' ? 'scale-110 ring-2 ring-white/50' : 'group-hover:scale-105'
-            }`}
-          />
-        </div>
+            key={i}
+            role="slider"
+            aria-valuenow={bp}
+            aria-valuemin={i === 0 ? 1 : breakpoints[i - 1] + 1}
+            aria-valuemax={i === breakpoints.length - 1 ? lengthWeeks - 1 : breakpoints[i + 1] - 1}
+            tabIndex={0}
+            onPointerDown={handlePointerDown(i)}
+            className="absolute top-0 bottom-0 w-3 cursor-ew-resize flex items-center justify-center z-10 group"
+            style={{ left: `${(bp / lengthWeeks) * 100}%`, transform: 'translateX(-50%)' }}
+          >
+            <div
+              className={`w-1.5 h-8 rounded-full bg-white/95 shadow-lg border-2 border-neutral-800 transition-transform ${
+                dragging === i ? 'scale-110 ring-2 ring-white/50' : 'group-hover:scale-105'
+              }`}
+            />
+          </div>
+        ))}
       </div>
 
-      {/* Week labels under track */}
+      {/* Week number labels */}
       <div className="flex justify-between mt-1.5 px-0.5 gap-0" style={{ width: '100%' }}>
-        {Array.from({ length: lengthWeeks }, (_, i) => i + 1).map((week) => {
-          const phase =
-            week <= b1 ? 'hypertrophy' : week <= b2 ? 'strength' : 'peaking';
-          const isBoundary = week === b1 || week === b2;
+        {Array.from({ length: lengthWeeks }, (_, i) => {
+          const phase = weekPhases[i] || selectedPhases[selectedPhases.length - 1];
+          const cfg = SLIDER_PHASE_CONFIG[phase];
+          const isBoundary = breakpoints.includes(i + 1);
           return (
             <span
-              key={week}
+              key={i}
               className={`text-[10px] font-medium flex-1 text-center ${
-                isBoundary
-                  ? 'text-white'
-                  : phase === 'hypertrophy'
-                    ? 'text-violet-400/90'
-                    : phase === 'strength'
-                      ? 'text-amber-400/90'
-                      : 'text-yellow-400/90'
+                isBoundary ? 'text-white' : cfg.weekLabel
               }`}
             >
-              {week}
+              {i + 1}
             </span>
           );
         })}
       </div>
     </div>
   );
+}
+
+function redistributeWeeks(dist: number[], total: number): number[] {
+  const sum = dist.reduce((a, b) => a + b, 0);
+  if (sum === total) return dist;
+  return dist.map(w => Math.max(1, Math.round((w / sum) * total)));
 }

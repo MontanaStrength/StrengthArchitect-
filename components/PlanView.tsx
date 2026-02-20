@@ -107,7 +107,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { TrainingBlock, TrainingBlockPhase, TrainingPhase, PHASE_PRESETS, ExerciseSlot, ExercisePreferences, MovementPattern, SessionStructure, SESSION_STRUCTURE_PRESETS, DEFAULT_SESSION_STRUCTURE, ScheduledWorkout, SavedWorkout } from '../shared/types';
 import { EXERCISE_LIBRARY } from '../shared/services/exerciseLibrary';
 import { Layers, Calendar, Dumbbell, ChevronRight, ChevronDown, Check, CheckCircle2, ArrowRight, Rocket } from 'lucide-react';
-import BlockPhaseSlider from './BlockPhaseSlider';
+import BlockPhaseSlider, { SliderPhase, SLIDER_PHASE_CONFIG } from './BlockPhaseSlider';
 import TrainingCalendarView from './TrainingCalendarView';
 
 interface EstimatedMaxes {
@@ -228,42 +228,70 @@ const BIAS_LABELS: Record<string, string> = {
 const getBiasKey = (v: number) =>
   v < 20 ? 'hypertrophy' : v < 40 ? 'hypertrophy-plus' : v < 60 ? 'balanced' : v < 80 ? 'strength-plus' : 'strength';
 
-/** Build default phase breakpoints from block length or existing phases. Returns [endWeekPhase1, endWeekPhase2]. */
-function defaultPhaseBreakpoints(lengthWeeks: number, existingPhases?: TrainingBlockPhase[]): [number, number] {
-  if (existingPhases?.length === 3 &&
-      existingPhases[0].phase === TrainingPhase.HYPERTROPHY &&
-      existingPhases[1].phase === TrainingPhase.STRENGTH &&
-      existingPhases[2].phase === TrainingPhase.PEAKING) {
-    const b1 = existingPhases[0].weekCount;
-    const b2 = b1 + existingPhases[1].weekCount;
-    return [b1, b2];
+const TRAINING_PHASE_TO_SLIDER: Partial<Record<TrainingPhase, SliderPhase>> = {
+  [TrainingPhase.GPP]: 'gpp',
+  [TrainingPhase.HYPERTROPHY]: 'hypertrophy',
+  [TrainingPhase.ACCUMULATION]: 'hypertrophy',
+  [TrainingPhase.STRENGTH]: 'strength',
+  [TrainingPhase.INTENSIFICATION]: 'strength',
+  [TrainingPhase.POWER]: 'power',
+  [TrainingPhase.PEAKING]: 'peaking',
+  [TrainingPhase.REALIZATION]: 'peaking',
+  [TrainingPhase.DELOAD]: 'deload',
+};
+
+/** Extract slider phases and week distribution from existing block phases */
+function phasesFromExisting(
+  existingPhases?: TrainingBlockPhase[],
+  lengthWeeks = 8,
+): { selectedPhases: SliderPhase[]; weekDistribution: number[] } {
+  if (!existingPhases || existingPhases.length === 0) {
+    const half = Math.max(1, Math.floor(lengthWeeks / 2));
+    return { selectedPhases: ['hypertrophy', 'strength'], weekDistribution: [half, lengthWeeks - half] };
   }
-  if (lengthWeeks < 3) return [1, 2];
-  if (lengthWeeks === 8) return [3, 6]; // common 3-3-2 split
-  if (lengthWeeks === 16) return [6, 12]; // 6 hyp, 6 strength, 4 peaking
-  const third = Math.max(1, Math.floor(lengthWeeks / 3));
-  return [third, lengthWeeks - Math.max(1, Math.floor((lengthWeeks - third) / 2))];
+
+  const selected: SliderPhase[] = [];
+  const dist: number[] = [];
+
+  for (const p of existingPhases) {
+    const sp = TRAINING_PHASE_TO_SLIDER[p.phase];
+    if (!sp) continue;
+    const existingIdx = selected.indexOf(sp);
+    if (existingIdx === -1) {
+      selected.push(sp);
+      dist.push(p.weekCount);
+    } else {
+      dist[existingIdx] += p.weekCount;
+    }
+  }
+
+  if (selected.length === 0) {
+    const half = Math.max(1, Math.floor(lengthWeeks / 2));
+    return { selectedPhases: ['hypertrophy', 'strength'], weekDistribution: [half, lengthWeeks - half] };
+  }
+
+  return { selectedPhases: selected, weekDistribution: dist };
 }
 
-/** Build 3-phase array (Hypertrophy -> Strength -> Peaking) from breakpoints and block length. */
-function buildPhasesFromBreakpoints(
-  breakpoint1: number,
-  breakpoint2: number,
-  lengthWeeks: number,
+/** Build TrainingBlockPhase array from slider state */
+function buildPhasesFromSelection(
+  selectedPhases: SliderPhase[],
+  weekDistribution: number[],
   daysPerWeek: number,
 ): TrainingBlockPhase[] {
-  const w1 = breakpoint1;
-  const w2 = breakpoint2 - breakpoint1;
-  const w3 = lengthWeeks - breakpoint2;
-  const hyp = PHASE_PRESETS[TrainingPhase.HYPERTROPHY];
-  const str = PHASE_PRESETS[TrainingPhase.STRENGTH];
-  const peak = PHASE_PRESETS[TrainingPhase.PEAKING];
-  const peakDays = Math.max(3, daysPerWeek - 1);
-  return [
-    { ...hyp, weekCount: w1, sessionsPerWeek: daysPerWeek, splitPattern: 'upper-lower', description: hyp.description },
-    { ...str, weekCount: w2, sessionsPerWeek: daysPerWeek, splitPattern: 'upper-lower', description: str.description },
-    { ...peak, weekCount: w3, sessionsPerWeek: peakDays, splitPattern: 'squat-bench-deadlift', description: peak.description },
-  ];
+  return selectedPhases.map((sp, i) => {
+    const tp = SLIDER_PHASE_CONFIG[sp].trainingPhase;
+    const preset = PHASE_PRESETS[tp];
+    const days = (sp === 'peaking' || sp === 'deload') ? Math.max(3, daysPerWeek - 1) : daysPerWeek;
+    const split = sp === 'peaking' ? 'squat-bench-deadlift' as const : 'upper-lower' as const;
+    return {
+      ...preset,
+      weekCount: weekDistribution[i],
+      sessionsPerWeek: days,
+      splitPattern: split,
+      description: preset.description,
+    };
+  });
 }
 
 const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChange, onNavigateToLift, scheduledWorkouts, workoutHistory, onScheduledSave, onScheduledDelete }) => {
@@ -284,20 +312,32 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
   const [startDate, setStartDate] = useState<number>(block?.startDate || Date.now());
   const [lengthWeeks, setLengthWeeks] = useState(block?.lengthWeeks || 8);
   const [goalBias, setGoalBias] = useState(block?.goalBias ?? 50);
-  const [phaseBreakpoint1, setPhaseBreakpoint1] = useState(() =>
-    defaultPhaseBreakpoints(block?.lengthWeeks || 8, block?.phases)[0]
-  );
-  const [phaseBreakpoint2, setPhaseBreakpoint2] = useState(() =>
-    defaultPhaseBreakpoints(block?.lengthWeeks || 8, block?.phases)[1]
-  );
+  const initPhases = phasesFromExisting(block?.phases, block?.lengthWeeks || 8);
+  const [selectedPhases, setSelectedPhases] = useState<SliderPhase[]>(initPhases.selectedPhases);
+  const [weekDistribution, setWeekDistribution] = useState<number[]>(initPhases.weekDistribution);
   const [volumeTolerance, setVolumeTolerance] = useState(block?.volumeTolerance ?? 3);
+
   useEffect(() => {
     if (!block) return;
-    const len = block.lengthWeeks ?? 8;
-    const [b1, b2] = defaultPhaseBreakpoints(len, block.phases);
-    setPhaseBreakpoint1(b1);
-    setPhaseBreakpoint2(b2);
-  }, [block?.id]); // sync breakpoints when switching to a different block
+    const { selectedPhases: sp, weekDistribution: wd } = phasesFromExisting(block.phases, block.lengthWeeks ?? 8);
+    setSelectedPhases(sp);
+    setWeekDistribution(wd);
+  }, [block?.id]); // sync when switching to a different block
+
+  // Rescale distribution when block length changes
+  useEffect(() => {
+    if (selectedPhases.length === 0) return;
+    const currentSum = weekDistribution.reduce((a, b) => a + b, 0);
+    if (currentSum !== lengthWeeks) {
+      const scaled = weekDistribution.map(w => Math.max(1, Math.round((w / currentSum) * lengthWeeks)));
+      const scaledSum = scaled.reduce((a, b) => a + b, 0);
+      if (scaledSum !== lengthWeeks) {
+        const maxIdx = scaled.indexOf(Math.max(...scaled));
+        scaled[maxIdx] = Math.max(1, scaled[maxIdx] + (lengthWeeks - scaledSum));
+      }
+      setWeekDistribution(scaled);
+    }
+  }, [lengthWeeks]); // eslint-disable-line react-hooks/exhaustive-deps
   const [trainingDays, setTrainingDays] = useState<number[]>(block?.trainingDays || []);
   const [sessionStructure, setSessionStructure] = useState<SessionStructure>(block?.sessionStructure || DEFAULT_SESSION_STRUCTURE);
   const [slots, setSlots] = useState<ExerciseSlot[]>(
@@ -332,10 +372,7 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
 
   const handleSave = () => {
     if (!isComplete) return;
-    const phases =
-      lengthWeeks >= 3
-        ? buildPhasesFromBreakpoints(phaseBreakpoint1, phaseBreakpoint2, lengthWeeks, Math.max(trainingDays.length, 3))
-        : block?.phases || [];
+    const phases = buildPhasesFromSelection(selectedPhases, weekDistribution, Math.max(trainingDays.length, 3));
     const phasesChanged =
       (block?.phases?.length ?? 0) !== phases.length ||
       (block?.phases ?? []).some((p, i) => phases[i]?.weekCount !== p.weekCount || phases[i]?.phase !== p.phase);
@@ -373,7 +410,7 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
       .map(d => DAY_LABELS[d]);
     const biasLabel = BIAS_LABELS[getBiasKey(savedBlock.goalBias ?? 50)];
     const phaseSummary =
-      savedBlock.phases?.length === 3
+      savedBlock.phases?.length >= 1
         ? savedBlock.phases
             .map((p) => `${p.phase} ${p.weekCount}w`)
             .join(' → ')
@@ -576,23 +613,19 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
             </div>
           </div>
 
-          {/* Phase sequence: Hypertrophy → Strength → Peaking (multi-point slider) */}
+          {/* Block Focus — phase mode + slider */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Block Focus</label>
-            {lengthWeeks >= 3 ? (
-              <BlockPhaseSlider
-                lengthWeeks={lengthWeeks}
-                breakpoint1={phaseBreakpoint1}
-                breakpoint2={phaseBreakpoint2}
-                onChange={(b1, b2) => {
-                  setPhaseBreakpoint1(b1);
-                  setPhaseBreakpoint2(b2);
-                }}
-                className="mt-1"
-              />
-            ) : (
-              <p className="text-xs text-gray-500 py-2">Set block length to 3+ weeks to use phase planning (Hypertrophy → Strength → Peaking).</p>
-            )}
+            <BlockPhaseSlider
+              lengthWeeks={lengthWeeks}
+              selectedPhases={selectedPhases}
+              weekDistribution={weekDistribution}
+              onChange={(phases, dist) => {
+                setSelectedPhases(phases);
+                setWeekDistribution(dist);
+              }}
+              className="mt-1"
+            />
           </div>
 
           {/* Volume Tolerance */}

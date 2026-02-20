@@ -74,10 +74,9 @@ const ExerciseEditorModal: React.FC<{
         e.primaryMuscles.some(m => m.toLowerCase().includes(q))
       );
     }
-    return list.slice(0, 20);
+    const limit = search.trim() || patternFilter !== 'all' ? 30 : 15;
+    return list.slice(0, limit);
   }, [search, patternFilter, allExercises]);
-
-  const showBrowser = search.trim().length > 0 || patternFilter !== 'all';
 
   const addExercise = (exerciseId: string, exerciseName: string) => {
     if (exercises.some(e => e.exerciseId === exerciseId)) return;
@@ -117,6 +116,7 @@ const ExerciseEditorModal: React.FC<{
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
+    setTimeout(() => searchRef.current?.focus(), 100);
     return () => { document.body.style.overflow = ''; };
   }, []);
 
@@ -124,7 +124,7 @@ const ExerciseEditorModal: React.FC<{
   const dateLabel = new Date(session.date + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black/80 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] flex flex-col bg-black/80 backdrop-blur-sm" onClick={onClose}>
       <div
         className="flex flex-col w-full max-w-lg mx-auto my-4 sm:my-8 bg-neutral-900 border border-neutral-700 rounded-2xl overflow-hidden flex-1 min-h-0"
         onClick={(e) => e.stopPropagation()}
@@ -150,10 +150,10 @@ const ExerciseEditorModal: React.FC<{
         {/* Exercise list */}
         <div className="flex-1 overflow-y-auto min-h-0">
           {exercises.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
-              <Dumbbell size={36} className="text-gray-700 mb-3" />
+            <div className="flex flex-col items-center justify-center py-8 px-6 text-center">
+              <Dumbbell size={32} className="text-gray-700 mb-2" />
               <p className="text-gray-400 text-sm font-medium">No exercises yet</p>
-              <p className="text-gray-600 text-xs mt-1">Search below to start building this session</p>
+              <p className="text-gray-600 text-xs mt-1">Tap an exercise below to add it</p>
             </div>
           ) : (
             <div className="divide-y divide-neutral-800">
@@ -221,38 +221,36 @@ const ExerciseEditorModal: React.FC<{
             </div>
           </div>
 
-          {/* Search results */}
-          {showBrowser && (
-            <div className="max-h-48 overflow-y-auto border-t border-neutral-800">
-              {filteredExercises.length === 0 ? (
-                <p className="text-center text-gray-600 text-xs py-4">No exercises found</p>
-              ) : (
-                filteredExercises.map(ex => {
-                  const added = exercises.some(s => s.exerciseId === ex.id);
-                  return (
-                    <button
-                      key={ex.id}
-                      onClick={() => { if (!added) addExercise(ex.id, ex.name); }}
-                      disabled={added}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-left border-b border-neutral-800/50 last:border-0 transition-colors ${
-                        added ? 'opacity-40 cursor-not-allowed' : 'hover:bg-neutral-800 active:bg-neutral-750'
-                      }`}
-                    >
-                      <Plus size={16} className={added ? 'text-gray-700' : 'text-amber-500'} />
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-sm truncate ${added ? 'text-gray-600' : 'text-white'}`}>{ex.name}</p>
-                        <p className="text-xs text-gray-500">{ex.movementPattern} · {ex.primaryMuscles.join(', ')}</p>
-                      </div>
-                      {ex.isCompound && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">compound</span>
-                      )}
-                      {added && <span className="text-xs text-gray-600">added</span>}
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          )}
+          {/* Exercise browser */}
+          <div className="max-h-56 overflow-y-auto border-t border-neutral-800">
+            {filteredExercises.length === 0 ? (
+              <p className="text-center text-gray-600 text-xs py-4">No exercises found</p>
+            ) : (
+              filteredExercises.map(ex => {
+                const added = exercises.some(s => s.exerciseId === ex.id);
+                return (
+                  <button
+                    key={ex.id}
+                    onClick={() => { if (!added) addExercise(ex.id, ex.name); }}
+                    disabled={added}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-left border-b border-neutral-800/50 last:border-0 transition-colors ${
+                      added ? 'opacity-40 cursor-not-allowed' : 'hover:bg-neutral-800 active:bg-neutral-750'
+                    }`}
+                  >
+                    <Plus size={16} className={added ? 'text-gray-700' : 'text-amber-500'} />
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm truncate ${added ? 'text-gray-600' : 'text-white'}`}>{ex.name}</p>
+                      <p className="text-xs text-gray-500">{ex.movementPattern} · {ex.primaryMuscles.join(', ')}</p>
+                    </div>
+                    {ex.isCompound && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20">compound</span>
+                    )}
+                    {added && <span className="text-xs text-gray-600">added</span>}
+                  </button>
+                );
+              })
+            )}
+          </div>
 
           {/* Done button */}
           <div className="px-4 py-3 border-t border-neutral-800">

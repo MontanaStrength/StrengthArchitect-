@@ -6,6 +6,52 @@ import { getExerciseListForPrompt, getExerciseById } from '../shared/services/ex
 import { computeExerciseSelectionContext, formatExerciseSelectionContextForPrompt } from '../shared/services/exerciseSelectionEngine';
 import { parseRepsToAverage } from '../shared/utils';
 
+// ===== PHASE-SPECIFIC AI DIRECTIVES =====
+
+function getPhaseDirective(phaseName: string): string {
+  const p = phaseName.toLowerCase();
+  if (p.includes('gpp') || p === 'gpp') return `
+    PHASE DIRECTIVE — GPP (General Physical Preparedness):
+    - PURPOSE: Build work capacity, connective tissue resilience, and movement quality. This is a FOUNDATION phase.
+    - LOADING: Light to moderate (55-70% 1RM). RPE 5-7. NO grinding reps.
+    - VOLUME: Moderate total volume, distributed across MORE exercises (5-8). Higher rep ranges (8-15 reps).
+    - EXERCISE SELECTION: Prioritize VARIETY and MOVEMENT QUALITY over specificity. Include:
+      • Unilateral work (split squats, single-leg RDLs, single-arm presses)
+      • Tempo work (3-1-2-0 tempos) to build connective tissue strength
+      • Carries (farmer's walks, suitcase carries, overhead carries)
+      • Mobility-loaded movements (goblet squats, Cossack squats, Turkish get-ups)
+    - AVOID: Heavy singles/doubles, competition-specific peaking, maximal effort sets.
+    - REST: Shorter rest periods (60-90s) to build aerobic work capacity.`;
+
+  if (p.includes('power')) return `
+    PHASE DIRECTIVE — POWER (Speed-Strength):
+    - PURPOSE: Convert accumulated strength into EXPLOSIVE force production. Rate of force development is the priority.
+    - LOADING: Moderate-heavy (70-85% 1RM) performed with MAXIMAL VELOCITY INTENT.
+    - VOLUME: LOW (3-5 reps per set, 3-5 working sets). Quality over quantity — stop sets when bar speed drops.
+    - EXERCISE SELECTION: Prioritize movements that train RATE OF FORCE DEVELOPMENT:
+      • Competition lifts performed explosively (speed squats, speed bench, speed deadlifts)
+      • Olympic lift variations (power cleans, hang cleans, push press)
+      • Contrast/complex methods: heavy set → lighter explosive set (e.g., heavy squat → jump squat)
+      • Accommodating resistance if bands/chains available (banded squats, banded bench)
+    - REST: Full recovery between sets (2-4 min) to maintain bar speed.
+    - TEMPO: Fast concentric, controlled eccentric. NO slow tempos.
+    - SUPERSET RULE: Do NOT superset primary power movements. Accessories can be supersetted.`;
+
+  if (p.includes('deload') || p.includes('taper')) return `
+    PHASE DIRECTIVE — DELOAD (Active Recovery):
+    - PURPOSE: Dissipate accumulated fatigue, allow supercompensation, maintain movement patterns.
+    - LOADING: 50-65% 1RM. RPE 4-6 MAX. Every set should feel EASY.
+    - VOLUME: Reduce to 40-50% of normal training volume. Fewer sets AND fewer exercises.
+    - EXERCISE SELECTION: Stick to familiar movements (no new exercises). Emphasize:
+      • Competition lifts at reduced loads for technique refincement
+      • Light mobility and core work
+      • Blood flow / pump work (high reps, very light weight)
+    - REST: Normal or longer rest. No conditioning pressure.
+    - CRITICAL: This is NOT a hard session. Do NOT push RPE. The goal is RECOVERY, not stimulus.`;
+
+  return '';
+}
+
 // ===== TRAINING INTELLIGENCE =====
 
 const computeSessionIntensitySignals = (workout: SavedWorkout) => {
@@ -232,6 +278,7 @@ export const generateWorkoutServer = async (
   // Build training block context
   let blockContext = '';
   if (trainingContext) {
+    const phaseDirective = getPhaseDirective(trainingContext.phaseName);
     blockContext = `
     ACTIVE TRAINING BLOCK: "${trainingContext.blockName}"
     - Current Phase: ${trainingContext.phaseName} (Week ${trainingContext.weekInPhase} of ${trainingContext.totalWeeksInPhase})
@@ -240,6 +287,7 @@ export const generateWorkoutServer = async (
     - Preferred Archetypes: ${trainingContext.primaryArchetypes.join(', ')}
     ${trainingContext.goalEvent ? `- Goal Event: ${trainingContext.goalEvent}` : ''}
     IMPORTANT: Respect the training block's phase. Choose archetypes that align with the phase focus.
+    ${phaseDirective}
     `;
   }
 
@@ -315,6 +363,21 @@ export const generateWorkoutServer = async (
     RPEs are Epley-derived: lead RPE comes from the target effort, taper RPE is what fewer reps at the same weight actually feels like.
     IMPORTANT: Output lead and taper as SEPARATE exercise entries (separate cards). For example, for Barbell Back Squat output TWO entries: one "Barbell Back Squat" with ${optimizerRecommendations.taperedRepScheme.leadSets} sets × ${optimizerRecommendations.taperedRepScheme.leadReps} reps, then another "Barbell Back Squat" with ${optimizerRecommendations.taperedRepScheme.taperSets} sets × ${optimizerRecommendations.taperedRepScheme.taperReps} reps. Do NOT combine them into a single entry with mixed rep counts.
     WEIGHT REQUIRED: You MUST include weightLbs and percentOf1RM for every exercise. Lead AND taper use the SAME weight (${optimizerRecommendations.taperedRepScheme.leadIntensityPct || optimizerRecommendations.intensityRange.max}% 1RM). Round to nearest 5 lbs.` : ''}
+    ${optimizerRecommendations.mechanicalTensionScheme ? `
+    ### MECHANICAL TENSION HYPERTROPHY — BINDING
+    This is a MECHANICAL TENSION session. Hypertrophy is driven by peak force per rep
+    (mechano-transduction), NOT metabolite accumulation. Every rep must be a quality rep
+    at ≥95% of first-rep peak force.
+    - REQUIRED set structure: ${optimizerRecommendations.mechanicalTensionScheme.sets} sets × ${optimizerRecommendations.mechanicalTensionScheme.repsPerSet} reps @ ${optimizerRecommendations.mechanicalTensionScheme.intensityPct}% 1RM
+    - Peak force drops after rep ${optimizerRecommendations.mechanicalTensionScheme.peakForceDropRep} at this intensity — DO NOT exceed ${optimizerRecommendations.mechanicalTensionScheme.peakForceDropRep} reps per set
+    - REST: ${Math.round(optimizerRecommendations.mechanicalTensionScheme.restSeconds / 60)}–${Math.round(optimizerRecommendations.mechanicalTensionScheme.restSeconds / 60) + 0.5} min between sets (enough for peak-force recovery)
+    - Total ~${optimizerRecommendations.mechanicalTensionScheme.totalReps} reps per exercise (Hanley-prescribed)
+    - Frederick metabolic load: ~${optimizerRecommendations.mechanicalTensionScheme.frederickPerExercise} (tracked, NOT a target — this session deliberately produces LOWER metabolic stress)
+    EXECUTION CUES:
+    - Every rep should be performed with CONTROLLED but FORCEFUL intent — accelerate through the concentric
+    - If bar speed noticeably slows, the set should end (even if below target reps)
+    - This is NOT a grinding session. Rest fully between sets. No supersets on primary movements.
+    - WEIGHT REQUIRED: You MUST include weightLbs AND percentOf1RM for every exercise. Round to nearest 5 lbs.` : ''}
     ${optimizerRecommendations.strengthSetDivision ? `
     ### PEAK FORCE SET DIVISION (Strength/Power) — BINDING
     - Peak force drops after rep ${optimizerRecommendations.peakForceDropRep}

@@ -345,6 +345,17 @@ export interface OptimizerRecommendations {
     intensityPct: number;             // ~55–65% 1RM
     description: string;              // human-readable summary
   };
+  /** Mechanical tension hypertrophy: peak-force-limited sets emphasizing mechano-transduction over metabolite accumulation (~33% of hyp sessions). */
+  mechanicalTensionScheme?: {
+    sets: number;
+    repsPerSet: number;
+    intensityPct: number;
+    restSeconds: number;
+    totalReps: number;
+    peakForceDropRep: number;
+    frederickPerExercise: number;
+    description: string;
+  };
 }
 
 export const DEFAULT_OPTIMIZER_CONFIG: OptimizerConfig = {
@@ -391,12 +402,14 @@ export interface Achievement {
 // ===== PERIODIZATION =====
 
 export enum TrainingPhase {
+  GPP = 'GPP',
   ACCUMULATION = 'Accumulation',
   INTENSIFICATION = 'Intensification',
   REALIZATION = 'Realization',
   DELOAD = 'Deload',
   HYPERTROPHY = 'Hypertrophy',
   STRENGTH = 'Strength',
+  POWER = 'Power',
   PEAKING = 'Peaking',
 }
 
@@ -466,10 +479,12 @@ export interface TrainingBlockPhase {
 
 /** Pre-built phase configs for quick setup */
 export const PHASE_PRESETS: Record<TrainingPhase, Omit<TrainingBlockPhase, 'weekCount' | 'sessionsPerWeek' | 'splitPattern'>> = {
-  [TrainingPhase.HYPERTROPHY]:     { phase: TrainingPhase.HYPERTROPHY,     intensityFocus: 'moderate',  volumeFocus: 'high',      primaryArchetypes: ['hyp_ppl', 'hyp_upper_lower', 'gvt'],                  description: 'High volume, moderate loads. Build muscle mass.' },
+  [TrainingPhase.GPP]:             { phase: TrainingPhase.GPP,             intensityFocus: 'low',       volumeFocus: 'moderate',   primaryArchetypes: ['gpp_general', 'gpp_movement'],                        description: 'Build work capacity, movement quality, and connective tissue resilience. Broad exercise variety, moderate loads.' },
+  [TrainingPhase.HYPERTROPHY]:     { phase: TrainingPhase.HYPERTROPHY,     intensityFocus: 'moderate',  volumeFocus: 'high',       primaryArchetypes: ['hyp_ppl', 'hyp_upper_lower', 'gvt'],                  description: 'High volume, moderate loads. Build muscle mass.' },
   [TrainingPhase.ACCUMULATION]:    { phase: TrainingPhase.ACCUMULATION,    intensityFocus: 'moderate',  volumeFocus: 'very-high',  primaryArchetypes: ['hyp_ppl', 'dup_3day', 'hyp_upper_lower'],             description: 'Build work capacity with high volume.' },
   [TrainingPhase.STRENGTH]:        { phase: TrainingPhase.STRENGTH,        intensityFocus: 'high',      volumeFocus: 'moderate',   primaryArchetypes: ['str_5x5', 'str_531', 'str_texas'],                    description: 'Increase intensity, reduce volume. Build raw strength.' },
   [TrainingPhase.INTENSIFICATION]: { phase: TrainingPhase.INTENSIFICATION, intensityFocus: 'high',      volumeFocus: 'moderate',   primaryArchetypes: ['str_531', 'str_texas', 'conjugate_me'],               description: 'Progressive overload on competition lifts.' },
+  [TrainingPhase.POWER]:           { phase: TrainingPhase.POWER,           intensityFocus: 'high',      volumeFocus: 'low',        primaryArchetypes: ['power_ballistic', 'power_olympic', 'power_contrast'], description: 'Convert strength to explosive power. High velocity, moderate-to-heavy loads (70-85% 1RM).' },
   [TrainingPhase.REALIZATION]:     { phase: TrainingPhase.REALIZATION,     intensityFocus: 'very-high', volumeFocus: 'low',        primaryArchetypes: ['str_heavy_singles', 'str_cluster', 'str_531'],        description: 'Peak intensity, minimal volume. Heavy singles & doubles.' },
   [TrainingPhase.PEAKING]:         { phase: TrainingPhase.PEAKING,         intensityFocus: 'very-high', volumeFocus: 'low',        primaryArchetypes: ['str_heavy_singles', 'str_cluster'],                   description: 'Test new maxes. Minimal fatigue, maximal expression.' },
   [TrainingPhase.DELOAD]:          { phase: TrainingPhase.DELOAD,          intensityFocus: 'low',       volumeFocus: 'minimal',    primaryArchetypes: ['deload_light', 'deload_movement'],                    description: 'Active recovery. 50-60% loads, movement quality focus.' },
