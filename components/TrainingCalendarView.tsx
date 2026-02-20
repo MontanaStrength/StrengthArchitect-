@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
-import { ScheduledWorkout, SavedWorkout, TrainingGoalFocus, ScheduledWorkoutStatus, TrainingPhase } from '../shared/types';
-import { Calendar, Plus, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import React, { useState, useMemo, useCallback } from 'react';
+import { ScheduledWorkout, SavedWorkout, TrainingGoalFocus, ScheduledWorkoutStatus, TrainingPhase, SkeletonExercise } from '../shared/types';
+import { Calendar, Plus, ChevronLeft, ChevronRight, X, Search, Dumbbell } from 'lucide-react';
+import { getAllExercises } from '../shared/services/exerciseLibrary';
 
 interface Props {
   scheduled: ScheduledWorkout[];
@@ -27,6 +28,8 @@ function getWeeksFromToday(dateStr: string): number {
   return (date.getTime() - today.getTime()) / (7 * 24 * 60 * 60 * 1000);
 }
 
+const TIER_OPTIONS: SkeletonExercise['tier'][] = ['primary', 'secondary', 'tertiary', 'accessory'];
+
 const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onDelete }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showAdd, setShowAdd] = useState(false);
@@ -35,6 +38,51 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
   const [addFocus, setAddFocus] = useState<TrainingGoalFocus>('strength');
   const [addIntensity, setAddIntensity] = useState<'low' | 'moderate' | 'high' | 'rest'>('moderate');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+
+  const [editingSessionId, setEditingSessionId] = useState<string | null>(null);
+  const [exerciseSearch, setExerciseSearch] = useState('');
+  const allExercises = useMemo(() => getAllExercises(), []);
+
+  const filteredExercises = useMemo(() => {
+    if (!exerciseSearch.trim()) return [];
+    const q = exerciseSearch.toLowerCase();
+    return allExercises.filter(e =>
+      e.name.toLowerCase().includes(q) ||
+      e.id.toLowerCase().includes(q) ||
+      e.movementPattern.toLowerCase().includes(q) ||
+      e.primaryMuscles.some(m => m.toLowerCase().includes(q))
+    ).slice(0, 8);
+  }, [exerciseSearch, allExercises]);
+
+  const handleAddExercise = useCallback((sw: ScheduledWorkout, exerciseId: string, exerciseName: string) => {
+    const existing = sw.skeletonExercises || [];
+    if (existing.some(e => e.exerciseId === exerciseId)) return;
+    const tier: SkeletonExercise['tier'] = existing.length === 0 ? 'primary' : existing.length <= 1 ? 'secondary' : 'accessory';
+    const updated: ScheduledWorkout = {
+      ...sw,
+      skeletonExercises: [...existing, { exerciseId, exerciseName, tier }],
+    };
+    onSave(updated);
+    setExerciseSearch('');
+  }, [onSave]);
+
+  const handleRemoveExercise = useCallback((sw: ScheduledWorkout, exerciseId: string) => {
+    const updated: ScheduledWorkout = {
+      ...sw,
+      skeletonExercises: (sw.skeletonExercises || []).filter(e => e.exerciseId !== exerciseId),
+    };
+    onSave(updated);
+  }, [onSave]);
+
+  const handleChangeTier = useCallback((sw: ScheduledWorkout, exerciseId: string, newTier: SkeletonExercise['tier']) => {
+    const updated: ScheduledWorkout = {
+      ...sw,
+      skeletonExercises: (sw.skeletonExercises || []).map(e =>
+        e.exerciseId === exerciseId ? { ...e, tier: newTier } : e
+      ),
+    };
+    onSave(updated);
+  }, [onSave]);
 
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
@@ -237,16 +285,92 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
                     </div>
                   </div>
 
-                  {/* Detailed: within 2 weeks */}
-                  {weeksOut <= 2 && sw.skeletonExercises && sw.skeletonExercises.length > 0 && (
-                    <div className="space-y-1">
-                      <p className="text-[10px] text-gray-400 uppercase tracking-wider">Exercises</p>
-                      {sw.skeletonExercises.map((ex, i) => (
-                        <div key={i} className="flex items-center justify-between text-xs">
-                          <span className="text-gray-300">{ex.exerciseName}</span>
-                          <span className="text-gray-500 text-[10px]">{ex.tier}</span>
+                  {/* Exercise list (editable for planned sessions within 4 weeks) */}
+                  {sw.status === 'planned' && weeksOut <= 4 && (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                          <Dumbbell size={10} /> Exercises
+                        </p>
+                        {editingSessionId !== sw.id ? (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setEditingSessionId(sw.id); setExerciseSearch(''); }}
+                            className="text-[10px] text-amber-400 hover:text-amber-300"
+                          >Edit</button>
+                        ) : (
+                          <button
+                            onClick={(e) => { e.stopPropagation(); setEditingSessionId(null); }}
+                            className="text-[10px] text-gray-400 hover:text-white"
+                          >Done</button>
+                        )}
+                      </div>
+
+                      {(sw.skeletonExercises || []).map((ex, i) => (
+                        <div key={ex.exerciseId} className="flex items-center gap-1.5 text-xs">
+                          <span className="text-gray-400 text-[10px] w-3">{i + 1}.</span>
+                          <span className="text-gray-200 flex-1 truncate">{ex.exerciseName}</span>
+                          {editingSessionId === sw.id ? (
+                            <>
+                              <select
+                                value={ex.tier}
+                                onChange={(e) => handleChangeTier(sw, ex.exerciseId, e.target.value as SkeletonExercise['tier'])}
+                                className="bg-neutral-800 border border-neutral-700 text-gray-300 text-[10px] rounded px-1 py-0.5"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {TIER_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                              </select>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleRemoveExercise(sw, ex.exerciseId); }}
+                                className="text-gray-600 hover:text-red-400"
+                              ><X size={12} /></button>
+                            </>
+                          ) : (
+                            <span className="text-gray-500 text-[10px]">{ex.tier}</span>
+                          )}
                         </div>
                       ))}
+
+                      {(!sw.skeletonExercises || sw.skeletonExercises.length === 0) && editingSessionId !== sw.id && (
+                        <p className="text-[10px] text-gray-600 italic">No exercises set — tap Edit to add</p>
+                      )}
+
+                      {editingSessionId === sw.id && (
+                        <div className="mt-2 space-y-1.5">
+                          <div className="relative">
+                            <Search size={12} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500" />
+                            <input
+                              value={exerciseSearch}
+                              onChange={(e) => setExerciseSearch(e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
+                              placeholder="Search exercises..."
+                              className="w-full pl-7 pr-2 py-1.5 bg-neutral-800 border border-neutral-700 rounded text-xs text-white placeholder-gray-500"
+                              autoFocus
+                            />
+                          </div>
+                          {filteredExercises.length > 0 && (
+                            <div className="bg-neutral-800 border border-neutral-700 rounded max-h-36 overflow-y-auto">
+                              {filteredExercises.map(ex => {
+                                const alreadyAdded = (sw.skeletonExercises || []).some(s => s.exerciseId === ex.id);
+                                return (
+                                  <button
+                                    key={ex.id}
+                                    onClick={(e) => { e.stopPropagation(); if (!alreadyAdded) handleAddExercise(sw, ex.id, ex.name); }}
+                                    disabled={alreadyAdded}
+                                    className={`w-full text-left px-2 py-1.5 text-xs border-b border-neutral-700/50 last:border-0 ${
+                                      alreadyAdded ? 'text-gray-600 cursor-not-allowed' : 'text-gray-200 hover:bg-neutral-700'
+                                    }`}
+                                  >
+                                    <span>{ex.name}</span>
+                                    <span className="text-[10px] text-gray-500 ml-1.5">{ex.movementPattern.replace(/_/g, ' ')}</span>
+                                    {alreadyAdded && <span className="text-[10px] text-gray-600 ml-1">added</span>}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
                       {(sw.targetRepRange || sw.targetIntensity) && (
                         <p className="text-[10px] text-gray-500 mt-1">
                           {sw.targetRepRange && `${sw.targetRepRange} reps`}{sw.targetRepRange && sw.targetIntensity && ' · '}{sw.targetIntensity}
@@ -255,8 +379,8 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
                     </div>
                   )}
 
-                  {/* Moderate: 2-4 weeks */}
-                  {weeksOut > 2 && weeksOut <= 4 && sw.skeletonExercises && sw.skeletonExercises.length > 0 && (
+                  {/* Read-only for completed/skipped or >4 weeks out */}
+                  {(sw.status !== 'planned' || weeksOut > 4) && sw.skeletonExercises && sw.skeletonExercises.length > 0 && (
                     <div>
                       <p className="text-[10px] text-gray-400">
                         {sw.skeletonExercises.map(ex => ex.exerciseName).join(' / ')}
@@ -264,8 +388,7 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
                     </div>
                   )}
 
-                  {/* Minimal: 4+ weeks */}
-                  {weeksOut > 4 && sw.targetIntensity && (
+                  {weeksOut > 4 && sw.targetIntensity && !sw.skeletonExercises?.length && (
                     <p className="text-[10px] text-gray-500">{sw.targetVolume} volume @ {sw.targetIntensity}</p>
                   )}
                 </div>

@@ -314,10 +314,13 @@ ATHLETE SWAP (BINDING): The athlete has chosen to replace one exercise with "${s
 
     let skeletonContext = '';
     if (skeletonSession?.sessionFocus) {
-      const exerciseList = (skeletonSession.exercises || []).length > 0
+      const hasUserExercises = (skeletonSession.exercises || []).length > 0;
+      const exerciseList = hasUserExercises
         ? skeletonSession.exercises.map((e: any) => `${e.name} (${e.tier})`).join(', ')
         : 'no specific exercises planned';
-      skeletonContext = `\nSESSION PLAN (from block skeleton): Today's focus: ${skeletonSession.sessionFocus}${skeletonSession.phase ? ` (${skeletonSession.phase})` : ''}. Planned exercises: ${exerciseList}.${skeletonSession.targetSetsPerExercise && skeletonSession.targetRepRange ? ` Target: ${skeletonSession.targetSetsPerExercise} sets x ${skeletonSession.targetRepRange} reps @ ${skeletonSession.targetIntensity || 'auto'}.` : ''}${skeletonSession.targetVolume ? ` Volume: ${skeletonSession.targetVolume}.` : ''} SOFT CONSTRAINT: Use this session focus and exercise selection as the foundation. The optimizer's BINDING prescriptions take priority over skeleton targets. Adapt if readiness/fatigue signals suggest otherwise.`;
+      skeletonContext = hasUserExercises
+        ? `\nSESSION PLAN — ATHLETE-SPECIFIED EXERCISES (BINDING): Today's focus: ${skeletonSession.sessionFocus}${skeletonSession.phase ? ` (${skeletonSession.phase})` : ''}. MANDATORY exercises: ${exerciseList}. You MUST include ALL of these exercises. Use tier for order: primary first, then secondary, tertiary, accessory. Apply optimizer prescriptions to each. You MAY add 1-2 exercises if time allows, but these are non-negotiable. Adjust intensity/volume rather than removing if fatigue conflicts.`
+        : `\nSESSION PLAN (from block skeleton): Today's focus: ${skeletonSession.sessionFocus}${skeletonSession.phase ? ` (${skeletonSession.phase})` : ''}. Planned exercises: ${exerciseList}.${skeletonSession.targetSetsPerExercise && skeletonSession.targetRepRange ? ` Target: ${skeletonSession.targetSetsPerExercise} sets x ${skeletonSession.targetRepRange} reps @ ${skeletonSession.targetIntensity || 'auto'}.` : ''}${skeletonSession.targetVolume ? ` Volume: ${skeletonSession.targetVolume}.` : ''} SOFT CONSTRAINT: Use this session focus and exercise selection as the foundation. The optimizer's BINDING prescriptions take priority over skeleton targets. Adapt if readiness/fatigue signals suggest otherwise.`;
     }
 
     const prompt = `You are an expert strength coach. Design a session for: ${data.trainingExperience}, ${data.readiness} readiness, ${data.duration}min, Focus: ${data.trainingGoalFocus}, Equipment: ${data.availableEquipment.join(', ')}, Athlete: ${data.age}yo ${data.gender} ${data.weightLbs}lbs. ${liftPRs ? `1RMs: ${liftPRs}.${dynamic1RMNote} ALWAYS include BOTH weightLbs AND percentOf1RM for every exercise.` : 'No 1RM data — use RPE-based loading.'}

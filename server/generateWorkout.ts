@@ -478,10 +478,26 @@ export const generateWorkoutServer = async (
   // ===== SKELETON SESSION PLAN (from block calendar) =====
   let skeletonContext = '';
   if (skeletonSession?.sessionFocus) {
-    const exerciseList = skeletonSession.exercises.length > 0
+    const hasUserExercises = skeletonSession.exercises.length > 0;
+    const exerciseList = hasUserExercises
       ? skeletonSession.exercises.map(e => `${e.name} (${e.tier})`).join(', ')
       : 'no specific exercises planned';
-    skeletonContext = `
+    skeletonContext = hasUserExercises
+      ? `
+    ### SESSION PLAN — ATHLETE-SPECIFIED EXERCISES (BINDING)
+    Today's planned session focus: ${skeletonSession.sessionFocus}${skeletonSession.phase ? ` (${skeletonSession.phase} phase)` : ''}
+    MANDATORY exercises (athlete has pre-selected these): ${exerciseList}
+    ${skeletonSession.targetSetsPerExercise && skeletonSession.targetRepRange ? `Target prescription: ${skeletonSession.targetSetsPerExercise} sets x ${skeletonSession.targetRepRange} reps @ ${skeletonSession.targetIntensity || 'auto'}` : ''}
+    ${skeletonSession.targetVolume ? `Volume target: ${skeletonSession.targetVolume}` : ''}
+
+    BINDING RULES:
+    - You MUST include ALL of the above exercises in the session. Do not substitute or remove any.
+    - Use the tier designation to determine exercise order: primary first, then secondary, then tertiary, then accessory.
+    - Apply the optimizer's BINDING prescriptions (sets, reps, intensity, rep scheme) to each exercise.
+    - You MAY add 1-2 additional exercises if the session structure and time allow, but the listed exercises are non-negotiable.
+    - If readiness or fatigue signals conflict with a specific exercise, adjust intensity/volume for that exercise rather than removing it.
+    `
+      : `
     ### SESSION PLAN (from training block skeleton)
     Today's planned session focus: ${skeletonSession.sessionFocus}${skeletonSession.phase ? ` (${skeletonSession.phase} phase)` : ''}
     Planned exercises: ${exerciseList}
