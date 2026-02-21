@@ -17,7 +17,45 @@ const SPLIT_FOCUS_ROTATION: Record<SplitPattern, string[]> = {
   'custom':               ['Session'],
 };
 
+// Ordered to maximize separation between pressing movements (Bench, OHP)
 const OLAD_FOCUS_ROTATION = ['Squat', 'Bench', 'Deadlift', 'OHP'];
+
+/** Movement group for detecting consecutive-day conflicts between similar patterns */
+const MOVEMENT_GROUP: Record<string, string> = {
+  'Squat':        'knee-dominant',
+  'Squat Day':    'knee-dominant',
+  'Bench':        'horizontal-press',
+  'Bench Day':    'horizontal-press',
+  'OHP':          'vertical-press',
+  'Push':         'press',
+  'Upper':        'upper',
+  'Deadlift':     'hip-dominant',
+  'Deadlift Day': 'hip-dominant',
+  'Pull':         'pull',
+  'Lower':        'lower',
+  'Legs':         'lower',
+  'Full Body':    'full',
+  'Session':      'full',
+};
+
+/** True if two focuses should not land on consecutive calendar days */
+function hasMovementConflict(focusA: string, focusB: string): boolean {
+  if (focusA === focusB) return true;
+  const gA = MOVEMENT_GROUP[focusA];
+  const gB = MOVEMENT_GROUP[focusB];
+  if (!gA || !gB) return false;
+  if (gA === gB) return true;
+  // Bench + OHP are both pressing — avoid back-to-back
+  const pressing = new Set(['horizontal-press', 'vertical-press', 'press']);
+  if (pressing.has(gA) && pressing.has(gB)) return true;
+  return false;
+}
+
+function isConsecutiveDay(dateA: string, dateB: string): boolean {
+  const a = new Date(dateA + 'T00:00:00').getTime();
+  const b = new Date(dateB + 'T00:00:00').getTime();
+  return Math.abs(b - a) <= 24 * 60 * 60 * 1000;
+}
 
 type SlotKey = { category: ExerciseSlotCategory; tier: string };
 
@@ -258,7 +296,22 @@ export function generateBlockSkeleton(block: TrainingBlock): ScheduledWorkout[] 
       const sessionDates = getSessionDates(weekStartMs, phase.sessionsPerWeek, block.trainingDays);
 
       for (let session = 0; session < sessionDates.length; session++) {
-        const sessionFocus = focusRotation[globalSessionIndex % focusRotation.length];
+        const currentDate = sessionDates[session];
+        let sessionFocus = focusRotation[globalSessionIndex % focusRotation.length];
+
+        // Conflict check: if this session lands on a consecutive day with the
+        // previous session and they share a movement group, rotate forward to
+        // find a non-conflicting focus.
+        const prevWorkout = workouts[workouts.length - 1];
+        if (prevWorkout && isConsecutiveDay(prevWorkout.date, currentDate) && prevWorkout.sessionFocus) {
+          const rotLen = focusRotation.length;
+          for (let offset = 0; offset < rotLen - 1; offset++) {
+            if (!hasMovementConflict(prevWorkout.sessionFocus, sessionFocus)) break;
+            globalSessionIndex++;
+            sessionFocus = focusRotation[globalSessionIndex % rotLen];
+          }
+        }
+
         const slotKeys = exerciseMap[sessionFocus] || [];
 
         const skeletonExercises: SkeletonExercise[] = [];
@@ -269,7 +322,7 @@ export function generateBlockSkeleton(block: TrainingBlock): ScheduledWorkout[] 
 
         workouts.push({
           id: crypto.randomUUID(),
-          date: sessionDates[session],
+          date: currentDate,
           label: `${phase.phase} - Wk${week + 1} ${sessionFocus}`,
           phase: phase.phase,
           suggestedIntensity: intensityMap[phase.intensityFocus] || 'moderate',
