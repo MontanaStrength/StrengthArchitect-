@@ -1001,6 +1001,26 @@ const App: React.FC = () => {
         </div>
       </header>
 
+      {/* ── Full-page Calendar overlay ── */}
+      {view === 'calendar' && (
+        <div className="fixed inset-0 z-[90] bg-[#0f0f0f] overflow-y-auto">
+          <TrainingCalendarView
+            scheduled={scheduledWorkouts}
+            history={history}
+            onSave={async (sw) => {
+              const exists = scheduledWorkouts.find(s => s.id === sw.id);
+              setScheduledWorkouts(prev => exists ? prev.map(s => s.id === sw.id ? sw : s) : [...prev, sw]);
+              if (user) syncScheduledWorkoutToCloud(sw, user.id, cid).catch(console.error);
+            }}
+            onDelete={async (id) => {
+              setScheduledWorkouts(prev => prev.filter(s => s.id !== id));
+              if (user) deleteScheduledWorkoutFromCloud(id, user.id).catch(console.error);
+            }}
+            onBack={() => setView('plan')}
+          />
+        </div>
+      )}
+
       {/* ── Coach: Messages overlay (when viewing a client) ── */}
       {coachMessagesOverlay && appMode === 'coach' && activeClient && user && (
         <div className="fixed inset-0 z-[100] bg-[#0f0f0f]">
@@ -1432,21 +1452,7 @@ const App: React.FC = () => {
           <BlockReviewView blocks={trainingBlocks} history={history} liftRecords={liftRecords} />
         )}
 
-        {view === 'calendar' && (
-          <TrainingCalendarView
-            scheduled={scheduledWorkouts}
-            history={history}
-            onSave={async (sw) => {
-              const exists = scheduledWorkouts.find(s => s.id === sw.id);
-              setScheduledWorkouts(prev => exists ? prev.map(s => s.id === sw.id ? sw : s) : [...prev, sw]);
-              if (user) syncScheduledWorkoutToCloud(sw, user.id, cid).catch(console.error);
-            }}
-            onDelete={async (id) => {
-              setScheduledWorkouts(prev => prev.filter(s => s.id !== id));
-              if (user) deleteScheduledWorkoutFromCloud(id, user.id).catch(console.error);
-            }}
-          />
-        )}
+        {/* Calendar is rendered as full-page overlay above */}
 
         {view === 'goals' && (
           <GoalSettingView

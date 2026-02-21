@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { ScheduledWorkout, SavedWorkout, TrainingGoalFocus, ScheduledWorkoutStatus, TrainingPhase, SkeletonExercise, MovementPattern } from '../shared/types';
-import { Calendar, Plus, X, Search, Dumbbell, ChevronUp, ChevronDown } from 'lucide-react';
+import { Calendar, Plus, X, Search, Dumbbell, ChevronUp, ChevronDown, ChevronLeft } from 'lucide-react';
 import { getAllExercises } from '../shared/services/exerciseLibrary';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -12,6 +12,7 @@ interface Props {
   history: SavedWorkout[];
   onSave: (sw: ScheduledWorkout) => void;
   onDelete: (id: string) => void;
+  onBack?: () => void;
 }
 
 // Phase → hex color for FullCalendar events
@@ -326,7 +327,7 @@ const renderEventContent = (arg: EventContentArg) => {
 
 // ─── Main Calendar Component ────────────────────────────────────
 
-const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onDelete }) => {
+const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onDelete, onBack }) => {
   const [showAdd, setShowAdd] = useState(false);
   const [addDate, setAddDate] = useState('');
   const [addLabel, setAddLabel] = useState('');
@@ -454,11 +455,21 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
     : '';
 
   return (
-    <div className="max-w-7xl mx-auto space-y-4">
+    <div className="max-w-7xl mx-auto px-6 py-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-          <Calendar size={24} className="text-amber-500" /> Training Calendar
-        </h2>
+        <div className="flex items-center gap-3">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-neutral-800 transition-colors"
+            >
+              <ChevronLeft size={20} />
+            </button>
+          )}
+          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            <Calendar size={24} className="text-amber-500" /> Training Calendar
+          </h2>
+        </div>
         <button
           onClick={() => { setShowAdd(!showAdd); setAddDate(selectedDate || new Date().toISOString().split('T')[0]); }}
           className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-black text-sm font-medium rounded-lg"
