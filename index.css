@@ -331,7 +331,7 @@ button:focus:not(:focus-visible) {
 }
 
 .fc .fc-daygrid-day-frame {
-  min-height: 80px;
+  min-height: 100px;
 }
 
 .fc .fc-daygrid-day.fc-day-today {

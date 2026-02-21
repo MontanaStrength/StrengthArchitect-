@@ -454,7 +454,7 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
     : '';
 
   return (
-    <div className="max-w-5xl mx-auto space-y-4">
+    <div className="max-w-7xl mx-auto space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-white flex items-center gap-2">
           <Calendar size={24} className="text-amber-500" /> Training Calendar
