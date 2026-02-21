@@ -455,7 +455,7 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
     : '';
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-6 space-y-4">
+    <div className="w-full px-6 py-6 space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           {onBack && (
@@ -513,7 +513,7 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
       )}
 
       {/* FullCalendar */}
-      <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-3">
+      <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-4">
         <FullCalendar
           ref={calendarRef}
           plugins={[dayGridPlugin, interactionPlugin]}
@@ -532,9 +532,9 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
           eventClick={handleEventClick}
           eventDrop={handleEventDrop}
           eventContent={renderEventContent}
-          dayMaxEvents={4}
+          dayMaxEvents={5}
           height="auto"
-          fixedWeekCount={false}
+          fixedWeekCount={true}
           firstDay={0}
           eventOrder="start"
         />

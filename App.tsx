@@ -1003,7 +1003,7 @@ const App: React.FC = () => {
 
       {/* ── Full-page Calendar overlay ── */}
       {view === 'calendar' && (
-        <div className="fixed inset-0 z-[90] bg-[#0f0f0f] overflow-y-auto">
+        <div className="fixed inset-0 z-[90] bg-[#0f0f0f] overflow-y-auto overflow-x-hidden">
           <TrainingCalendarView
             scheduled={scheduledWorkouts}
             history={history}

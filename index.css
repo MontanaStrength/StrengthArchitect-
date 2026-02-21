@@ -331,7 +331,16 @@ button:focus:not(:focus-visible) {
 }
 
 .fc .fc-daygrid-day-frame {
-  min-height: 100px;
+  min-height: 120px;
+}
+
+.fc .fc-scrollgrid-section-body > td,
+.fc .fc-scrollgrid-section-header > th {
+  width: 100%;
+}
+
+.fc table {
+  width: 100% !important;
 }
 
 .fc .fc-daygrid-day.fc-day-today {
