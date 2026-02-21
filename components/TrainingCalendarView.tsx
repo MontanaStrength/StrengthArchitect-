@@ -1,7 +1,11 @@
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { ScheduledWorkout, SavedWorkout, TrainingGoalFocus, ScheduledWorkoutStatus, TrainingPhase, SkeletonExercise, MovementPattern } from '../shared/types';
-import { Calendar, Plus, ChevronLeft, ChevronRight, X, Search, Dumbbell, ChevronUp, ChevronDown } from 'lucide-react';
+import { Calendar, Plus, X, Search, Dumbbell, ChevronUp, ChevronDown } from 'lucide-react';
 import { getAllExercises } from '../shared/services/exerciseLibrary';
+import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import interactionPlugin, { DateClickArg } from '@fullcalendar/interaction';
+import type { EventInput, EventClickArg, EventDropArg, EventContentArg } from '@fullcalendar/core';
 
 interface Props {
   scheduled: ScheduledWorkout[];
@@ -9,6 +13,20 @@ interface Props {
   onSave: (sw: ScheduledWorkout) => void;
   onDelete: (id: string) => void;
 }
+
+// Phase → hex color for FullCalendar events
+const PHASE_HEX: Record<string, string> = {
+  [TrainingPhase.HYPERTROPHY]:     '#1e3a5f',
+  [TrainingPhase.ACCUMULATION]:    '#164e63',
+  [TrainingPhase.STRENGTH]:        '#3b1f6e',
+  [TrainingPhase.INTENSIFICATION]: '#2e1065',
+  [TrainingPhase.REALIZATION]:     '#4c0519',
+  [TrainingPhase.PEAKING]:         '#7f1d1d',
+  [TrainingPhase.DELOAD]:          '#064e3b',
+  [TrainingPhase.GPP]:             '#1a2e05',
+  [TrainingPhase.POWER]:           '#451a03',
+};
+const DEFAULT_HEX = '#1e3a5f';
 
 const PHASE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
   [TrainingPhase.HYPERTROPHY]:     { bg: 'bg-blue-900/50',   text: 'text-blue-300',   border: 'border-blue-700/50' },
@@ -18,6 +36,8 @@ const PHASE_COLORS: Record<string, { bg: string; text: string; border: string }>
   [TrainingPhase.REALIZATION]:     { bg: 'bg-rose-900/50',   text: 'text-rose-300',   border: 'border-rose-700/50' },
   [TrainingPhase.PEAKING]:         { bg: 'bg-red-900/50',    text: 'text-red-300',    border: 'border-red-700/50' },
   [TrainingPhase.DELOAD]:          { bg: 'bg-emerald-900/50',text: 'text-emerald-300',border: 'border-emerald-700/50' },
+  [TrainingPhase.GPP]:             { bg: 'bg-lime-900/50',   text: 'text-lime-300',   border: 'border-lime-700/50' },
+  [TrainingPhase.POWER]:           { bg: 'bg-orange-900/50', text: 'text-orange-300', border: 'border-orange-700/50' },
 };
 const DEFAULT_PHASE_COLOR = { bg: 'bg-blue-900/50', text: 'text-blue-300', border: 'border-blue-700/50' };
 
@@ -267,10 +287,46 @@ const ExerciseEditorModal: React.FC<{
   );
 };
 
+// ─── Helpers ────────────────────────────────────────────────────
+
+function formatDateISO(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+// ─── Custom Event Content ───────────────────────────────────────
+
+const renderEventContent = (arg: EventContentArg) => {
+  const ext = arg.event.extendedProps;
+  if (ext.type === 'history') {
+    return (
+      <div className="truncate text-[10px] leading-tight px-1 py-0.5">
+        <span className="opacity-80">&#10003;</span> {arg.event.title}
+      </div>
+    );
+  }
+
+  const sw = ext.workout as ScheduledWorkout;
+  const weeksOut = getWeeksFromToday(sw.date);
+  const exerciseHint = sw.skeletonExercises && weeksOut <= 2 && sw.status === 'planned'
+    ? sw.skeletonExercises.filter(e => e.tier === 'primary').map(e => e.exerciseName).join(', ')
+    : undefined;
+
+  return (
+    <div className="truncate leading-tight px-1 py-0.5">
+      <div className="text-[10px] font-medium truncate">{arg.event.title}</div>
+      {exerciseHint && (
+        <div className="text-[8px] opacity-60 truncate">{exerciseHint}</div>
+      )}
+    </div>
+  );
+};
+
 // ─── Main Calendar Component ────────────────────────────────────
 
 const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onDelete }) => {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showAdd, setShowAdd] = useState(false);
   const [addDate, setAddDate] = useState('');
   const [addLabel, setAddLabel] = useState('');
@@ -278,28 +334,82 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
   const [addIntensity, setAddIntensity] = useState<'low' | 'moderate' | 'high' | 'rest'>('moderate');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [editingSession, setEditingSession] = useState<ScheduledWorkout | null>(null);
+  const calendarRef = useRef<FullCalendar>(null);
 
-  const year = currentMonth.getFullYear();
-  const month = currentMonth.getMonth();
+  // Map ScheduledWorkout[] + SavedWorkout[] → FullCalendar EventInput[]
+  const events: EventInput[] = useMemo(() => {
+    const scheduledEvents: EventInput[] = scheduled.map(sw => {
+      const title = sw.sessionFocus || sw.label;
+      const hex = sw.phase ? (PHASE_HEX[sw.phase] || DEFAULT_HEX) : DEFAULT_HEX;
 
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const firstDayOfWeek = new Date(year, month, 1).getDay();
+      const classNames: string[] = [];
+      if (sw.status === 'completed') classNames.push('fc-event-completed');
+      if (sw.status === 'skipped') classNames.push('fc-event-skipped');
 
-  const calendarDays = useMemo(() => {
-    const days: { date: string; dayNum: number; scheduled: ScheduledWorkout[]; completed: SavedWorkout[]; isToday: boolean }[] = [];
-    const today = new Date().toISOString().split('T')[0];
+      return {
+        id: sw.id,
+        title,
+        start: sw.date,
+        allDay: true,
+        extendedProps: { type: 'scheduled', workout: sw },
+        backgroundColor: hex,
+        borderColor: 'transparent',
+        classNames,
+        editable: sw.status === 'planned',
+      };
+    });
 
-    for (let d = 1; d <= daysInMonth; d++) {
-      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      const dayScheduled = scheduled.filter(s => s.date === dateStr);
-      const dayStart = new Date(year, month, d).getTime();
-      const dayEnd = dayStart + 24 * 60 * 60 * 1000;
-      const dayCompleted = history.filter(w => w.timestamp >= dayStart && w.timestamp < dayEnd);
-      days.push({ date: dateStr, dayNum: d, scheduled: dayScheduled, completed: dayCompleted, isToday: dateStr === today });
+    const historyEvents: EventInput[] = history.map(w => ({
+      id: `hist-${w.id}`,
+      title: w.title,
+      start: new Date(w.timestamp).toISOString().split('T')[0],
+      allDay: true,
+      extendedProps: { type: 'history', workout: w },
+      editable: false,
+      classNames: ['fc-event-history'],
+    }));
+
+    return [...scheduledEvents, ...historyEvents];
+  }, [scheduled, history]);
+
+  // Click on a day → select it (and optionally open the add form)
+  const handleDateClick = useCallback((info: DateClickArg) => {
+    const dateStr = info.dateStr;
+    setSelectedDate(prev => prev === dateStr ? null : dateStr);
+  }, []);
+
+  // Click on an event → select the day, show detail
+  const handleEventClick = useCallback((info: EventClickArg) => {
+    const ext = info.event.extendedProps;
+    const dateStr = info.event.startStr;
+    setSelectedDate(dateStr);
+
+    if (ext.type === 'scheduled') {
+      const sw = ext.workout as ScheduledWorkout;
+      const weeksOut = getWeeksFromToday(sw.date);
+      if (sw.status === 'planned' && weeksOut <= 4) {
+        setEditingSession(sw);
+      }
     }
-    return days;
-  }, [year, month, daysInMonth, scheduled, history]);
+  }, []);
 
+  // Drag-and-drop → update the workout date
+  const handleEventDrop = useCallback((info: EventDropArg) => {
+    const ext = info.event.extendedProps;
+    if (ext.type !== 'scheduled') {
+      info.revert();
+      return;
+    }
+    const sw = ext.workout as ScheduledWorkout;
+    if (sw.status !== 'planned') {
+      info.revert();
+      return;
+    }
+    const newDate = info.event.start ? formatDateISO(info.event.start) : sw.date;
+    onSave({ ...sw, date: newDate });
+  }, [onSave]);
+
+  // Add session form
   const handleSave = () => {
     if (!addDate || !addLabel) return;
     const sw: ScheduledWorkout = {
@@ -324,17 +434,37 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
     onSave({ ...sw, status: nextStatus[sw.status] });
   };
 
-  const prevMonth = () => setCurrentMonth(new Date(year, month - 1, 1));
-  const nextMonth = () => setCurrentMonth(new Date(year, month + 1, 1));
+  // Selected day detail data
+  const selectedDayWorkouts = useMemo(() => {
+    if (!selectedDate) return [];
+    return scheduled.filter(s => s.date === selectedDate);
+  }, [selectedDate, scheduled]);
 
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-  const monthName = currentMonth.toLocaleString('default', { month: 'long', year: 'numeric' });
+  const selectedDayHistory = useMemo(() => {
+    if (!selectedDate) return [];
+    const d = new Date(selectedDate + 'T00:00:00');
+    const dayStart = d.getTime();
+    const dayEnd = dayStart + 86400000;
+    return history.filter(w => w.timestamp >= dayStart && w.timestamp < dayEnd);
+  }, [selectedDate, history]);
+
+  const weeksOut = selectedDate ? getWeeksFromToday(selectedDate) : 0;
+  const dateLabel = selectedDate
+    ? new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
+    : '';
 
   return (
-    <div className="max-w-4xl mx-auto space-y-4">
+    <div className="max-w-5xl mx-auto space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-white flex items-center gap-2"><Calendar size={24} className="text-amber-500" /> Training Calendar</h2>
-        <button onClick={() => { setShowAdd(!showAdd); setAddDate(new Date().toISOString().split('T')[0]); }} className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-black text-sm font-medium rounded-lg"><Plus size={16} /> Schedule</button>
+        <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+          <Calendar size={24} className="text-amber-500" /> Training Calendar
+        </h2>
+        <button
+          onClick={() => { setShowAdd(!showAdd); setAddDate(selectedDate || new Date().toISOString().split('T')[0]); }}
+          className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-black text-sm font-medium rounded-lg"
+        >
+          <Plus size={16} /> Schedule
+        </button>
       </div>
 
       {/* Add Form */}
@@ -371,172 +501,124 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
         </div>
       )}
 
-      {/* Month Navigation */}
-      <div className="flex items-center justify-between">
-        <button onClick={prevMonth} className="p-2 text-gray-400 hover:text-white"><ChevronLeft size={20} /></button>
-        <h3 className="text-lg font-bold text-white">{monthName}</h3>
-        <button onClick={nextMonth} className="p-2 text-gray-400 hover:text-white"><ChevronRight size={20} /></button>
-      </div>
-
-      {/* Calendar Grid */}
-      <div className="overflow-x-auto -mx-4 px-4">
-        <div className="grid grid-cols-7 gap-1 min-w-[420px]">
-        {dayNames.map(d => (
-          <div key={d} className="text-center text-xs text-gray-500 py-1 font-medium">{d}</div>
-        ))}
-        {Array.from({ length: firstDayOfWeek }).map((_, i) => (
-          <div key={`empty-${i}`} />
-        ))}
-        {calendarDays.map(day => {
-          const isSelected = selectedDate === day.date;
-          return (
-          <div
-            key={day.date}
-            onClick={() => setSelectedDate(isSelected ? null : day.date)}
-            className={`min-h-[72px] p-1 rounded-lg border text-xs transition-all cursor-pointer ${
-              isSelected ? 'border-amber-400 bg-amber-900/10 ring-1 ring-amber-400/30' :
-              day.isToday ? 'border-amber-500 bg-amber-900/20' : 'border-neutral-800 bg-neutral-900/50 hover:border-neutral-700'
-            }`}
-          >
-            <p className={`text-right text-[10px] ${day.isToday ? 'text-amber-400 font-bold' : 'text-gray-500'}`}>{day.dayNum}</p>
-            {day.scheduled.map(s => {
-              const phaseColor = s.phase ? (PHASE_COLORS[s.phase] || DEFAULT_PHASE_COLOR) : DEFAULT_PHASE_COLOR;
-              const statusStyle =
-                s.status === 'completed' ? 'bg-green-900/50 text-green-300 line-through' :
-                s.status === 'skipped' ? 'bg-neutral-800 text-gray-500 line-through' :
-                `${phaseColor.bg} ${phaseColor.text}`;
-              const weeksOut = getWeeksFromToday(s.date);
-              const cellLabel = s.sessionFocus && weeksOut > 4
-                ? s.sessionFocus
-                : s.sessionFocus
-                ? `${s.sessionFocus}`
-                : s.label;
-              const exerciseHint = s.skeletonExercises && weeksOut <= 2 && s.status === 'planned'
-                ? s.skeletonExercises.filter(e => e.tier === 'primary').map(e => e.exerciseName).join(', ')
-                : undefined;
-              return (
-              <div key={s.id}>
-                <button
-                  onClick={(e) => { e.stopPropagation(); toggleStatus(s); }}
-                  className={`w-full text-left px-1 py-0.5 rounded text-[9px] truncate mt-0.5 ${statusStyle}`}
-                  title={`${s.label}${s.targetIntensity ? ` | ${s.targetIntensity}` : ''} (${s.status})`}
-                >
-                  {cellLabel}
-                </button>
-                {exerciseHint && (
-                  <p className="text-[8px] text-gray-500 truncate px-0.5">{exerciseHint}</p>
-                )}
-              </div>
-              );
-            })}
-            {day.completed.map(w => (
-              <div key={w.id} className="px-1 py-0.5 rounded bg-amber-900/30 text-amber-300 text-[9px] truncate mt-0.5">
-                &#10003; {w.title}
-              </div>
-            ))}
-          </div>
-          );
-        })}
-        </div>
+      {/* FullCalendar */}
+      <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-3">
+        <FullCalendar
+          ref={calendarRef}
+          plugins={[dayGridPlugin, interactionPlugin]}
+          initialView="dayGridMonth"
+          headerToolbar={{
+            left: 'prev,next today',
+            center: 'title',
+            right: 'dayGridMonth,dayGridWeek',
+          }}
+          events={events}
+          editable={true}
+          droppable={false}
+          eventStartEditable={true}
+          eventDurationEditable={false}
+          dateClick={handleDateClick}
+          eventClick={handleEventClick}
+          eventDrop={handleEventDrop}
+          eventContent={renderEventContent}
+          dayMaxEvents={4}
+          height="auto"
+          fixedWeekCount={false}
+          firstDay={0}
+          eventOrder="start"
+        />
       </div>
 
       {/* Selected Day Detail Panel */}
-      {selectedDate && (() => {
-        const dayWorkouts = scheduled.filter(s => s.date === selectedDate);
-        const dayHistory = history.filter(w => {
-          const d = new Date(selectedDate + 'T00:00:00');
-          return w.timestamp >= d.getTime() && w.timestamp < d.getTime() + 86400000;
-        });
-        const weeksOut = getWeeksFromToday(selectedDate);
-        const dateLabel = new Date(selectedDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+      {selectedDate && (
+        <div className="bg-neutral-900 border border-neutral-700 rounded-xl p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-bold text-white">{dateLabel}</h4>
+            <button onClick={() => setSelectedDate(null)} className="text-gray-500 hover:text-white"><X size={16} /></button>
+          </div>
 
-        return (
-          <div className="bg-neutral-900 border border-neutral-700 rounded-xl p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="text-sm font-bold text-white">{dateLabel}</h4>
-              <button onClick={() => setSelectedDate(null)} className="text-gray-500 hover:text-white"><X size={16} /></button>
-            </div>
+          {selectedDayWorkouts.length === 0 && selectedDayHistory.length === 0 && (
+            <p className="text-xs text-gray-500">No sessions scheduled.</p>
+          )}
 
-            {dayWorkouts.length === 0 && dayHistory.length === 0 && (
-              <p className="text-xs text-gray-500">No sessions scheduled.</p>
-            )}
-
-            {dayWorkouts.map(sw => {
-              const phaseColor = sw.phase ? (PHASE_COLORS[sw.phase] || DEFAULT_PHASE_COLOR) : DEFAULT_PHASE_COLOR;
-              return (
-                <div key={sw.id} className={`rounded-lg border p-3 space-y-2 ${phaseColor.border} ${phaseColor.bg}`}>
-                  <div className="flex items-center justify-between">
-                    <span className={`text-xs font-semibold ${phaseColor.text}`}>{sw.label}</span>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+          {selectedDayWorkouts.map(sw => {
+            const phaseColor = sw.phase ? (PHASE_COLORS[sw.phase] || DEFAULT_PHASE_COLOR) : DEFAULT_PHASE_COLOR;
+            return (
+              <div key={sw.id} className={`rounded-lg border p-3 space-y-2 ${phaseColor.border} ${phaseColor.bg}`}>
+                <div className="flex items-center justify-between">
+                  <span className={`text-xs font-semibold ${phaseColor.text}`}>{sw.label}</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => toggleStatus(sw)}
+                      className={`text-[10px] px-1.5 py-0.5 rounded-full cursor-pointer hover:opacity-80 transition-opacity ${
                         sw.status === 'completed' ? 'bg-green-900/60 text-green-300' :
                         sw.status === 'skipped' ? 'bg-neutral-700 text-gray-400' :
                         'bg-blue-900/60 text-blue-300'
-                      }`}>{sw.status}</span>
-                      <button
-                        onClick={() => onDelete(sw.id)}
-                        className="text-gray-600 hover:text-red-400 text-[10px]"
-                      >delete</button>
-                    </div>
+                      }`}
+                    >{sw.status}</button>
+                    <button
+                      onClick={() => onDelete(sw.id)}
+                      className="text-gray-600 hover:text-red-400 text-[10px]"
+                    >delete</button>
                   </div>
-
-                  {/* Exercise list + edit button */}
-                  {sw.status === 'planned' && weeksOut <= 4 && (
-                    <div className="space-y-2">
-                      {(sw.skeletonExercises || []).length > 0 ? (
-                        <div className="space-y-1">
-                          {(sw.skeletonExercises || []).map((ex, i) => (
-                            <div key={ex.exerciseId} className="flex items-center gap-2 text-sm">
-                              <span className="text-gray-500 text-xs font-mono w-4 text-right">{i + 1}.</span>
-                              <span className="text-gray-200 flex-1 truncate">{ex.exerciseName}</span>
-                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${TIER_COLORS[ex.tier]}`}>{ex.tier}</span>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-xs text-gray-600 italic">No exercises assigned</p>
-                      )}
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setEditingSession(sw); }}
-                        className="w-full py-2 rounded-lg border border-dashed border-amber-500/30 text-amber-400 hover:bg-amber-500/10 text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
-                      >
-                        <Dumbbell size={14} />
-                        {(sw.skeletonExercises || []).length > 0 ? 'Edit Exercises' : 'Add Exercises'}
-                      </button>
-                      {(sw.targetRepRange || sw.targetIntensity) && (
-                        <p className="text-xs text-gray-500">
-                          {sw.targetRepRange && `${sw.targetRepRange} reps`}
-                          {sw.targetRepRange && sw.targetIntensity && ' · '}
-                          {sw.targetIntensity}
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Read-only for completed/skipped or >4 weeks out */}
-                  {(sw.status !== 'planned' || weeksOut > 4) && sw.skeletonExercises && sw.skeletonExercises.length > 0 && (
-                    <div>
-                      <p className="text-xs text-gray-400">
-                        {sw.skeletonExercises.map(ex => ex.exerciseName).join(' / ')}
-                      </p>
-                    </div>
-                  )}
-
-                  {weeksOut > 4 && sw.targetIntensity && !sw.skeletonExercises?.length && (
-                    <p className="text-xs text-gray-500">{sw.targetVolume} volume @ {sw.targetIntensity}</p>
-                  )}
                 </div>
-              );
-            })}
 
-            {dayHistory.map(w => (
-              <div key={w.id} className="rounded-lg border border-amber-700/50 bg-amber-900/30 p-3">
-                <span className="text-xs font-semibold text-amber-300">Completed: {w.title}</span>
+                {/* Exercise list + edit button */}
+                {sw.status === 'planned' && weeksOut <= 4 && (
+                  <div className="space-y-2">
+                    {(sw.skeletonExercises || []).length > 0 ? (
+                      <div className="space-y-1">
+                        {(sw.skeletonExercises || []).map((ex, i) => (
+                          <div key={ex.exerciseId} className="flex items-center gap-2 text-sm">
+                            <span className="text-gray-500 text-xs font-mono w-4 text-right">{i + 1}.</span>
+                            <span className="text-gray-200 flex-1 truncate">{ex.exerciseName}</span>
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium border ${TIER_COLORS[ex.tier]}`}>{ex.tier}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-gray-600 italic">No exercises assigned</p>
+                    )}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setEditingSession(sw); }}
+                      className="w-full py-2 rounded-lg border border-dashed border-amber-500/30 text-amber-400 hover:bg-amber-500/10 text-xs font-medium transition-colors flex items-center justify-center gap-1.5"
+                    >
+                      <Dumbbell size={14} />
+                      {(sw.skeletonExercises || []).length > 0 ? 'Edit Exercises' : 'Add Exercises'}
+                    </button>
+                    {(sw.targetRepRange || sw.targetIntensity) && (
+                      <p className="text-xs text-gray-500">
+                        {sw.targetRepRange && `${sw.targetRepRange} reps`}
+                        {sw.targetRepRange && sw.targetIntensity && ' · '}
+                        {sw.targetIntensity}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Read-only for completed/skipped or >4 weeks out */}
+                {(sw.status !== 'planned' || weeksOut > 4) && sw.skeletonExercises && sw.skeletonExercises.length > 0 && (
+                  <div>
+                    <p className="text-xs text-gray-400">
+                      {sw.skeletonExercises.map(ex => ex.exerciseName).join(' / ')}
+                    </p>
+                  </div>
+                )}
+
+                {weeksOut > 4 && sw.targetIntensity && !sw.skeletonExercises?.length && (
+                  <p className="text-xs text-gray-500">{sw.targetVolume} volume @ {sw.targetIntensity}</p>
+                )}
               </div>
-            ))}
-          </div>
-        );
-      })()}
+            );
+          })}
+
+          {selectedDayHistory.map(w => (
+            <div key={w.id} className="rounded-lg border border-amber-700/50 bg-amber-900/30 p-3">
+              <span className="text-xs font-semibold text-amber-300">Completed: {w.title}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Legend */}
       <div className="flex flex-wrap gap-4 text-xs text-gray-400">
