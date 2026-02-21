@@ -5,6 +5,7 @@ import {
   ScheduledWorkout,
 } from '../../shared/types';
 import { BlockWizardState, BlockStepConfig, BlockStepProps, DEFAULT_BLOCK_STATE, generatePhasesForFocus } from './types';
+import { generateBlockSkeleton } from '../../shared/services/blockSkeletonGenerator';
 
 import StepBlockGoal from './StepBlockGoal';
 import StepPhaseDesigner from './StepPhaseDesigner';
@@ -104,9 +105,10 @@ const BlockWizard: React.FC<BlockWizardProps> = ({
 
     onCreateBlock(block);
 
-    // Auto-populate calendar if enabled
+    // Auto-populate calendar if enabled (uses the full skeleton generator
+    // with conflict-aware rotation, exercise mapping, and phase targets)
     if (state.populateCalendar && onScheduleWorkouts) {
-      const scheduled = generateScheduledWorkouts(block);
+      const scheduled = generateBlockSkeleton(block);
       onScheduleWorkouts(scheduled);
     }
 
@@ -182,53 +184,5 @@ const BlockWizard: React.FC<BlockWizardProps> = ({
     </div>
   );
 };
-
-// ─── Calendar auto-population ────────────────────────────────
-function generateScheduledWorkouts(block: TrainingBlock): ScheduledWorkout[] {
-  const workouts: ScheduledWorkout[] = [];
-  const blockStartMs = block.startDate;
-  let weekOffset = 0;
-
-  for (let phaseIdx = 0; phaseIdx < block.phases.length; phaseIdx++) {
-    const phase = block.phases[phaseIdx];
-
-    for (let week = 0; week < phase.weekCount; week++) {
-      const weekStartMs = blockStartMs + (weekOffset + week) * 7 * 24 * 60 * 60 * 1000;
-
-      // Distribute sessions evenly across the week
-      const daySpacing = Math.floor(7 / phase.sessionsPerWeek);
-      for (let session = 0; session < phase.sessionsPerWeek; session++) {
-        const dayOffset = session * daySpacing;
-        const dateMs = weekStartMs + dayOffset * 24 * 60 * 60 * 1000;
-        const dateStr = new Date(dateMs).toISOString().split('T')[0];
-
-        const intensityMap: Record<string, 'low' | 'moderate' | 'high' | 'rest'> = {
-          minimal: 'rest',
-          low: 'low',
-          moderate: 'moderate',
-          high: 'high',
-          'very-high': 'high',
-        };
-
-        workouts.push({
-          id: crypto.randomUUID(),
-          date: dateStr,
-          label: `${phase.phase} — Wk${week + 1} Day${session + 1}`,
-          phase: phase.phase,
-          suggestedIntensity: intensityMap[phase.intensityFocus] || 'moderate',
-          suggestedDuration: 60,
-          status: 'planned',
-          trainingBlockId: block.id,
-          phaseIndex: phaseIdx,
-          weekIndex: week,
-          dayIndex: session,
-        });
-      }
-    }
-    weekOffset += phase.weekCount;
-  }
-
-  return workouts;
-}
 
 export default BlockWizard;
