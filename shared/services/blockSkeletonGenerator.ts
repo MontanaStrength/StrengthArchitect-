@@ -257,7 +257,7 @@ function getSessionDates(
       if (offset < 0) offset += 7;
       const dateMs = weekStartMs + offset * 24 * 60 * 60 * 1000;
       return new Date(dateMs).toISOString().split('T')[0];
-    });
+    }).sort();
   }
 
   const dates: string[] = [];
