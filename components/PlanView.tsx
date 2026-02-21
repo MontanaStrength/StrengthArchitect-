@@ -104,11 +104,10 @@ function sortExercisesForSlot(category: string, tier: string, exercises: typeof 
   return { recommended, others };
 }
 import React, { useState, useMemo, useEffect } from 'react';
-import { TrainingBlock, TrainingBlockPhase, TrainingPhase, PHASE_PRESETS, ExerciseSlot, ExercisePreferences, MovementPattern, SessionStructure, SESSION_STRUCTURE_PRESETS, DEFAULT_SESSION_STRUCTURE, ScheduledWorkout, SavedWorkout } from '../shared/types';
+import { TrainingBlock, TrainingBlockPhase, TrainingPhase, PHASE_PRESETS, ExerciseSlot, ExercisePreferences, MovementPattern, SessionStructure, SESSION_STRUCTURE_PRESETS, DEFAULT_SESSION_STRUCTURE } from '../shared/types';
 import { EXERCISE_LIBRARY } from '../shared/services/exerciseLibrary';
-import { Layers, Calendar, Dumbbell, ChevronRight, ChevronDown, Check, CheckCircle2, ArrowRight, Rocket } from 'lucide-react';
+import { Layers, Calendar, Dumbbell, ChevronRight, Check, CheckCircle2, ArrowRight, Rocket } from 'lucide-react';
 import BlockPhaseSlider, { SliderPhase, SLIDER_PHASE_CONFIG } from './BlockPhaseSlider';
-import TrainingCalendarView from './TrainingCalendarView';
 
 interface EstimatedMaxes {
   squat1RM?: number;
@@ -123,10 +122,7 @@ interface Props {
   estimatedMaxes: EstimatedMaxes;
   onMaxesChange: (maxes: EstimatedMaxes) => void;
   onNavigateToLift?: () => void;
-  scheduledWorkouts: ScheduledWorkout[];
-  workoutHistory: SavedWorkout[];
-  onScheduledSave: (sw: ScheduledWorkout) => void;
-  onScheduledDelete: (id: string) => void;
+  onOpenCalendar?: () => void;
 }
 
 type SubTab = 'block' | 'schedule' | 'exercises';
@@ -294,7 +290,7 @@ function buildPhasesFromSelection(
   });
 }
 
-const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChange, onNavigateToLift, scheduledWorkouts, workoutHistory, onScheduledSave, onScheduledDelete }) => {
+const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChange, onNavigateToLift, onOpenCalendar }) => {
   const [subTab, setSubTab] = useState<SubTab>(() => {
     const saved = localStorage.getItem('sa-plan-subtab');
     return (saved === 'block' || saved === 'schedule' || saved === 'exercises') ? saved : 'block';
@@ -304,8 +300,6 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
     setSubTab(tab);
     localStorage.setItem('sa-plan-subtab', tab);
   };
-
-  const [calendarOpen, setCalendarOpen] = useState(false);
 
   // Local state — initialized from block or sensible defaults
   const [name, setName] = useState(block?.name || '');
@@ -869,32 +863,21 @@ const PlanView: React.FC<Props> = ({ block, onSave, estimatedMaxes, onMaxesChang
         </div>
       )}
 
-      {/* ===== COLLAPSIBLE CALENDAR ===== */}
-      <div className="border-t border-neutral-800 pt-4 mt-6">
-        <button
-          onClick={() => setCalendarOpen(prev => !prev)}
-          className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 transition-all"
-        >
-          <div className="flex items-center gap-2.5">
-            <Calendar size={16} className="text-amber-400" />
-            <span className="text-sm font-medium text-gray-200">Training Calendar</span>
-          </div>
-          <ChevronDown
-            size={16}
-            className={`text-gray-500 transition-transform duration-200 ${calendarOpen ? 'rotate-180' : ''}`}
-          />
-        </button>
-        {calendarOpen && (
-          <div className="mt-3">
-            <TrainingCalendarView
-              scheduled={scheduledWorkouts}
-              history={workoutHistory}
-              onSave={onScheduledSave}
-              onDelete={onScheduledDelete}
-            />
-          </div>
-        )}
-      </div>
+      {/* ===== OPEN CALENDAR BUTTON ===== */}
+      {onOpenCalendar && (
+        <div className="border-t border-neutral-800 pt-4 mt-6">
+          <button
+            onClick={onOpenCalendar}
+            className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-neutral-900 hover:bg-neutral-800 border border-neutral-700 transition-all"
+          >
+            <div className="flex items-center gap-2.5">
+              <Calendar size={16} className="text-amber-400" />
+              <span className="text-sm font-medium text-gray-200">Training Calendar</span>
+            </div>
+            <ChevronRight size={16} className="text-gray-500" />
+          </button>
+        </div>
+      )}
 
       {/* Pulse animation for CTA glow */}
       <style>{`

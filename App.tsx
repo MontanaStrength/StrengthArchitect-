@@ -1142,17 +1142,7 @@ const App: React.FC = () => {
                 }
               }}
               onNavigateToLift={() => setView('lift')}
-              scheduledWorkouts={scheduledWorkouts}
-              workoutHistory={history}
-              onScheduledSave={async (sw) => {
-                const exists = scheduledWorkouts.find(s => s.id === sw.id);
-                setScheduledWorkouts(prev => exists ? prev.map(s => s.id === sw.id ? sw : s) : [...prev, sw]);
-                if (user) syncScheduledWorkoutToCloud(sw, user.id, cid).catch(console.error);
-              }}
-              onScheduledDelete={async (id) => {
-                setScheduledWorkouts(prev => prev.filter(s => s.id !== id));
-                if (user) deleteScheduledWorkoutFromCloud(id, user.id).catch(console.error);
-              }}
+              onOpenCalendar={() => setView('calendar')}
             />
             {/* Secondary links */}
             <div className="border-t border-sa-surface2 pt-6">
