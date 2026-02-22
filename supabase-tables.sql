@@ -77,6 +77,8 @@ CREATE TABLE IF NOT EXISTS scheduled_workouts (
   notes TEXT,
   status TEXT NOT NULL DEFAULT 'planned',
   completed_workout_id TEXT,
+  generated_plan JSONB,
+  generated_at BIGINT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 ALTER TABLE scheduled_workouts ENABLE ROW LEVEL SECURITY;

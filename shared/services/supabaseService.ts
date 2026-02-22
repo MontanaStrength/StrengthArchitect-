@@ -356,6 +356,8 @@ export const syncScheduledWorkoutToCloud = async (sw: ScheduledWorkout, userId: 
       notes: packSkeletonNotes(sw),
       status: sw.status,
       completed_workout_id: sw.completedWorkoutId,
+      generated_plan: sw.generatedPlan ?? null,
+      generated_at: sw.generatedAt ?? null,
     });
   if (error) throw error;
 };
@@ -383,6 +385,8 @@ export const fetchScheduledWorkoutsFromCloud = async (userId: string, clientId?:
       suggestedFocus: row.suggested_focus,
       status: row.status,
       completedWorkoutId: row.completed_workout_id,
+      generatedPlan: row.generated_plan ?? undefined,
+      generatedAt: row.generated_at ?? undefined,
       ...skeleton,
     };
   });

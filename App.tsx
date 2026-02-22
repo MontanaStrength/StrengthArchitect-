@@ -1179,6 +1179,12 @@ const App: React.FC = () => {
             onBack={() => setView('plan')}
             onBatchGenerate={handleBatchGenerate}
             onRefineSession={handleRefineSession}
+            onStartSession={(sw) => {
+              if (sw.generatedPlan) {
+                setCurrentPlan(sw.generatedPlan);
+                setView('lift');
+              }
+            }}
             batchProgress={batchProgress}
           />
           {batchProgress && (

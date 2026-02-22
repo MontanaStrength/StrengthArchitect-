@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { ScheduledWorkout, SavedWorkout, TrainingGoalFocus, ScheduledWorkoutStatus, TrainingPhase, SkeletonExercise, MovementPattern } from '../shared/types';
-import { Calendar, Plus, X, Search, Dumbbell, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Zap, RefreshCw, CheckCircle, Minus } from 'lucide-react';
+import { Calendar, Plus, X, Search, Dumbbell, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Zap, RefreshCw, CheckCircle, Minus, Play } from 'lucide-react';
 import { getAllExercises } from '../shared/services/exerciseLibrary';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -16,6 +16,7 @@ interface Props {
   onBack?: () => void;
   onBatchGenerate?: (sessionIds: string[]) => void;
   onRefineSession?: (sessionId: string) => void;
+  onStartSession?: (sw: ScheduledWorkout) => void;
   batchProgress?: BatchGenerateProgress | null;
 }
 
@@ -324,7 +325,7 @@ const renderEventContent = (arg: EventContentArg) => {
   return (
     <div className="truncate leading-tight px-1 py-0.5">
       <div className="text-[10px] font-medium truncate flex items-center gap-0.5">
-        {hasGeneratedPlan && <span className="text-green-400 flex-shrink-0">●</span>}
+        {hasGeneratedPlan && <span className="text-cyan-400 flex-shrink-0">●</span>}
         {arg.event.title}
       </div>
       {exerciseHint && (
@@ -336,7 +337,7 @@ const renderEventContent = (arg: EventContentArg) => {
 
 // ─── Main Calendar Component ────────────────────────────────────
 
-const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onDelete, onBack, onBatchGenerate, batchProgress, onRefineSession }) => {
+const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onDelete, onBack, onBatchGenerate, batchProgress, onRefineSession, onStartSession }) => {
   const [showAdd, setShowAdd] = useState(false);
   const [addDate, setAddDate] = useState('');
   const [addLabel, setAddLabel] = useState('');
@@ -684,8 +685,8 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
                   <div className="mt-2 space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
-                        <CheckCircle size={12} className="text-green-400" />
-                        <span className="text-[10px] font-medium text-green-400">AI Session Built</span>
+                        <CheckCircle size={12} className="text-cyan-400" />
+                        <span className="text-[10px] font-medium text-cyan-400">AI Session Built</span>
                       </div>
                       {sw.generatedAt && (
                         <span className="text-[10px] text-gray-600">
@@ -707,6 +708,15 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
                         )}
                       </div>
                     </div>
+                    {onStartSession && (
+                      <button
+                        onClick={() => onStartSession(sw)}
+                        className="w-full py-2 rounded-lg bg-cyan-500/15 border border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/25 text-xs font-semibold transition-colors flex items-center justify-center gap-1.5"
+                      >
+                        <Play size={12} />
+                        Start Session
+                      </button>
+                    )}
                     <div className="flex gap-1.5">
                       {onRefineSession && (
                         <button
@@ -761,7 +771,7 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500" /> Completed</span>
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500" /> Logged Session</span>
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-gray-500" /> Skipped</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500" /> AI Built</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-cyan-500" /> AI Built</span>
       </div>
 
       {/* Exercise Editor Modal */}
