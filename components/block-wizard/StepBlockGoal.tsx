@@ -208,13 +208,15 @@ const StepBlockGoal: React.FC<BlockStepProps> = ({ state, onChange }) => {
 
 function phaseColor(p: TrainingPhase): string {
   switch (p) {
-    case TrainingPhase.HYPERTROPHY:     return '#7c3aed';
-    case TrainingPhase.ACCUMULATION:    return '#3b82f6';
-    case TrainingPhase.STRENGTH:        return '#f59e0b';
-    case TrainingPhase.INTENSIFICATION: return '#eab308';
-    case TrainingPhase.REALIZATION:     return '#f97316';
-    case TrainingPhase.PEAKING:         return '#ef4444';
-    case TrainingPhase.DELOAD:          return '#22c55e';
+    case TrainingPhase.GPP:              return '#0ea5e9';
+    case TrainingPhase.HYPERTROPHY:      return '#4f46e5';
+    case TrainingPhase.ACCUMULATION:     return '#3b82f6';
+    case TrainingPhase.STRENGTH:         return '#7c3aed';
+    case TrainingPhase.INTENSIFICATION:  return '#9333ea';
+    case TrainingPhase.POWER:            return '#c026d3';
+    case TrainingPhase.REALIZATION:      return '#db2777';
+    case TrainingPhase.PEAKING:          return '#e11d48';
+    case TrainingPhase.DELOAD:           return '#64748b';
     default: return '#6b7280';
   }
 }

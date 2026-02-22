@@ -39,13 +39,15 @@ const TrainingBlockView: React.FC<Props> = ({ blocks, onSave, onDelete }) => {
 
   const getPhaseColor = (phase: TrainingPhase) => {
     switch (phase) {
-      case TrainingPhase.HYPERTROPHY: return 'bg-purple-900/50 text-purple-300 border-purple-700';
-      case TrainingPhase.STRENGTH: return 'bg-amber-900/50 text-amber-300 border-amber-700';
-      case TrainingPhase.PEAKING: return 'bg-orange-900/50 text-orange-300 border-orange-700';
+      case TrainingPhase.GPP: return 'bg-sky-900/50 text-sky-300 border-sky-700';
+      case TrainingPhase.HYPERTROPHY: return 'bg-indigo-900/50 text-indigo-300 border-indigo-700';
       case TrainingPhase.ACCUMULATION: return 'bg-blue-900/50 text-blue-300 border-blue-700';
-      case TrainingPhase.INTENSIFICATION: return 'bg-yellow-900/50 text-yellow-300 border-yellow-700';
-      case TrainingPhase.REALIZATION: return 'bg-amber-900/50 text-amber-300 border-amber-700';
-      case TrainingPhase.DELOAD: return 'bg-green-900/50 text-green-300 border-green-700';
+      case TrainingPhase.STRENGTH: return 'bg-violet-900/50 text-violet-300 border-violet-700';
+      case TrainingPhase.INTENSIFICATION: return 'bg-purple-900/50 text-purple-300 border-purple-700';
+      case TrainingPhase.POWER: return 'bg-fuchsia-900/50 text-fuchsia-300 border-fuchsia-700';
+      case TrainingPhase.REALIZATION: return 'bg-pink-900/50 text-pink-300 border-pink-700';
+      case TrainingPhase.PEAKING: return 'bg-rose-900/50 text-rose-300 border-rose-700';
+      case TrainingPhase.DELOAD: return 'bg-slate-800/50 text-slate-300 border-slate-600';
       default: return 'bg-neutral-800 text-gray-300 border-neutral-700';
     }
   };

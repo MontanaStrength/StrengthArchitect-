@@ -15,32 +15,32 @@ interface Props {
   onBack?: () => void;
 }
 
-// Phase → hex color for FullCalendar events
+// Phase → hex color for FullCalendar events (darker variants for event backgrounds)
 const PHASE_HEX: Record<string, string> = {
-  [TrainingPhase.HYPERTROPHY]:     '#1e3a5f',
-  [TrainingPhase.ACCUMULATION]:    '#164e63',
-  [TrainingPhase.STRENGTH]:        '#3b1f6e',
-  [TrainingPhase.INTENSIFICATION]: '#2e1065',
-  [TrainingPhase.REALIZATION]:     '#4c0519',
-  [TrainingPhase.PEAKING]:         '#7f1d1d',
-  [TrainingPhase.DELOAD]:          '#064e3b',
-  [TrainingPhase.GPP]:             '#1a2e05',
-  [TrainingPhase.POWER]:           '#451a03',
+  [TrainingPhase.GPP]:             '#0c4a6e',
+  [TrainingPhase.HYPERTROPHY]:     '#1e1b4b',
+  [TrainingPhase.ACCUMULATION]:    '#172554',
+  [TrainingPhase.STRENGTH]:        '#2e1065',
+  [TrainingPhase.INTENSIFICATION]: '#3b0764',
+  [TrainingPhase.POWER]:           '#4a044e',
+  [TrainingPhase.REALIZATION]:     '#500724',
+  [TrainingPhase.PEAKING]:         '#4c0519',
+  [TrainingPhase.DELOAD]:          '#1e293b',
 };
-const DEFAULT_HEX = '#1e3a5f';
+const DEFAULT_HEX = '#1e1b4b';
 
 const PHASE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
-  [TrainingPhase.HYPERTROPHY]:     { bg: 'bg-blue-900/50',   text: 'text-blue-300',   border: 'border-blue-700/50' },
-  [TrainingPhase.ACCUMULATION]:    { bg: 'bg-cyan-900/50',   text: 'text-cyan-300',   border: 'border-cyan-700/50' },
-  [TrainingPhase.STRENGTH]:        { bg: 'bg-purple-900/50', text: 'text-purple-300', border: 'border-purple-700/50' },
-  [TrainingPhase.INTENSIFICATION]: { bg: 'bg-violet-900/50', text: 'text-violet-300', border: 'border-violet-700/50' },
-  [TrainingPhase.REALIZATION]:     { bg: 'bg-rose-900/50',   text: 'text-rose-300',   border: 'border-rose-700/50' },
-  [TrainingPhase.PEAKING]:         { bg: 'bg-red-900/50',    text: 'text-red-300',    border: 'border-red-700/50' },
-  [TrainingPhase.DELOAD]:          { bg: 'bg-emerald-900/50',text: 'text-emerald-300',border: 'border-emerald-700/50' },
-  [TrainingPhase.GPP]:             { bg: 'bg-lime-900/50',   text: 'text-lime-300',   border: 'border-lime-700/50' },
-  [TrainingPhase.POWER]:           { bg: 'bg-orange-900/50', text: 'text-orange-300', border: 'border-orange-700/50' },
+  [TrainingPhase.GPP]:             { bg: 'bg-sky-900/50',    text: 'text-sky-300',    border: 'border-sky-700/50' },
+  [TrainingPhase.HYPERTROPHY]:     { bg: 'bg-indigo-900/50', text: 'text-indigo-300', border: 'border-indigo-700/50' },
+  [TrainingPhase.ACCUMULATION]:    { bg: 'bg-blue-900/50',   text: 'text-blue-300',   border: 'border-blue-700/50' },
+  [TrainingPhase.STRENGTH]:        { bg: 'bg-violet-900/50', text: 'text-violet-300', border: 'border-violet-700/50' },
+  [TrainingPhase.INTENSIFICATION]: { bg: 'bg-purple-900/50', text: 'text-purple-300', border: 'border-purple-700/50' },
+  [TrainingPhase.POWER]:           { bg: 'bg-fuchsia-900/50',text: 'text-fuchsia-300',border: 'border-fuchsia-700/50' },
+  [TrainingPhase.REALIZATION]:     { bg: 'bg-pink-900/50',   text: 'text-pink-300',   border: 'border-pink-700/50' },
+  [TrainingPhase.PEAKING]:         { bg: 'bg-rose-900/50',   text: 'text-rose-300',   border: 'border-rose-700/50' },
+  [TrainingPhase.DELOAD]:          { bg: 'bg-slate-800/50',  text: 'text-slate-300',  border: 'border-slate-600/50' },
 };
-const DEFAULT_PHASE_COLOR = { bg: 'bg-blue-900/50', text: 'text-blue-300', border: 'border-blue-700/50' };
+const DEFAULT_PHASE_COLOR = { bg: 'bg-indigo-900/50', text: 'text-indigo-300', border: 'border-indigo-700/50' };
 
 function getWeeksFromToday(dateStr: string): number {
   const today = new Date();

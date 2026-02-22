@@ -13,15 +13,17 @@ interface Props {
   liftRecords: LiftRecord[];
 }
 
-// Phase display colors
+// Phase display colors — cool-to-warm intensity gradient
 const PHASE_COLORS: Record<string, string> = {
-  'Hypertrophy':     '#a855f7',
+  'GPP':             '#0ea5e9',
+  'Hypertrophy':     '#4f46e5',
   'Accumulation':    '#3b82f6',
-  'Strength':        '#f59e0b',
-  'Intensification': '#f97316',
-  'Realization':     '#ef4444',
-  'Peaking':         '#dc2626',
-  'Deload':          '#22c55e',
+  'Strength':        '#7c3aed',
+  'Intensification': '#9333ea',
+  'Power':           '#c026d3',
+  'Realization':     '#db2777',
+  'Peaking':         '#e11d48',
+  'Deload':          '#64748b',
 };
 
 const BlockReviewView: React.FC<Props> = ({ blocks, history, liftRecords }) => {
