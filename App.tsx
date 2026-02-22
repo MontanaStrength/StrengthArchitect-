@@ -65,6 +65,8 @@ import ConversationThreadView from './components/coach/ConversationThreadView';
 import type { ConversationWithMeta } from './shared/services/messagingService';
 import { computeOptimizerRecommendations } from './shared/services/optimizerEngine';
 import BrandIcon from './components/BrandIcon';
+import BatchGenerateModal from './components/BatchGenerateModal';
+import type { BatchGenerateProgress } from './components/BatchGenerateModal';
 
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -123,6 +125,8 @@ const App: React.FC = () => {
   // ===== WORKOUT STATE =====
   const [currentPlan, setCurrentPlan] = useState<StrengthWorkoutPlan | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [batchProgress, setBatchProgress] = useState<BatchGenerateProgress | null>(null);
+  const batchCancelledRef = useRef(false);
   const [history, setHistory] = useState<SavedWorkout[]>([]);
   const [error, setError] = useState<string>('');
   const [lastSessionPRs, setLastSessionPRs] = useState<LiftRecord[]>([]);
@@ -410,6 +414,19 @@ const App: React.FC = () => {
     };
   }, [trainingBlocks]);
 
+  // Auto-load pre-built plan when entering Lift tab
+  useEffect(() => {
+    if (view !== 'lift' || currentPlan || isGenerating) return;
+    const todayStr = new Date().toISOString().split('T')[0];
+    const activeBlock = trainingBlocks.find(b => b.isActive);
+    const todaySession = scheduledWorkouts.find(
+      sw => sw.date === todayStr && sw.trainingBlockId === activeBlock?.id && sw.generatedPlan
+    );
+    if (todaySession?.generatedPlan) {
+      setCurrentPlan(todaySession.generatedPlan);
+    }
+  }, [view, currentPlan, isGenerating, trainingBlocks, scheduledWorkouts]);
+
   // ===== GENERATE WORKOUT =====
   const handleGenerate = useCallback(async (swapAndRebuild?: SwapAndRebuildRequest | null) => {
     // Guard: if caller passes a React/DOM event (e.g. onClick={onGenerate}), do not use it as swapAndRebuild
@@ -525,6 +542,149 @@ const App: React.FC = () => {
       setIsGenerating(false);
     }
   }, [formData, history, trainingContext, optimizerConfig, user, trainingBlocks, liftRecords, cid]);
+
+  const handleBatchGenerate = useCallback(async (sessionIds: string[]) => {
+    const activeBlock = trainingBlocks.find(b => b.isActive);
+    if (!activeBlock) return;
+
+    const sessionsToGenerate = scheduledWorkouts
+      .filter(sw => sessionIds.includes(sw.id) && sw.status === 'planned' && sw.sessionFocus)
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    if (sessionsToGenerate.length === 0) return;
+
+    batchCancelledRef.current = false;
+    setBatchProgress({
+      current: 0,
+      total: sessionsToGenerate.length,
+      sessionLabel: '',
+      status: 'generating',
+      completedSessions: [],
+    });
+
+    const exercisePrefs = activeBlock.exercisePreferences || null;
+    const volTol = activeBlock.volumeTolerance ?? 3;
+    const rawBias = activeBlock.goalBias ?? 50;
+    const resolvedSessionStructure = activeBlock.sessionStructure || formData.sessionStructure || undefined;
+
+    const stored = {
+      squat1RM: formData.squat1RM,
+      benchPress1RM: formData.benchPress1RM,
+      deadlift1RM: formData.deadlift1RM,
+      overheadPress1RM: formData.overheadPress1RM,
+    };
+    const dynamic1RMs = getDynamic1RMs(stored, liftRecords, 8);
+
+    const completedLabels: string[] = [];
+
+    for (let i = 0; i < sessionsToGenerate.length; i++) {
+      if (batchCancelledRef.current) break;
+
+      const sw = sessionsToGenerate[i];
+      const sessionLabel = sw.sessionFocus ? `${sw.label} — ${sw.sessionFocus}` : sw.label;
+
+      setBatchProgress(prev => prev ? {
+        ...prev,
+        current: i,
+        sessionLabel,
+      } : prev);
+
+      try {
+        const phase = activeBlock.phases[sw.phaseIndex ?? 0];
+        const phaseName = phase?.phase?.toLowerCase() ?? '';
+        const weekInPhase = (sw.weekIndex ?? 0) + 1;
+        const totalWeeksInPhase = phase?.weekCount ?? 1;
+        const progressInPhase = totalWeeksInPhase > 1 ? (weekInPhase - 1) / (totalWeeksInPhase - 1) : 0;
+
+        let bias: number;
+        if (phaseName.includes('peak') || phaseName.includes('realization')) {
+          bias = Math.round(90 + progressInPhase * 5);
+        } else if (phaseName.includes('strength') || phaseName.includes('intensif')) {
+          bias = Math.round(65 + progressInPhase * 25);
+        } else if (phaseName.includes('hypertrophy') || phaseName.includes('accumulation')) {
+          bias = Math.round(20 + progressInPhase * 20);
+        } else {
+          bias = rawBias;
+        }
+        bias = Math.max(0, Math.min(100, bias));
+
+        const biasGoal: 'strength' | 'hypertrophy' | 'general' =
+          bias < 30 ? 'hypertrophy' :
+          bias > 64 ? 'strength' : 'general';
+
+        const biasedFormData = { ...formData, trainingGoalFocus: biasGoal, sessionStructure: resolvedSessionStructure };
+        const dataForGenerate = { ...biasedFormData, ...dynamic1RMs };
+
+        const sessionTrainingContext = phase ? {
+          phaseName: phase.phase,
+          intensityFocus: phase.intensityFocus,
+          volumeFocus: phase.volumeFocus,
+          primaryArchetypes: phase.primaryArchetypes,
+          weekInPhase,
+          totalWeeksInPhase,
+          blockName: activeBlock.name,
+          goalEvent: activeBlock.goalEvent,
+        } : trainingContext;
+
+        const optimizerRecs = computeOptimizerRecommendations(
+          optimizerConfig,
+          biasedFormData,
+          history,
+          sessionTrainingContext ?? null,
+          volTol,
+          bias,
+        );
+
+        const skeletonPlan: import('./shared/services/geminiService').SkeletonSessionPlan | null = sw.sessionFocus
+          ? {
+              sessionFocus: sw.sessionFocus,
+              phase: sw.phase,
+              exercises: (sw.skeletonExercises || []).map(e => ({ name: e.exerciseName, tier: e.tier })),
+              targetIntensity: sw.targetIntensity,
+              targetVolume: sw.targetVolume,
+              targetSetsPerExercise: sw.targetSetsPerExercise,
+              targetRepRange: sw.targetRepRange,
+            }
+          : null;
+
+        const plan = await generateWorkout(
+          dataForGenerate, history, sessionTrainingContext ?? null,
+          optimizerRecs, exercisePrefs, bias, volTol, null, skeletonPlan
+        );
+
+        const updatedSw = { ...sw, generatedPlan: plan, generatedAt: Date.now() };
+        setScheduledWorkouts(prev => prev.map(s => s.id === sw.id ? updatedSw : s));
+        if (user) {
+          syncScheduledWorkoutToCloud(updatedSw, user.id, cid).catch(console.error);
+        }
+
+        completedLabels.push(sessionLabel);
+        setBatchProgress(prev => prev ? {
+          ...prev,
+          current: i + 1,
+          completedSessions: [...completedLabels],
+        } : prev);
+
+      } catch (err: any) {
+        setBatchProgress(prev => prev ? {
+          ...prev,
+          status: 'error',
+          errorMessage: `Failed on "${sessionLabel}": ${err?.message || 'Unknown error'}`,
+        } : prev);
+        return;
+      }
+    }
+
+    if (!batchCancelledRef.current) {
+      setBatchProgress(prev => prev ? { ...prev, status: 'done' } : prev);
+    } else {
+      setBatchProgress(null);
+    }
+  }, [formData, history, trainingContext, optimizerConfig, user, trainingBlocks, liftRecords, scheduledWorkouts, cid]);
+
+  const handleRefineSession = useCallback(async (sessionId: string) => {
+    handleBatchGenerate([sessionId]);
+  }, [handleBatchGenerate]);
 
   // ===== SAVE FEEDBACK =====
   const handleSaveFeedback = useCallback(async (workoutId: string, feedback: FeedbackData) => {
@@ -1017,7 +1177,17 @@ const App: React.FC = () => {
               if (user) deleteScheduledWorkoutFromCloud(id, user.id).catch(console.error);
             }}
             onBack={() => setView('plan')}
+            onBatchGenerate={handleBatchGenerate}
+            onRefineSession={handleRefineSession}
+            batchProgress={batchProgress}
           />
+          {batchProgress && (
+            <BatchGenerateModal
+              progress={batchProgress}
+              onClose={() => setBatchProgress(null)}
+              onCancel={() => { batchCancelledRef.current = true; setBatchProgress(null); }}
+            />
+          )}
         </div>
       )}
 

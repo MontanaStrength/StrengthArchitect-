@@ -595,6 +595,10 @@ export interface ScheduledWorkout {
   targetSetsPerExercise?: string;
   /** Skeleton: target rep range */
   targetRepRange?: string;
+  /** AI-generated full workout plan (pre-built via batch generation) */
+  generatedPlan?: StrengthWorkoutPlan;
+  /** Timestamp when the generatedPlan was created */
+  generatedAt?: number;
 }
 
 // ===== SLEEP =====

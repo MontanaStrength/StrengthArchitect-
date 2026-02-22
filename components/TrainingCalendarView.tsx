@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { ScheduledWorkout, SavedWorkout, TrainingGoalFocus, ScheduledWorkoutStatus, TrainingPhase, SkeletonExercise, MovementPattern } from '../shared/types';
-import { Calendar, Plus, X, Search, Dumbbell, ChevronUp, ChevronDown, ChevronLeft } from 'lucide-react';
+import { Calendar, Plus, X, Search, Dumbbell, ChevronUp, ChevronDown, ChevronLeft, Zap, RefreshCw, CheckCircle } from 'lucide-react';
 import { getAllExercises } from '../shared/services/exerciseLibrary';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin, { DateClickArg } from '@fullcalendar/interaction';
 import type { EventInput, EventClickArg, EventDropArg, EventContentArg } from '@fullcalendar/core';
+import type { BatchGenerateProgress } from './BatchGenerateModal';
 
 interface Props {
   scheduled: ScheduledWorkout[];
@@ -13,6 +14,9 @@ interface Props {
   onSave: (sw: ScheduledWorkout) => void;
   onDelete: (id: string) => void;
   onBack?: () => void;
+  onBatchGenerate?: (sessionIds: string[]) => void;
+  onRefineSession?: (sessionId: string) => void;
+  batchProgress?: BatchGenerateProgress | null;
 }
 
 // Phase → hex color for FullCalendar events (darker variants for event backgrounds)
@@ -315,9 +319,14 @@ const renderEventContent = (arg: EventContentArg) => {
     ? sw.skeletonExercises.filter(e => e.tier === 'primary').map(e => e.exerciseName).join(', ')
     : undefined;
 
+  const hasGeneratedPlan = !!sw.generatedPlan;
+
   return (
     <div className="truncate leading-tight px-1 py-0.5">
-      <div className="text-[10px] font-medium truncate">{arg.event.title}</div>
+      <div className="text-[10px] font-medium truncate flex items-center gap-0.5">
+        {hasGeneratedPlan && <span className="text-green-400 flex-shrink-0">●</span>}
+        {arg.event.title}
+      </div>
       {exerciseHint && (
         <div className="text-[8px] opacity-60 truncate">{exerciseHint}</div>
       )}
@@ -327,7 +336,7 @@ const renderEventContent = (arg: EventContentArg) => {
 
 // ─── Main Calendar Component ────────────────────────────────────
 
-const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onDelete, onBack }) => {
+const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onDelete, onBack, onBatchGenerate, batchProgress, onRefineSession }) => {
   const [showAdd, setShowAdd] = useState(false);
   const [addDate, setAddDate] = useState('');
   const [addLabel, setAddLabel] = useState('');
@@ -336,6 +345,26 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [editingSession, setEditingSession] = useState<ScheduledWorkout | null>(null);
   const calendarRef = useRef<FullCalendar>(null);
+
+  // Upcoming sessions eligible for batch generation (next 2 weeks, planned, have skeleton)
+  const batchEligibleSessions = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const twoWeeksOut = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
+    return scheduled.filter(sw =>
+      sw.status === 'planned' &&
+      sw.sessionFocus &&
+      !sw.generatedPlan &&
+      new Date(sw.date + 'T00:00:00') >= today &&
+      new Date(sw.date + 'T00:00:00') <= twoWeeksOut
+    );
+  }, [scheduled]);
+
+  const handleBuildUpcoming = useCallback(() => {
+    if (onBatchGenerate && batchEligibleSessions.length > 0) {
+      onBatchGenerate(batchEligibleSessions.map(s => s.id));
+    }
+  }, [onBatchGenerate, batchEligibleSessions]);
 
   // Map ScheduledWorkout[] + SavedWorkout[] → FullCalendar EventInput[]
   const events: EventInput[] = useMemo(() => {
@@ -470,12 +499,24 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
             <Calendar size={24} className="text-amber-500" /> Training Calendar
           </h2>
         </div>
-        <button
-          onClick={() => { setShowAdd(!showAdd); setAddDate(selectedDate || new Date().toISOString().split('T')[0]); }}
-          className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-black text-sm font-medium rounded-lg"
-        >
-          <Plus size={16} /> Schedule
-        </button>
+        <div className="flex items-center gap-2">
+          {onBatchGenerate && batchEligibleSessions.length > 0 && (
+            <button
+              onClick={handleBuildUpcoming}
+              disabled={!!batchProgress}
+              className="flex items-center gap-1.5 px-3 py-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              <Zap size={16} />
+              Build {batchEligibleSessions.length} Session{batchEligibleSessions.length !== 1 ? 's' : ''}
+            </button>
+          )}
+          <button
+            onClick={() => { setShowAdd(!showAdd); setAddDate(selectedDate || new Date().toISOString().split('T')[0]); }}
+            className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-black text-sm font-medium rounded-lg"
+          >
+            <Plus size={16} /> Schedule
+          </button>
+        </div>
       </div>
 
       {/* Add Form */}
@@ -607,6 +648,58 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
                   </div>
                 )}
 
+                {/* Generated Plan Preview */}
+                {sw.generatedPlan && sw.status === 'planned' && (
+                  <div className="mt-2 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <CheckCircle size={12} className="text-green-400" />
+                        <span className="text-[10px] font-medium text-green-400">AI Session Built</span>
+                      </div>
+                      {sw.generatedAt && (
+                        <span className="text-[10px] text-gray-600">
+                          {new Date(sw.generatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </span>
+                      )}
+                    </div>
+                    <div className="bg-neutral-800/50 rounded-lg p-2.5 space-y-1">
+                      <p className="text-xs font-medium text-white truncate">{sw.generatedPlan.title}</p>
+                      <p className="text-[10px] text-gray-400">{sw.generatedPlan.focus} · {sw.generatedPlan.totalDurationMin} min · {sw.generatedPlan.exercises.length} exercises</p>
+                      <div className="space-y-0.5 mt-1">
+                        {sw.generatedPlan.exercises.slice(0, 5).map((ex, i) => (
+                          <p key={i} className="text-[10px] text-gray-300 truncate">
+                            {ex.exerciseName}: {ex.sets}×{ex.reps}{ex.percentOf1RM ? ` @${ex.percentOf1RM}%` : ''}
+                          </p>
+                        ))}
+                        {sw.generatedPlan.exercises.length > 5 && (
+                          <p className="text-[10px] text-gray-500">+{sw.generatedPlan.exercises.length - 5} more</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-1.5">
+                      {onRefineSession && (
+                        <button
+                          onClick={() => onRefineSession(sw.id)}
+                          className="flex-1 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 hover:bg-amber-500/20 text-[10px] font-medium transition-colors flex items-center justify-center gap-1"
+                        >
+                          <RefreshCw size={10} />
+                          Refine
+                        </button>
+                      )}
+                      <button
+                        onClick={() => {
+                          const cleared = { ...sw, generatedPlan: undefined, generatedAt: undefined };
+                          onSave(cleared);
+                        }}
+                        className="flex-1 py-1.5 rounded-lg border border-dashed border-gray-600/50 text-gray-400 hover:text-red-400 hover:border-red-500/30 hover:bg-red-500/5 text-[10px] font-medium transition-colors flex items-center justify-center gap-1"
+                      >
+                        <X size={10} />
+                        Clear
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Read-only for completed/skipped or >4 weeks out */}
                 {(sw.status !== 'planned' || weeksOut > 4) && sw.skeletonExercises && sw.skeletonExercises.length > 0 && (
                   <div>
@@ -637,6 +730,7 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500" /> Completed</span>
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500" /> Logged Session</span>
         <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-gray-500" /> Skipped</span>
+        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500" /> AI Built</span>
       </div>
 
       {/* Exercise Editor Modal */}
