@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { ScheduledWorkout, SavedWorkout, TrainingGoalFocus, ScheduledWorkoutStatus, TrainingPhase, SkeletonExercise, MovementPattern } from '../shared/types';
-import { Calendar, Plus, X, Search, Dumbbell, ChevronUp, ChevronDown, ChevronLeft, Zap, RefreshCw, CheckCircle } from 'lucide-react';
+import { Calendar, Plus, X, Search, Dumbbell, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Zap, RefreshCw, CheckCircle, Minus } from 'lucide-react';
 import { getAllExercises } from '../shared/services/exerciseLibrary';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -345,26 +345,31 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [editingSession, setEditingSession] = useState<ScheduledWorkout | null>(null);
   const calendarRef = useRef<FullCalendar>(null);
+  const [batchCount, setBatchCount] = useState(6);
 
-  // Upcoming sessions eligible for batch generation (next 2 weeks, planned, have skeleton)
-  const batchEligibleSessions = useMemo(() => {
+  // All future sessions eligible for batch generation (planned, have skeleton, no existing plan)
+  const allEligibleSessions = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const twoWeeksOut = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
-    return scheduled.filter(sw =>
-      sw.status === 'planned' &&
-      sw.sessionFocus &&
-      !sw.generatedPlan &&
-      new Date(sw.date + 'T00:00:00') >= today &&
-      new Date(sw.date + 'T00:00:00') <= twoWeeksOut
-    );
+    return scheduled
+      .filter(sw =>
+        sw.status === 'planned' &&
+        sw.sessionFocus &&
+        !sw.generatedPlan &&
+        new Date(sw.date + 'T00:00:00') >= today
+      )
+      .sort((a, b) => a.date.localeCompare(b.date));
   }, [scheduled]);
 
+  const clampedBatchCount = Math.min(batchCount, allEligibleSessions.length);
+  const estimatedMinutes = Math.ceil(clampedBatchCount * 0.4);
+
   const handleBuildUpcoming = useCallback(() => {
-    if (onBatchGenerate && batchEligibleSessions.length > 0) {
-      onBatchGenerate(batchEligibleSessions.map(s => s.id));
+    if (onBatchGenerate && allEligibleSessions.length > 0) {
+      const toBuild = allEligibleSessions.slice(0, batchCount);
+      onBatchGenerate(toBuild.map(s => s.id));
     }
-  }, [onBatchGenerate, batchEligibleSessions]);
+  }, [onBatchGenerate, allEligibleSessions, batchCount]);
 
   // Map ScheduledWorkout[] + SavedWorkout[] → FullCalendar EventInput[]
   const events: EventInput[] = useMemo(() => {
@@ -500,15 +505,41 @@ const TrainingCalendarView: React.FC<Props> = ({ scheduled, history, onSave, onD
           </h2>
         </div>
         <div className="flex items-center gap-2">
-          {onBatchGenerate && batchEligibleSessions.length > 0 && (
-            <button
-              onClick={handleBuildUpcoming}
-              disabled={!!batchProgress}
-              className="flex items-center gap-1.5 px-3 py-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
-            >
-              <Zap size={16} />
-              Build {batchEligibleSessions.length} Session{batchEligibleSessions.length !== 1 ? 's' : ''}
-            </button>
+          {onBatchGenerate && allEligibleSessions.length > 0 && (
+            <div className="flex items-center gap-1.5">
+              {/* Session count stepper */}
+              <div className="flex items-center bg-neutral-800 border border-neutral-700 rounded-lg overflow-hidden">
+                <button
+                  onClick={() => setBatchCount(c => Math.max(1, c - 1))}
+                  disabled={batchCount <= 1}
+                  className="px-1.5 py-2 text-gray-400 hover:text-white hover:bg-neutral-700 disabled:opacity-30 transition-colors"
+                >
+                  <Minus size={14} />
+                </button>
+                <span className="px-2 py-2 text-sm font-semibold text-white min-w-[2.2rem] text-center tabular-nums">
+                  {clampedBatchCount}
+                </span>
+                <button
+                  onClick={() => setBatchCount(c => Math.min(20, allEligibleSessions.length, c + 1))}
+                  disabled={batchCount >= Math.min(20, allEligibleSessions.length)}
+                  className="px-1.5 py-2 text-gray-400 hover:text-white hover:bg-neutral-700 disabled:opacity-30 transition-colors"
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
+              {/* Build button */}
+              <button
+                onClick={handleBuildUpcoming}
+                disabled={!!batchProgress}
+                className="flex items-center gap-1.5 px-3 py-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                <Zap size={16} />
+                Build
+              </button>
+              {clampedBatchCount > 0 && (
+                <span className="text-[10px] text-gray-500 hidden sm:inline">~{estimatedMinutes} min</span>
+              )}
+            </div>
           )}
           <button
             onClick={() => { setShowAdd(!showAdd); setAddDate(selectedDate || new Date().toISOString().split('T')[0]); }}
